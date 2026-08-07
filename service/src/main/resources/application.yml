@@ -1,0 +1,24 @@
+# Configuracion del servicio SLCP.
+# En esta primera version no hay base de datos: el objetivo es que el servicio
+# arranque sin ninguna dependencia externa, de modo que un fallo en el primer
+# intento tenga una sola causa posible y no varias.
+
+spring:
+  application:
+    name: slcp-service
+
+server:
+  port: 8081
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    org.slcp: INFO

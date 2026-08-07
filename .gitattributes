@@ -1,0 +1,42 @@
+# SLCP - Normalizacion de finales de linea
+#
+# Motivo: los scripts de shell y los hooks deben conservar finales de linea LF
+# incluso en Windows. Con CRLF, el interprete falla con "bad interpreter: /bin/sh^M"
+# y el hook de TRC-10 deja de ejecutarse sin aviso.
+
+# Por defecto: Git normaliza a LF en el repositorio y decide en el disco.
+* text=auto
+
+# Estos SIEMPRE con LF, tambien en el disco de Windows.
+*.sh            text eol=lf
+.githooks/*     text eol=lf
+*.yml           text eol=lf
+*.yaml          text eol=lf
+mvnw            text eol=lf
+gradlew         text eol=lf
+
+# Codigo y datos: LF para que el diff sea estable entre plataformas.
+*.java          text eol=lf
+*.ts            text eol=lf
+*.html          text eol=lf
+*.css           text eol=lf
+*.scss          text eol=lf
+*.json          text eol=lf
+*.tsv           text eol=lf
+*.sql           text eol=lf
+*.md            text eol=lf
+*.tex           text eol=lf
+*.bib           text eol=lf
+*.xml           text eol=lf
+
+# Windows nativo.
+*.bat           text eol=crlf
+*.cmd           text eol=crlf
+*.ps1           text eol=crlf
+
+# Binarios: Git no debe tocarlos.
+*.pdf           binary
+*.png           binary
+*.jpg           binary
+*.jar           binary
+*.zip           binary

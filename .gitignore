@@ -22,3 +22,39 @@
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
+
+# ===== Añadido para SLCP =====
+
+# Salida de compilación del núcleo
+out/
+target/
+# El wrapper de Maven sí debe versionarse pese a la regla *.jar de arriba
+!.mvn/wrapper/maven-wrapper.jar
+
+# Node y Angular
+node_modules/
+dist/
+.angular/
+npm-debug.log*
+yarn-error.log*
+
+# Entorno local
+.env
+*.local
+
+# Herramientas
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# LaTeX (fuentes de la documentación)
+*.aux
+*.out
+*.toc
+*.bbl
+*.blg
+*.synctex.gz
+*.fls
+*.fdb_latexmk

@@ -1,0 +1,35 @@
+# SLCP - Oraculo de conformidad de IdentifierAdvisor
+# Requisitos verificados: NAM-04, NAM-05, NAM-06, NAM-07 y la regla de validacion
+# interactiva: si el lenguaje admite el nombre propuesto por la persona, se acepta;
+# si no lo admite, la plataforma propone alternativas legales y la persona elige.
+#
+# Columnas: id | singular | plural | target | kind | contexto | rolHint | esperado
+# esperado para validate: LEGAL:<forma> o <CODIGO>
+# esperado para suggest : lista de candidatos separados por |
+#
+# --- VALIDACION: el lenguaje admite el nombre ---
+W001	Matricula	Matriculas	JAVA	TYPE			LEGAL:Matricula
+W002	Order	Orders	JAVA	TYPE			LEGAL:Order
+W003	Static	Statics	JAVA	TYPE			LEGAL:Static
+W004	Namespace	Namespaces	CSHARP	MEMBER			LEGAL:Namespace
+W005	Order	Orders	SQL_POSTGRES	TABLE			LEGAL:orders
+W006	Grupo	Grupos	SQL_POSTGRES	COLUMN			LEGAL:grupo
+# --- VALIDACION: el lenguaje NO lo admite ---
+W010	Order	Orders	SQL_POSTGRES	COLUMN			RESERVED_WORD
+W011	Group	Groups	SQL_MYSQL	COLUMN			RESERVED_WORD
+W012	Static	Statics	JAVA	MEMBER			RESERVED_WORD
+W013	Class	Classes	PHP	TYPE			RESERVED_WORD
+W014	Select	Selects	SQL_ORACLE	COLUMN			RESERVED_WORD
+W015	123abc	123abcs	JAVA	TYPE			INVALID_TERM
+W016			JAVA	TYPE			EMPTY_TERM
+# --- SUGERENCIA: alternativas legales, en orden ---
+W020	Order	Orders	SQL_POSTGRES	COLUMN	Purchase	code	purchase_order|order_code
+W021	Group	Groups	SQL_POSTGRES	COLUMN	Student		student_group
+W022	Static	Statics	JAVA	MEMBER	Configuration		configurationStatic
+W023	Class	Classes	PHP	TYPE	Course		CourseClass
+W024	Select	Selects	SQL_ORACLE	COLUMN	Query	value	query_select|select_value
+W025	Order	Orders	SQL_MYSQL	COLUMN		number	order_number
+# --- SUGERENCIA: sin contexto ni rol no hay candidato mecanico ---
+W030	Order	Orders	SQL_POSTGRES	COLUMN			
+# --- SUGERENCIA: el termino ya es legal, no se sugiere nada ---
+W031	Matricula	Matriculas	SQL_POSTGRES	COLUMN	Student	code	

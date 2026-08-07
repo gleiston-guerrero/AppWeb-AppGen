@@ -1,0 +1,58 @@
+#!/bin/sh
+#
+# SLCP - Validacion del mensaje de commit
+# Implementa el requisito TRC-10: el vinculo entre requisito y codigo se captura
+# desde el mensaje de commit, validado por un hook que rechaza el no conforme.
+#
+# Instalacion (una sola vez, tras clonar):
+#     git config core.hooksPath .githooks
+#
+# En Windows funciona sin cambios: Git para Windows ejecuta los hooks con su
+# propio interprete de shell.
+
+MSG_FILE="$1"
+MSG=$(cat "$MSG_FILE")
+
+# Los commits de fusion no describen trabajo propio y quedan exentos.
+FIRST_LINE=$(printf '%s' "$MSG" | head -n 1)
+case "$FIRST_LINE" in
+	Merge\ *) exit 0 ;;
+	fixup!\ *|squash!\ *) exit 0 ;;
+esac
+
+# Familias de requisitos vigentes segun SLCP-DOC-001.
+FAMILIES='TRC|CON|TGT|NAM|INT|FUN|ROL|REV|ADM|WBS|RES|PRG|MAP|RQM|PLN|ANA|RPT|SPC|MOD|ARQ|PRO|VER'
+
+# Se exige al menos un identificador de requisito entre corchetes.
+if printf '%s' "$MSG" | grep -Eq "\[[^]]*($FAMILIES)-[0-9]{2}[^]]*\]"; then
+	exit 0
+fi
+
+cat >&2 <<'FIN'
+
+  COMMIT RECHAZADO
+
+  El mensaje no referencia ningun requisito.
+
+  El requisito TRC-10 exige que el vinculo entre requisito y codigo se
+  capture desde el mensaje de commit. Un commit sin identificador deja
+  codigo sin justificacion, que el indicador de huerfanos de TRC-11
+  reportara despues.
+
+  Formato esperado:
+
+      <tipo>(<ambito>): <descripcion>   [<ID-REQUISITO>]
+
+  Ejemplos validos:
+
+      feat(naming): validar nombres propuestos   [NAM-08]
+      fix(naming): sensibilidad a mayusculas por destino   [NAM-05]
+      docs(spec): incorporar la familia VER   [VER-01..VER-23]
+      chore(repo): estructura inicial   [CON-01, CON-02]
+
+  Familias admitidas:
+      TRC CON TGT NAM INT FUN ROL REV ADM WBS RES
+      PRG MAP RQM PLN ANA RPT SPC MOD ARQ PRO VER
+
+FIN
+exit 1

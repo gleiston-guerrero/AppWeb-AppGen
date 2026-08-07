@@ -1,0 +1,30 @@
+# Composicion para desarrollo local de SLCP.
+# Levanta unicamente PostgreSQL, de modo que no haga falta instalarlo en la maquina.
+#
+# Uso:  docker compose -f infra/docker-compose.yml up -d
+# Alto: docker compose -f infra/docker-compose.yml down
+#
+# AVISO: este archivo no ha podido ejecutarse en el entorno donde se redacto,
+# que carece de motor de contenedores. Su primera ejecucion en su maquina es
+# tambien su primera verificacion.
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: slcp-postgres
+    environment:
+      POSTGRES_DB: slcp
+      POSTGRES_USER: slcp
+      POSTGRES_PASSWORD: slcp_dev_only
+    ports:
+      - "5432:5432"
+    volumes:
+      - slcp_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U slcp -d slcp"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  slcp_pgdata:

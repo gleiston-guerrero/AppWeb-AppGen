@@ -1,0 +1,66 @@
+# SLCP - Oraculo de conformidad de NamingTransform
+# Requisitos verificados: NAM-01, NAM-03, NAM-04, NAM-05, NAM-06, NAM-07
+# Este archivo es el oraculo (TestOracle). Se sella antes de la implementacion
+# y no puede modificarse sin aprobacion humana independiente (TGT-08).
+# Columnas: id | singular | plural | target | kind | maxlen | expected
+# expected = valor esperado, o ERROR:<codigo> si la transformacion debe abortar.
+#
+# --- Vocabulario canonico del metamodelo (nivel N1) ---
+V001	Requirement	Requirements	JAVA	TYPE	0	Requirement
+V002	Requirement	Requirements	JAVA	MEMBER	0	requirement
+V003	Requirement	Requirements	JAVA	CONSTANT	0	REQUIREMENT
+V004	Requirement	Requirements	CSHARP	TYPE	0	Requirement
+V005	Requirement	Requirements	CSHARP	MEMBER	0	Requirement
+V006	Requirement	Requirements	PHP	TYPE	0	Requirement
+V007	Requirement	Requirements	PHP	MEMBER	0	requirement
+V008	Requirement	Requirements	SQL_POSTGRES	TABLE	0	requirements
+V009	Requirement	Requirements	SQL_POSTGRES	COLUMN	0	requirement
+V010	Requirement	Requirements	REST	PATH	0	requirements
+V011	Requirement	Requirements	JSON	MEMBER	0	requirement
+V012	Requirement	Requirements	FILE	FILE	0	requirement
+# --- Terminos compuestos ---
+V020	ChangeRequest	ChangeRequests	JAVA	TYPE	0	ChangeRequest
+V021	ChangeRequest	ChangeRequests	JAVA	MEMBER	0	changeRequest
+V022	ChangeRequest	ChangeRequests	JAVA	CONSTANT	0	CHANGE_REQUEST
+V023	ChangeRequest	ChangeRequests	SQL_POSTGRES	TABLE	0	change_requests
+V024	ChangeRequest	ChangeRequests	SQL_POSTGRES	COLUMN	0	change_request
+V025	ChangeRequest	ChangeRequests	REST	PATH	0	change-requests
+V026	ChangeRequest	ChangeRequests	FILE	FILE	0	change-request
+V027	ChangeRequest	ChangeRequests	CSHARP	MEMBER	0	ChangeRequest
+V028	ChangeRequest	ChangeRequests	PHP	MEMBER	0	changeRequest
+# --- Entrada en otras formas: la tokenizacion debe ser indiferente ---
+V030	change_request	change_requests	JAVA	TYPE	0	ChangeRequest
+V031	change-request	change-requests	JAVA	TYPE	0	ChangeRequest
+V032	CHANGE_REQUEST	CHANGE_REQUESTS	JAVA	TYPE	0	ChangeRequest
+V033	changeRequest	changeRequests	SQL_POSTGRES	COLUMN	0	change_request
+# --- Terminos de dominio en espanol (nivel N3): NAM-01 no los traduce ---
+V040	Matricula	Matriculas	JAVA	TYPE	0	Matricula
+V041	Matrícula	Matrículas	JAVA	TYPE	0	Matricula
+V042	Matrícula	Matrículas	SQL_POSTGRES	TABLE	0	matriculas
+V043	Matrícula	Matrículas	REST	PATH	0	matriculas
+V044	Año lectivo	Años lectivos	SQL_POSTGRES	TABLE	0	anos_lectivos
+V045	Año lectivo	Años lectivos	JAVA	TYPE	0	AnoLectivo
+V046	Niño	Niños	SQL_POSTGRES	COLUMN	0	nino
+V047	Situación académica	Situaciones académicas	SQL_POSTGRES	TABLE	0	situaciones_academicas
+V048	Situación académica	Situaciones académicas	JAVA	MEMBER	0	situacionAcademica
+# --- NAM-07: la pluralizacion viene del glosario, nunca se infiere ---
+V050	Matrícula		SQL_POSTGRES	TABLE	0	ERROR:MISSING_PLURAL
+V051	Matrícula		REST	PATH	0	ERROR:MISSING_PLURAL
+V052	Matrícula		JAVA	TYPE	0	Matricula
+# --- NAM-05: colision con palabra reservada, aborta ---
+V060	Order	Orders	SQL_POSTGRES	COLUMN	0	ERROR:RESERVED_WORD
+V061	Group	Groups	SQL_POSTGRES	COLUMN	0	ERROR:RESERVED_WORD
+V062	Static	Statics	JAVA	MEMBER	0	ERROR:RESERVED_WORD
+V063	Class	Classes	PHP	MEMBER	0	ERROR:RESERVED_WORD
+V064	Namespace	Namespaces	CSHARP	MEMBER	0	ERROR:RESERVED_WORD
+V065	Order	Orders	SQL_POSTGRES	TABLE	0	orders
+V066	Static	Statics	JAVA	TYPE	0	Static
+V067	Select	Selects	SQL_ORACLE	COLUMN	0	ERROR:RESERVED_WORD
+# --- NAM-06: regla de longitud determinista ---
+V070	Requirement	Requirements	SQL_ORACLE	TABLE	30	requirements
+V071	AcademicSituationRegistrationRecord	AcademicSituationRegistrationRecords	SQL_ORACLE	TABLE	30	academic_situation_re_61c55523
+V072	AcademicSituationRegistrationRecord	AcademicSituationRegistrationRecords	SQL_ORACLE	COLUMN	30	academic_situation_re_b92502fb
+V073	AcademicSituationRegistrationRecord	AcademicSituationRegistrationRecords	SQL_POSTGRES	TABLE	63	academic_situation_registration_records
+# --- Entrada invalida ---
+V080			JAVA	TYPE	0	ERROR:EMPTY_TERM
+V081	123	123s	JAVA	TYPE	0	ERROR:INVALID_TERM

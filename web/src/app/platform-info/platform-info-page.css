@@ -1,0 +1,109 @@
+.pagina {
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 3rem 1.5rem;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: #1f2933;
+  line-height: 1.6;
+}
+
+.cabecera {
+  border-bottom: 2px solid #1f3a5f;
+  padding-bottom: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+h1 {
+  font-size: 2.75rem;
+  margin: 0;
+  color: #1f3a5f;
+  letter-spacing: -0.02em;
+}
+
+.proposito {
+  font-size: 1.1rem;
+  margin: 0.5rem 0 0.75rem;
+  color: #3e4c59;
+}
+
+.version {
+  font-size: 0.8rem;
+  color: #7b8794;
+  font-variant-numeric: tabular-nums;
+}
+
+.bloque {
+  margin-bottom: 2rem;
+}
+
+h2 {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #7b8794;
+  margin-bottom: 0.5rem;
+}
+
+ul {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+ul.linea {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+ul.linea li {
+  background: #edf1f6;
+  border: 1px solid #d3dce6;
+  border-radius: 999px;
+  padding: 0.2rem 0.8rem;
+  font-size: 0.9rem;
+}
+
+.pie {
+  border-top: 1px solid #d3dce6;
+  padding-top: 1.25rem;
+  font-size: 0.9rem;
+  color: #616e7c;
+}
+
+.pie p {
+  margin: 0.2rem 0;
+}
+
+a {
+  color: #1f3a5f;
+}
+
+.estado {
+  color: #7b8794;
+}
+
+.error {
+  border-left: 4px solid #cf1124;
+  background: #fff5f5;
+  padding: 1rem 1.25rem;
+  border-radius: 4px;
+}
+
+.error h2 {
+  color: #cf1124;
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 1.1rem;
+  margin-top: 0;
+}
+
+.error pre {
+  background: #1f2933;
+  color: #e4e7eb;
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  overflow-x: auto;
+}

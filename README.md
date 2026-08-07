@@ -117,10 +117,12 @@ Un *commit* sin identificador de requisito es rechazado por `.githooks/commit-ms
 El propio *hook* tiene su oráculo, que puede ejecutarse en cualquier momento:
 
 ```powershell
-sh .githooks/commit-msg-test.sh
+& "C:\Program Files\Git\bin\bash.exe" .githooks/commit-msg-test.sh
 ```
 
 Resultado esperado: 13 comprobaciones superadas, `RESULTADO: VERDE`.
+
+PowerShell y CMD no reconocen `sh`, porque Git trae su intérprete sin añadirlo al PATH. Por eso la ruta completa. En **Git Bash** basta con `sh .githooks/commit-msg-test.sh`. El *hook* en sí funciona siempre, con PATH o sin él.
 
 ---
 

@@ -38,6 +38,9 @@ Requisito: [NAM-05]"
 comprobar "commit de fusion"                0 "Merge branch 'feat/REQ-0017'"
 comprobar "commit fixup"                    0 "fixup! feat(naming): validar nombres"
 comprobar "familia PRO"                     0 "feat(core): propagacion transaccional   [PRO-03]"
+comprobar "familia SEC"                     0 "feat(auth): token en cookie   [SEC-01]"
+comprobar "familia INV"                     0 "feat(auth): enlace de invitacion   [INV-01]"
+comprobar "SEC junto a otras familias"      0 "feat(auth): sesion   [FUN-03, SEC-01, SEC-03]"
 
 # --- Deben ser rechazados (codigo 1) ---
 comprobar "sin identificador"               1 "feat(naming): validar nombres propuestos"

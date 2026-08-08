@@ -21,7 +21,7 @@ case "$FIRST_LINE" in
 esac
 
 # Familias de requisitos vigentes segun SLCP-DOC-001.
-FAMILIES='TRC|CON|TGT|NAM|INT|FUN|ROL|REV|ADM|WBS|RES|PRG|MAP|RQM|PLN|ANA|RPT|SPC|MOD|ARQ|PRO|VER'
+FAMILIES='TRC|CON|TGT|NAM|INT|FUN|ROL|REV|ADM|WBS|RES|PRG|MAP|RQM|PLN|ANA|RPT|SPC|MOD|ARQ|PRO|VER|SEC|INV'
 
 # Se exige al menos un identificador de requisito entre corchetes.
 if printf '%s' "$MSG" | grep -Eq "\[[^]]*($FAMILIES)-[0-9]{2}[^]]*\]"; then
@@ -53,6 +53,7 @@ cat >&2 <<'FIN'
   Familias admitidas:
       TRC CON TGT NAM INT FUN ROL REV ADM WBS RES
       PRG MAP RQM PLN ANA RPT SPC MOD ARQ PRO VER
+      SEC INV
 
 FIN
 exit 1

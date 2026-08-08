@@ -1,13 +1,40 @@
 # Configuracion del servicio SLCP.
-# En esta primera version no hay base de datos: el objetivo es que el servicio
-# arranque sin ninguna dependencia externa, de modo que un fallo en el primer
-# intento tenga una sola causa posible y no varias.
+#
+# A partir de este incremento el servicio exige PostgreSQL en marcha. Si no lo
+# encuentra, no arranca: es deliberado. Un servicio que arranca sin su base de
+# datos falla despues, en la primera peticion, y con un error mucho menos claro.
+#
+# Para levantarla:  docker compose -f ../infra/docker-compose.yml up -d
 
 spring:
   application:
     name: slcp-service
 
+  datasource:
+    url: jdbc:postgresql://localhost:5432/slcp
+    username: slcp
+    password: slcp_dev_only
+
+  jpa:
+    hibernate:
+      # El esquema lo gobierna Flyway, no Hibernate. 'validate' comprueba que el
+      # modelo de entidades y el esquema real coinciden, y detiene el arranque si
+      # discrepan, en lugar de modificar la base de datos por su cuenta.
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+
 server:
+  # Puerto 8081 y no 8080: en el entorno de desarrollo de la parte interesada,
+  # el 8080 lo ocupa de forma permanente un Apache HTTP Server (XAMPP o similar).
+  # Se puede sobreescribir al arrancar con --server.port=NNNN
   port: 8081
 
 management:
@@ -19,6 +46,26 @@ management:
     health:
       show-details: always
 
+# ---------------------------------------------------------------------
+# Sesion (SEC-01 a SEC-04)
+#
+# ADVERTENCIA: la clave de firma que figura aqui es de desarrollo. En cualquier
+# despliegue real debe proceder de una variable de entorno y no del repositorio.
+#   $env:SLCP_SESSION_SECRET = "<cadena aleatoria de al menos 32 caracteres>"
+#
+# cookie-secure queda en false SOLO porque el desarrollo local usa http. En
+# cualquier otro entorno debe ser true: sin ello la cookie viajaria sin cifrar.
+# ---------------------------------------------------------------------
+slcp:
+  session:
+    secret: ${SLCP_SESSION_SECRET:clave-de-desarrollo-no-usar-en-produccion-32c}
+    access-ttl: PT15M
+    refresh-ttl: P7D
+    cookie-secure: false
+    access-cookie-name: slcp_access
+    refresh-cookie-name: slcp_refresh
+
 logging:
   level:
     org.slcp: INFO
+    org.flywaydb: INFO

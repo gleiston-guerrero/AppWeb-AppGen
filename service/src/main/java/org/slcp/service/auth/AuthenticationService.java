@@ -29,17 +29,20 @@ public class AuthenticationService {
 	private final EventRecordRepository events;
 	private final PasswordEncoder passwordEncoder;
 	private final SessionProperties propiedades;
+	private final LoginThrottle throttle;
 	private final Clock clock;
 
 	public AuthenticationService(UserRepository users, LoginIdentifierRepository identifiers,
 			RefreshTokenRepository refreshTokens, EventRecordRepository events,
-			PasswordEncoder passwordEncoder, SessionProperties propiedades, Clock clock) {
+			PasswordEncoder passwordEncoder, SessionProperties propiedades,
+			LoginThrottle throttle, Clock clock) {
 		this.users = users;
 		this.identifiers = identifiers;
 		this.refreshTokens = refreshTokens;
 		this.events = events;
 		this.passwordEncoder = passwordEncoder;
 		this.propiedades = propiedades;
+		this.throttle = throttle;
 		this.clock = clock;
 	}
 
@@ -63,32 +66,74 @@ public class AuthenticationService {
 	public Sesion iniciar(LoginRequest peticion, String origen) {
 		Instant momento = Instant.now(clock);
 
+		// El limite de intentos es el control que impide enumerar cuentas y probar
+		// contrasenas. Se comprueba antes que nada, para que un bloqueo no consuma
+		// trabajo de verificacion.
+		Optional<LoginFailure> bloqueo = throttle.comprobar(peticion.identifier(), origen);
+		if (bloqueo.isPresent()) {
+			registrar("SESSION_THROTTLED", null, peticion.identifier(), origen, momento);
+			throw new AuthenticationFailedException(bloqueo.get());
+		}
+
 		Optional<User> encontrado = identifiers.resolver(peticion.identifier())
 				.map(LoginIdentifier::getUserId)
 				.flatMap(users::findById);
 
-		// La contrasena se verifica incluso cuando no hay cuenta, contra un
-		// verificador ficticio, para que el tiempo de respuesta no revele si el
-		// identificador existe.
-		String verificador = encontrado.map(User::getPasswordVerifier)
-				.orElse("$2a$12$0000000000000000000000000000000000000000000000000000u");
-		boolean coincide = passwordEncoder.matches(peticion.password(), verificador);
-
-		if (encontrado.isEmpty() || !coincide || !encontrado.get().puedeIniciarSesion()) {
-			registrar("SESSION_DENIED", encontrado.map(User::getId).orElse(null),
-					peticion.identifier(), origen, momento);
-			throw new AuthenticationFailedException();
+		if (encontrado.isEmpty()) {
+			throw fallo(LoginFailure.UNKNOWN_IDENTIFIER, null, peticion.identifier(), origen, momento, true);
 		}
 
 		User usuario = encontrado.get();
+
+		// Sin verificador, la cuenta procede de una invitacion sin completar.
+		if (usuario.getPasswordVerifier() == null) {
+			throw fallo(LoginFailure.REGISTRATION_INCOMPLETE, usuario.getId(),
+					usuario.getUsername(), origen, momento, false);
+		}
+
+		if (!passwordEncoder.matches(peticion.password(), usuario.getPasswordVerifier())) {
+			throw fallo(LoginFailure.BAD_PASSWORD, usuario.getId(),
+					usuario.getUsername(), origen, momento, true);
+		}
+
+		// La contrasena era correcta: lo que sigue no es un intento fallido de
+		// acceso sino una cuenta que no esta operativa, y no debe penalizarse.
+		LoginFailure impedimento = switch (usuario.getStatus()) {
+			case PENDING_APPROVAL -> LoginFailure.PENDING_APPROVAL;
+			case REJECTED -> LoginFailure.REJECTED;
+			case DECOMMISSIONED -> LoginFailure.DECOMMISSIONED;
+			case ACTIVE -> null;
+		};
+		if (impedimento != null) {
+			throw fallo(impedimento, usuario.getId(), usuario.getUsername(), origen, momento, false);
+		}
+
+		throttle.anotarAcierto(peticion.identifier());
+
 		String refresh = TokenHasher.generar();
-		Instant caducidadRefresh = momento.plus(propiedades.refreshTtl());
 		refreshTokens.save(RefreshToken.emitir(TokenHasher.resumir(refresh), usuario.getId(),
-				momento, caducidadRefresh));
+				momento, momento.plus(propiedades.refreshTtl())));
 
 		registrar("SESSION_OPENED", usuario.getId(), usuario.getUsername(), origen, momento);
 
 		return new Sesion(usuario, refresh, momento.plus(propiedades.accessTtl()));
+	}
+
+	/**
+	 * Deja constancia del fallo y lo devuelve para lanzarlo.
+	 *
+	 * @param penaliza si el fallo cuenta para el limite de intentos. Un
+	 *                 impedimento de estado no lo hace: la persona acerto su
+	 *                 contrasena y bloquearla seria castigarla por esperar una
+	 *                 aprobacion que no depende de ella
+	 */
+	private AuthenticationFailedException fallo(LoginFailure motivo, java.util.UUID sujeto,
+			String etiqueta, String origen, Instant momento, boolean penaliza) {
+		if (penaliza) {
+			throttle.anotarFallo(etiqueta, origen);
+		}
+		registrar("SESSION_DENIED_" + motivo.name(), sujeto, etiqueta, origen, momento);
+		return new AuthenticationFailedException(motivo);
 	}
 
 	/**
@@ -104,11 +149,11 @@ public class AuthenticationService {
 
 		RefreshToken vigente = refreshTokens.findByTokenHash(TokenHasher.resumir(refreshAportado))
 				.filter(t -> t.estaVigente(momento))
-				.orElseThrow(AuthenticationFailedException::new);
+				.orElseThrow(() -> new AuthenticationFailedException(LoginFailure.UNKNOWN_IDENTIFIER));
 
 		User usuario = users.findById(vigente.getUserId())
 				.filter(User::puedeIniciarSesion)
-				.orElseThrow(AuthenticationFailedException::new);
+				.orElseThrow(() -> new AuthenticationFailedException(LoginFailure.UNKNOWN_IDENTIFIER));
 
 		vigente.revocar(momento, "ROTATED");
 

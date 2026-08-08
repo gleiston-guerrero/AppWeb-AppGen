@@ -57,7 +57,7 @@ public class AuthenticationController {
 			@CookieValue(name = "${slcp.session.refresh-cookie-name}", required = false) String refresh,
 			HttpServletRequest http) {
 		if (refresh == null) {
-			throw new AuthenticationFailedException();
+			throw new AuthenticationFailedException(LoginFailure.UNKNOWN_IDENTIFIER);
 		}
 		return responder(service.renovar(refresh, origen(http)));
 	}
@@ -80,7 +80,7 @@ public class AuthenticationController {
 	@GetMapping("/current")
 	public SessionResponse actual(@AuthenticationPrincipal Jwt jwt) {
 		User usuario = users.findById(java.util.UUID.fromString(jwt.getSubject()))
-				.orElseThrow(AuthenticationFailedException::new);
+				.orElseThrow(() -> new AuthenticationFailedException(LoginFailure.UNKNOWN_IDENTIFIER));
 		return new SessionResponse(usuario.getId(), usuario.getReadableId(), usuario.getUsername(),
 				usuario.getFullName(), jwt.getExpiresAt());
 	}

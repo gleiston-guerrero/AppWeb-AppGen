@@ -1,5 +1,7 @@
 package org.slcp.service.auth;
 
+import java.time.Clock;
+import java.time.Duration;
 import javax.crypto.spec.SecretKeySpec;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -48,6 +50,18 @@ public class SecurityConfiguration {
 	@Bean
 	public PasswordEncoder passwordEncoder() {
 		return new BCryptPasswordEncoder(12);
+	}
+
+	/**
+	 * Limitador de intentos de acceso.
+	 *
+	 * <p>La ventana de quince minutos es un punto de partida: suficiente para
+	 * frenar un ataque automatizado y lo bastante corta para que quien se equivoca
+	 * de buena fe no quede fuera media jornada.</p>
+	 */
+	@Bean
+	public LoginThrottle loginThrottle(Clock clock) {
+		return new LoginThrottle(Duration.ofMinutes(15), clock);
 	}
 
 	@Bean

@@ -1,1 +1,115 @@
-/* You can add global styles to this file, and also import other style files */
+/* =====================================================================
+   SLCP - Estilos globales
+   Los valores de color proceden de la identidad de la documentacion del
+   proyecto: el azul es el mismo que emplean los documentos de especificacion.
+   ===================================================================== */
+
+:root {
+  /* Color */
+  --ink:          #16202b;
+  --ink-soft:     #5a6b7c;
+  --ink-faint:    #8b9aa8;
+  --paper:        #f4f6f8;
+  --surface:      #ffffff;
+  --blue:         #1b3a5c;
+  --blue-soft:    #e3e9f0;
+  --verified:     #1e7a54;
+  --verified-bg:  #e6f2ec;
+  --rule:         #d6dce3;
+
+  /* Tipografia */
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+
+  /* Escala */
+  --step--1: 0.8125rem;
+  --step-0:  1rem;
+  --step-1:  1.1875rem;
+  --step-2:  1.5rem;
+  --step-3:  2.25rem;
+  --step-4:  clamp(2.5rem, 6vw, 4rem);
+
+  /* Ritmo */
+  --gap-xs: 0.5rem;
+  --gap-s:  1rem;
+  --gap-m:  2rem;
+  --gap-l:  4rem;
+  --gap-xl: 6rem;
+
+  --ancho: 68rem;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: var(--step-0);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 {
+  margin: 0;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+p {
+  margin: 0;
+}
+
+ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+a {
+  color: var(--blue);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--verified);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* La etiqueta monoespaciada es la voz estructural de toda la interfaz. */
+.eyebrow {
+  font-family: var(--mono);
+  font-size: var(--step--1);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.contenedor {
+  width: 100%;
+  max-width: var(--ancho);
+  margin-inline: auto;
+  padding-inline: 1.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

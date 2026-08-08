@@ -1,0 +1,68 @@
+<main class="pagina contenedor">
+  @if (resultado(); as respuesta) {
+    <section class="hecho-ya">
+      <p class="eyebrow">Solicitud registrada</p>
+      <h1 class="hecho-ya__titulo">Queda pendiente de aprobación</h1>
+
+      <dl class="resumen">
+        <dt>Identificador</dt>
+        <dd class="resumen__mono">{{ respuesta.readableId }}</dd>
+        <dt>Usuario</dt>
+        <dd class="resumen__mono">{{ respuesta.username }}</dd>
+        <dt>Estado</dt>
+        <dd><span class="estado">{{ respuesta.status }}</span></dd>
+      </dl>
+
+      <p class="hecho-ya__nota">{{ respuesta.message }}</p>
+      <a class="volver" routerLink="/">Volver al inicio</a>
+    </section>
+  } @else {
+    <section class="formulario-seccion">
+      <p class="eyebrow">Acceso a la plataforma</p>
+      <h1 class="titulo">Solicitar registro</h1>
+
+      <p class="entrada">
+        El registro concede el rol de facilitador de proyectos, que es quien crea proyectos
+        e incorpora al equipo. La solicitud no otorga capacidad alguna hasta que el
+        administrador de la plataforma la aprueba.
+      </p>
+
+      <form class="formulario" [formGroup]="formulario" (ngSubmit)="enviar()" novalidate>
+        <div class="campo">
+          <label for="fullName">Nombre completo</label>
+          <input id="fullName" type="text" formControlName="fullName" autocomplete="name" />
+          @if (formulario.controls.fullName.touched && formulario.controls.fullName.invalid) {
+            <p class="campo__error">Escriba su nombre completo.</p>
+          }
+        </div>
+
+        <div class="campo">
+          <label for="username">Nombre de usuario</label>
+          <input id="username" type="text" formControlName="username" autocomplete="username" />
+          <p class="campo__ayuda">Letras, dígitos, punto, guion y guion bajo. Sin espacios.</p>
+          @if (formulario.controls.username.touched && formulario.controls.username.invalid) {
+            <p class="campo__error">
+              Entre 3 y 60 caracteres, sin espacios ni signos distintos de punto, guion y guion bajo.
+            </p>
+          }
+        </div>
+
+        <div class="campo">
+          <label for="email">Correo electrónico</label>
+          <input id="email" type="email" formControlName="email" autocomplete="email" />
+          @if (formulario.controls.email.touched && formulario.controls.email.invalid) {
+            <p class="campo__error">Escriba un correo electrónico válido.</p>
+          }
+        </div>
+
+        @if (error(); as mensaje) {
+          <p class="error-envio" role="alert">{{ mensaje }}</p>
+        }
+
+        <button type="submit" class="enviar" [disabled]="enviando()">
+          {{ enviando() ? 'Enviando…' : 'Enviar solicitud' }}
+        </button>
+      </form>
+    </section>
+  }
+</main>

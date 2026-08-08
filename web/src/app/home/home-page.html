@@ -1,0 +1,106 @@
+<main>
+  <section class="hero">
+    <div class="contenedor">
+      <p class="eyebrow">Plataforma de orquestación del ciclo de vida del software</p>
+
+      <h1 class="hero__titulo">
+        De una especificación<br />
+        a una aplicación.
+      </h1>
+
+      <p class="hero__entrada">
+        Se escribe lo que el sistema debe hacer. La plataforma deriva el modelo, el esquema,
+        el código y las pruebas, y conserva el rastro que une cada línea con el requisito
+        que la justifica.
+      </p>
+
+      <div class="cadena" role="group" aria-label="Ejemplo de derivación desde un requisito">
+        <article class="origen">
+          <p class="origen__id">{{ ejemplo.requisito.id }}</p>
+          <p class="origen__patron">{{ ejemplo.requisito.patron }}</p>
+          <p class="origen__texto">{{ ejemplo.requisito.texto }}</p>
+        </article>
+
+        <div class="union" aria-hidden="true">
+          <span class="union__etiqueta">deriva</span>
+        </div>
+
+        <ul class="derivados">
+          @for (artefacto of ejemplo.derivados; track artefacto.id; let i = $index) {
+            <li class="derivado" [style.animation-delay]="i * 90 + 'ms'">
+              <span class="derivado__id">{{ artefacto.id }}</span>
+              <span class="derivado__clase">{{ artefacto.clase }}</span>
+              <span class="derivado__detalle">{{ artefacto.detalle }}</span>
+            </li>
+          }
+        </ul>
+      </div>
+
+      <div class="acciones">
+        <a class="boton" routerLink="/solicitar-registro">Solicitar registro</a>
+        <p class="acciones__nota">
+          El acceso con sesión aún no está disponible. El registro queda pendiente de
+          aprobación por el administrador de la plataforma.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  @if (error()) {
+    <section class="contenedor aviso">
+      <p class="eyebrow">Servicio no disponible</p>
+      <p class="aviso__texto">
+        La información sobre esta plataforma la proporciona su propio servicio, que ahora
+        mismo no responde. Para levantarlo:
+      </p>
+      <pre class="aviso__orden">cd service
+mvn spring-boot:run</pre>
+    </section>
+  }
+
+  @if (cargando()) {
+    <section class="contenedor aviso aviso--tenue">
+      <p class="eyebrow">Consultando el servicio</p>
+    </section>
+  }
+
+  @if (info(); as datos) {
+    <section class="hechos">
+      <div class="contenedor reja">
+        <article class="hecho">
+          <h2 class="eyebrow">Materia prima</h2>
+          <p class="hecho__principal">{{ datos.input }}</p>
+        </article>
+
+        <article class="hecho">
+          <h2 class="eyebrow">Qué produce</h2>
+          <ul class="hecho__lista">
+            @for (artefacto of datos.produces; track artefacto) {
+              <li>{{ artefacto }}</li>
+            }
+          </ul>
+        </article>
+
+        <article class="hecho">
+          <h2 class="eyebrow">Cómo está construida</h2>
+          <ul class="fichas">
+            @for (tecnologia of datos.builtWith; track tecnologia) {
+              <li class="ficha">{{ tecnologia }}</li>
+            }
+          </ul>
+          <p class="hecho__nota">Software libre de principio a fin. Versión {{ datos.version }}.</p>
+        </article>
+      </div>
+    </section>
+
+    <footer class="pie">
+      <div class="contenedor pie__interior">
+        <p class="pie__autoria">{{ datos.authorship }}</p>
+        <p class="pie__legal">
+          <span class="pie__licencia">{{ datos.license }}</span>
+          <a [href]="datos.repository" target="_blank" rel="noopener">Código fuente</a>
+        </p>
+      </div>
+    </footer>
+  }
+</main>

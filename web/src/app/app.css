@@ -1,0 +1,83 @@
+.saltar {
+  position: absolute;
+  left: -9999px;
+}
+
+.saltar:focus {
+  left: 1rem;
+  top: 1rem;
+  z-index: 10;
+  background: var(--surface);
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--rule);
+}
+
+.barra {
+  border-bottom: 1px solid var(--rule);
+  background: var(--surface);
+}
+
+.barra__interior {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-s);
+  min-height: 4.5rem;
+  flex-wrap: wrap;
+}
+
+.marca {
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+  color: inherit;
+}
+
+.marca__sigla {
+  font-family: var(--mono);
+  font-size: var(--step-1);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--blue);
+}
+
+.marca__nota {
+  font-size: 0.7rem;
+  color: var(--ink-faint);
+  letter-spacing: 0.02em;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-s);
+  flex-wrap: wrap;
+}
+
+.nav__enlace {
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  text-decoration: none;
+  padding: 0.35rem 0;
+  border-bottom: 2px solid transparent;
+}
+
+.nav__enlace:hover {
+  color: var(--ink);
+}
+
+.nav__enlace--activo {
+  color: var(--blue);
+  border-bottom-color: var(--blue);
+}
+
+.nav__sesion {
+  font: inherit;
+  font-size: var(--step--1);
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  background: transparent;
+  color: var(--ink-faint);
+  cursor: not-allowed;
+}

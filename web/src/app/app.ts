@@ -1,13 +1,14 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+
+import { SessionService } from './auth/session-service';
 
 /**
  * Armazon de la aplicacion: cabecera de navegacion y area de contenido.
  *
- * La cabecera es visible para el visitante sin sesion iniciada, conforme a
- * FUN-01. Las opciones que exigen sesion aparecen, pero declaradas como no
- * disponibles mientras el incremento correspondiente no exista: ocultarlas
- * daria una idea equivocada del alcance del producto.
+ * La cabecera cambia segun haya sesion o no. Lo que muestra es una comodidad,
+ * nunca un control: SEC-05 exige que toda restriccion este impuesta en el
+ * servicio, de modo que ocultar una opcion no impide nada por si solo.
  */
 @Component({
   selector: 'app-root',
@@ -15,4 +16,9 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
-export class App {}
+export class App {
+  private readonly servicio = inject(SessionService);
+
+  protected readonly sesion = this.servicio.sesion;
+  protected readonly esAdministrador = this.servicio.esAdministrador;
+}

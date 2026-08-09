@@ -22,14 +22,17 @@ public class RegistrationService {
 	private final LoginIdentifierRepository identifiers;
 	private final EventRecordRepository events;
 	private final PasswordEncoder passwordEncoder;
+	private final EmailDomainChecker dominios;
 	private final Clock clock;
 
 	public RegistrationService(UserRepository users, LoginIdentifierRepository identifiers,
-			EventRecordRepository events, PasswordEncoder passwordEncoder, Clock clock) {
+			EventRecordRepository events, PasswordEncoder passwordEncoder,
+			EmailDomainChecker dominios, Clock clock) {
 		this.users = users;
 		this.identifiers = identifiers;
 		this.events = events;
 		this.passwordEncoder = passwordEncoder;
+		this.dominios = dominios;
 		this.clock = clock;
 	}
 
@@ -41,6 +44,14 @@ public class RegistrationService {
 	 */
 	@Transactional
 	public RegistrationResponse solicitar(RegistrationRequest peticion) {
+		// El correo debe poder recibir mensajes. La comprobacion mira el dominio, no
+		// el buzon: saber si el buzon existe exige enviar un enlace y esperar a que
+		// alguien lo abra, que es el flujo de invitacion.
+		EmailDomainChecker.Resultado dominio = dominios.comprobar(peticion.email());
+		if (dominios.debeRechazarse(peticion.email())) {
+			throw new RegistrationConflictException(dominios.explicacion(dominio));
+		}
+
 		// La comprobacion recae sobre el espacio de nombres compartido y no sobre
 		// cada columna por separado: FUN-03 exige que un nombre de usuario tampoco
 		// pueda coincidir con el correo de otra cuenta.
@@ -59,7 +70,9 @@ public class RegistrationService {
 		// La contrasena se deriva aqui y en claro no llega mas alla de este punto.
 		String verificador = passwordEncoder.encode(peticion.password());
 
-		User usuario = User.solicitar(peticion.username(), peticion.email(),
+		// Quien se autorregistra obtiene la atribucion de facilitador, que es la
+		// capacidad de crear proyectos. Quien llegue por invitacion no la tendra.
+		User usuario = User.solicitarComoFacilitador(peticion.username(), peticion.email(),
 				peticion.fullName(), verificador, secuencia, momento);
 		users.save(usuario);
 

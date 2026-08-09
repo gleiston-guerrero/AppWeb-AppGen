@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -52,7 +53,15 @@ public class AuthenticationController {
 		return responder(service.iniciar(peticion, origen(http)));
 	}
 
-	@PostMapping("/refresh")
+	/**
+	 * Renueva la sesion sustituyendo la vigente.
+	 *
+	 * <p>Se emplea PUT sobre el recurso y no POST sobre una ruta terminada en un
+	 * verbo: renovar es sustituir la sesion actual por otra, que es exactamente lo
+	 * que PUT significa. Una ruta con verbo seria una llamada a procedimiento
+	 * disfrazada de recurso.</p>
+	 */
+	@PutMapping("/current")
 	public ResponseEntity<SessionResponse> renovar(
 			@CookieValue(name = "${slcp.session.refresh-cookie-name}", required = false) String refresh,
 			HttpServletRequest http) {
@@ -62,7 +71,14 @@ public class AuthenticationController {
 		return responder(service.renovar(refresh, origen(http)));
 	}
 
-	@DeleteMapping
+	/**
+	 * Cierra la sesion vigente.
+	 *
+	 * <p>El borrado recae sobre el elemento y no sobre la coleccion. Un
+	 * {@code DELETE} sobre la coleccion pedirla, literalmente, borrar todas las
+	 * sesiones de todo el mundo.</p>
+	 */
+	@DeleteMapping("/current")
 	public ResponseEntity<Void> cerrar(
 			@CookieValue(name = "${slcp.session.refresh-cookie-name}", required = false) String refresh,
 			HttpServletRequest http) {
@@ -82,7 +98,8 @@ public class AuthenticationController {
 		User usuario = users.findById(java.util.UUID.fromString(jwt.getSubject()))
 				.orElseThrow(() -> new AuthenticationFailedException(LoginFailure.UNKNOWN_IDENTIFIER));
 		return new SessionResponse(usuario.getId(), usuario.getReadableId(), usuario.getUsername(),
-				usuario.getFullName(), jwt.getExpiresAt());
+				usuario.getFullName(), usuario.getPlatformRole().name(),
+				usuario.isMustChangePassword(), jwt.getExpiresAt());
 	}
 
 	private ResponseEntity<SessionResponse> responder(AuthenticationService.Sesion sesion) {
@@ -100,7 +117,8 @@ public class AuthenticationController {
 		User u = sesion.usuario();
 		return ResponseEntity.ok().headers(cabeceras)
 				.body(new SessionResponse(u.getId(), u.getReadableId(), u.getUsername(),
-						u.getFullName(), sesion.expiraEn()));
+						u.getFullName(), u.getPlatformRole().name(),
+						u.isMustChangePassword(), sesion.expiraEn()));
 	}
 
 	/**

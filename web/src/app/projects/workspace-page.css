@@ -1,0 +1,397 @@
+.pagina {
+  padding-block: var(--gap-m) var(--gap-xl);
+}
+
+.cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: var(--gap-s);
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: var(--gap-s);
+  margin-bottom: var(--gap-m);
+}
+
+.titulo {
+  font-size: var(--step-3);
+  margin-top: var(--gap-xs);
+}
+
+.atribucion {
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  margin-top: 0.2rem;
+}
+
+.salir {
+  font: inherit;
+  font-size: var(--step--1);
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 0.35rem 0.8rem;
+  cursor: pointer;
+  color: var(--ink-soft);
+}
+
+.salir:hover {
+  color: var(--ink);
+  border-color: var(--ink-faint);
+}
+
+.urgente,
+.aviso,
+.error {
+  padding: 0.85rem 1.1rem;
+  margin-bottom: var(--gap-s);
+  font-size: var(--step--1);
+}
+
+.urgente {
+  border-left: 3px solid #b07d2b;
+  background: #fdf8ef;
+}
+
+.aviso {
+  border-left: 3px solid var(--verified);
+  background: var(--verified-bg);
+}
+
+.error {
+  border-left: 3px solid #a3261f;
+  background: #fdf2f1;
+}
+
+/* --------------------------- Alta de proyecto --------------------------- */
+.alta {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  padding: var(--gap-s) var(--gap-m) var(--gap-m);
+  margin-bottom: var(--gap-m);
+}
+
+.alta__campos {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.alta__campos input {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+.alta__nota,
+.incorporar__nota {
+  font-size: var(--step--1);
+  color: var(--ink-faint);
+  margin-top: 0.5rem;
+  max-width: 62ch;
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+  font-size: var(--step--1);
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+input:focus,
+select:focus {
+  background: var(--surface);
+  border-color: var(--blue);
+}
+
+/* --------------------------- Botones --------------------------- */
+.btn {
+  font: inherit;
+  font-size: var(--step--1);
+  padding: 0.55rem 1.1rem;
+  border-radius: 2px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn--principal {
+  background: var(--blue);
+  color: #fff;
+}
+
+.btn--plano {
+  background: transparent;
+  border-color: var(--rule);
+  color: var(--ink-soft);
+}
+
+.btn--plano:hover {
+  color: var(--ink);
+  border-color: var(--ink-faint);
+}
+
+/* --------------------------- Proyectos --------------------------- */
+.vacio {
+  color: var(--ink-faint);
+  padding-block: var(--gap-m);
+}
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+}
+
+.proyecto {
+  background: var(--surface);
+}
+
+.proyecto__fila {
+  padding: 1rem 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--gap-s);
+  flex-wrap: wrap;
+}
+
+.proyecto__id {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--blue);
+  letter-spacing: 0.03em;
+}
+
+.proyecto__nombre {
+  font-size: var(--step-1);
+  margin-top: 0.1rem;
+}
+
+.proyecto__proposito {
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  margin-top: 0.2rem;
+  max-width: 60ch;
+}
+
+.roles {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+
+.rol {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  background: var(--blue-soft);
+  color: var(--blue);
+  padding: 0.2rem 0.6rem;
+  border-radius: 2px;
+  cursor: help;
+}
+
+.proyecto__acciones {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.equipo__tamano {
+  font-size: var(--step--1);
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --------------------------- Equipo --------------------------- */
+.equipo {
+  border-top: 1px solid var(--rule);
+  padding: 1rem 1.25rem 1.25rem;
+  background: var(--paper);
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--step--1);
+}
+
+.tabla th {
+  text-align: left;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-faint);
+  font-weight: 400;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.tabla td {
+  padding-block: 0.5rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.mono {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+}
+
+.incorporar {
+  margin-top: var(--gap-s);
+}
+
+.incorporar__campos {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.incorporar__campos input {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+/* --------------------------- Invitaciones recibidas --------------------------- */
+.invitaciones {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--verified);
+  padding: var(--gap-s) var(--gap-m) var(--gap-m);
+  margin-bottom: var(--gap-m);
+}
+
+.invitaciones__lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 0.6rem;
+}
+
+.invitacion {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--gap-s);
+  flex-wrap: wrap;
+}
+
+.invitacion__proyecto {
+  font-size: var(--step-1);
+}
+
+.invitacion__rol {
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  margin-top: 0.2rem;
+}
+
+.invitacion__acciones {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn--aceptar {
+  background: var(--verified);
+  color: #fff;
+}
+
+/* --------------------------- Enlace generado --------------------------- */
+.enlace {
+  margin-top: var(--gap-s);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--blue);
+  background: var(--surface);
+  padding: 0.85rem 1.1rem;
+}
+
+.enlace__camino {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--blue);
+}
+
+.enlace__texto {
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  margin-top: 0.3rem;
+  max-width: 62ch;
+}
+
+.enlace__caja {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.enlace__url {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 0.45rem 0.7rem;
+  flex: 1 1 22rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.enlace__aviso {
+  font-size: var(--step--1);
+  color: var(--ink-faint);
+  margin-top: 0.6rem;
+  max-width: 62ch;
+}
+
+/* --------------------------- Invitaciones sin responder --------------------------- */
+.pendientes {
+  margin-top: var(--gap-s);
+}
+
+.pendientes__lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.pendiente {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  font-size: var(--step--1);
+  padding-block: 0.35rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.pendiente__estado {
+  color: var(--ink-faint);
+  flex: 1;
+}
+
+.enlace__entregado {
+  font-size: var(--step--1);
+  color: var(--verified);
+  margin-top: 0.6rem;
+  max-width: 62ch;
+}

@@ -130,9 +130,11 @@ docker exec -it slcp-postgres psql -U slcp -d slcp -c "SELECT event_type, actor_
 | Método | Ruta | Qué hace |
 |---|---|---|
 | `POST` | `/api/v1/auth/sessions` | Inicia sesión. Devuelve cookies, no tokens en el cuerpo |
-| `POST` | `/api/v1/auth/sessions/refresh` | Renueva y **sustituye** el token de renovación |
+| `PUT` | `/api/v1/auth/sessions/current` | Renueva y **sustituye** el token de renovación |
 | `GET` | `/api/v1/auth/sessions/current` | Quién está atendiéndose |
-| `DELETE` | `/api/v1/auth/sessions` | Cierra sesión y **revoca en el servidor** |
+| `DELETE` | `/api/v1/auth/sessions/current` | Cierra sesión y **revoca en el servidor** |
+
+Las rutas siguen la convención de recursos: sustantivos en plural, sin verbos, y el método HTTP expresa la acción. Renovar es sustituir la sesión vigente, de ahí `PUT`; cerrarla es borrar el elemento y no la colección, de ahí `/current` y no la raíz.
 
 ## Antes de arrancar
 

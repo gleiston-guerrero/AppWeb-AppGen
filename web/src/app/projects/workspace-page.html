@@ -1,0 +1,256 @@
+<main class="pagina contenedor">
+  <header class="cabecera">
+    <div>
+      <p class="eyebrow">Espacio de trabajo</p>
+      @if (usuario(); as u) {
+        <h1 class="titulo">{{ u.fullName }}</h1>
+        <p class="atribucion">
+          @if (u.platformRole === 'FACILITATOR') {
+            Puede crear proyectos y designar equipo.
+          } @else {
+            Participa en los proyectos donde se le ha incorporado.
+          }
+        </p>
+      }
+    </div>
+    <button type="button" class="salir" (click)="salir()">Cerrar sesión</button>
+  </header>
+
+  @if (usuario()?.mustChangePassword) {
+    <p class="urgente">
+      Esta cuenta usa aún la contraseña inicial. Cámbiela antes de seguir usándola.
+    </p>
+  }
+
+  @if (aviso(); as mensaje) {
+    <p class="aviso" role="status">{{ mensaje }}</p>
+  }
+  @if (error(); as mensaje) {
+    <p class="error" role="alert">{{ mensaje }}</p>
+  }
+
+  @if (misInvitaciones().length > 0) {
+    <section class="invitaciones">
+      <h2 class="eyebrow">Le han invitado</h2>
+      <ul class="invitaciones__lista">
+        @for (inv of misInvitaciones(); track inv.id) {
+          <li class="invitacion">
+            <div>
+              <p class="invitacion__proyecto">{{ inv.email }}</p>
+              <p class="invitacion__rol">
+                Como <span class="rol">{{ inv.roleLabel }}</span>
+              </p>
+            </div>
+            <div class="invitacion__acciones">
+              <button
+                type="button"
+                class="btn btn--aceptar"
+                [disabled]="respondiendo() === inv.id"
+                (click)="aceptarInvitacion(inv)"
+              >
+                Aceptar
+              </button>
+              <button
+                type="button"
+                class="btn btn--plano"
+                [disabled]="respondiendo() === inv.id"
+                (click)="rechazarInvitacion(inv)"
+              >
+                Rechazar
+              </button>
+            </div>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+
+  @if (puedeCrear()) {
+    <section class="alta">
+      <h2 class="eyebrow">Crear proyecto</h2>
+      <div class="alta__campos">
+        <input
+          type="text"
+          [(ngModel)]="nombre"
+          name="nombre"
+          placeholder="Nombre del proyecto"
+          aria-label="Nombre del proyecto"
+        />
+        <input
+          type="text"
+          [(ngModel)]="proposito"
+          name="proposito"
+          placeholder="Qué debe resolver (opcional)"
+          aria-label="Propósito del proyecto"
+        />
+        <button
+          type="button"
+          class="btn btn--principal"
+          [disabled]="creando() || nombre.trim().length === 0"
+          (click)="crear()"
+        >
+          {{ creando() ? 'Creando…' : 'Crear' }}
+        </button>
+      </div>
+      <p class="alta__nota">Quien crea un proyecto queda como su facilitador.</p>
+    </section>
+  }
+
+  @if (cargando()) {
+    <p class="vacio">Consultando sus proyectos…</p>
+  } @else if (proyectos().length === 0) {
+    <p class="vacio">
+      @if (puedeCrear()) {
+        Todavía no tiene proyectos. Cree el primero arriba.
+      } @else {
+        Todavía no participa en ningún proyecto. Un facilitador debe incorporarle.
+      }
+    </p>
+  } @else {
+    <ul class="lista">
+      @for (p of proyectos(); track p.readableId) {
+        <li class="proyecto">
+          <div class="proyecto__fila">
+            <div class="proyecto__datos">
+              <p class="proyecto__id">{{ p.readableId }}</p>
+              <p class="proyecto__nombre">{{ p.name }}</p>
+              @if (p.purpose) {
+                <p class="proyecto__proposito">{{ p.purpose }}</p>
+              }
+              <ul class="roles">
+                @for (rol of p.myRoles; track rol) {
+                  <li class="rol" [title]="alcanceRol[rol]">{{ etiquetaRol[rol] }}</li>
+                }
+              </ul>
+            </div>
+
+            <div class="proyecto__acciones">
+              <span class="equipo__tamano">{{ p.teamSize }} en el equipo</span>
+              <button type="button" class="btn btn--plano" (click)="alternarEquipo(p)">
+                {{ abierto() === p.readableId ? 'Ocultar equipo' : 'Ver equipo' }}
+              </button>
+            </div>
+          </div>
+
+          @if (abierto() === p.readableId) {
+            <div class="equipo">
+              @if (cargandoEquipo()) {
+                <p class="vacio">Consultando el equipo…</p>
+              } @else {
+                <table class="tabla">
+                  <thead>
+                    <tr>
+                      <th>Persona</th>
+                      <th>Usuario</th>
+                      <th>Rol</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (m of equipo(); track m.username + m.role) {
+                      <tr>
+                        <td>{{ m.fullName }}</td>
+                        <td class="mono">{{ m.username }}</td>
+                        <td>{{ m.roleLabel }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+
+                @if (esFacilitadorDe(p)) {
+                  <div class="incorporar">
+                    <h3 class="eyebrow">Incorporar al equipo</h3>
+                    <div class="incorporar__campos">
+                      <input
+                        type="text"
+                        [(ngModel)]="identificador"
+                        name="identificador"
+                        placeholder="Usuario o correo de quien se incorpora"
+                        aria-label="Usuario o correo de quien se incorpora"
+                      />
+                      <select [(ngModel)]="rolNuevo" name="rolNuevo" aria-label="Rol">
+                        @for (rol of rolesAsignables; track rol) {
+                          <option [value]="rol">{{ etiquetaRol[rol] }}</option>
+                        }
+                      </select>
+                      <button
+                        type="button"
+                        class="btn btn--principal"
+                        [disabled]="incorporando() || identificador.trim().length === 0"
+                        (click)="incorporar(p)"
+                      >
+                        {{ incorporando() ? 'Incorporando…' : 'Incorporar' }}
+                      </button>
+                    </div>
+                    <p class="incorporar__nota">
+                      Indique el usuario o el correo. Si esa persona ya tiene cuenta, se le
+                      propondrá y deberá aceptar; si no la tiene, se generará un enlace para que
+                      complete su registro. El rol lo fija usted y no puede cambiarlo quien entra.
+                      Quien es miembro del equipo no puede ser además propietario en el mismo
+                      proyecto: quien produce no aprueba.
+                    </p>
+
+                    @if (ultimaInvitacion(); as r) {
+                      <div class="enlace">
+                        <p class="enlace__camino">
+                          @switch (r.camino) {
+                            @case ('PENDIENTE_DE_REGISTRO') { Debe completar su registro }
+                            @case ('PENDIENTE_DE_ACEPTACION') { Debe aceptar la invitación }
+                            @default { Incorporada }
+                          }
+                        </p>
+                        <p class="enlace__texto">{{ r.message }}</p>
+
+                        @if (r.link) {
+                          <div class="enlace__caja">
+                            <code class="enlace__url">{{ r.link }}</code>
+                            <button type="button" class="btn btn--plano" (click)="copiar(r)">
+                              {{ copiado() ? 'Copiado' : 'Copiar' }}
+                            </button>
+                          </div>
+
+                          <p class="enlace__aviso">
+                            El correo no salió, así que le mostramos el enlace para que pueda
+                            hacerlo llegar por otro medio. La invitación es válida igualmente.
+                          </p>
+                        } @else {
+                          <p class="enlace__entregado">
+                            Correo enviado a <span class="mono">{{ r.email }}</span>. El enlace no
+                            se muestra aquí a propósito: solo debe conocerlo quien lea ese buzón.
+                          </p>
+                        }
+                      </div>
+                    }
+
+                    @if (pendientesProyecto().length > 0) {
+                      <div class="pendientes">
+                        <h3 class="eyebrow">Invitaciones sin responder</h3>
+                        <ul class="pendientes__lista">
+                          @for (inv of pendientesProyecto(); track inv.id) {
+                            <li class="pendiente">
+                              <span class="mono">{{ inv.email }}</span>
+                              <span class="rol">{{ inv.roleLabel }}</span>
+                              <span class="pendiente__estado">
+                                {{ inv.tieneCuenta ? 'Esperando que acepte' : 'Sin registrar' }}
+                              </span>
+                              <button
+                                type="button"
+                                class="btn btn--plano"
+                                (click)="revocarInvitacion(p, inv)"
+                              >
+                                Retirar
+                              </button>
+                            </li>
+                          }
+                        </ul>
+                      </div>
+                    }
+                  </div>
+                }
+              }
+            </div>
+          }
+        </li>
+      }
+    </ul>
+  }
+</main>

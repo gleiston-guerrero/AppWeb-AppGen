@@ -1,0 +1,96 @@
+<main class="pagina contenedor">
+  <header class="cabecera">
+    <div>
+      <p class="eyebrow">Administración de la plataforma</p>
+      <h1 class="titulo">Solicitudes pendientes</h1>
+    </div>
+    @if (usuario(); as u) {
+      <div class="quien">
+        <span class="quien__nombre">{{ u.fullName }}</span>
+        <button type="button" class="salir" (click)="salir()">Cerrar sesión</button>
+      </div>
+    }
+  </header>
+
+  @if (usuario()?.mustChangePassword) {
+    <p class="urgente">
+      Esta cuenta usa la contraseña inicial, que figura en el repositorio y por tanto conoce
+      cualquiera. Cámbiela antes de seguir usándola.
+    </p>
+  }
+
+  @if (aviso(); as mensaje) {
+    <p class="aviso" role="status">{{ mensaje }}</p>
+  }
+
+  @if (error(); as mensaje) {
+    <p class="error" role="alert">{{ mensaje }}</p>
+  }
+
+  @if (cargando()) {
+    <p class="vacio">Consultando solicitudes…</p>
+  } @else if (pendientes().length === 0) {
+    <p class="vacio">No hay solicitudes a la espera de decisión.</p>
+  } @else {
+    <ul class="lista">
+      @for (solicitud of pendientes(); track solicitud.readableId) {
+        <li class="solicitud">
+          <div class="solicitud__datos">
+            <p class="solicitud__id">{{ solicitud.readableId }}</p>
+            <p class="solicitud__nombre">{{ solicitud.fullName }}</p>
+            <p class="solicitud__contacto">
+              <span class="mono">{{ solicitud.username }}</span>
+              <span class="separador">·</span>
+              <span class="mono">{{ solicitud.email }}</span>
+            </p>
+          </div>
+
+          @if (rechazando() === solicitud.readableId) {
+            <div class="rechazo">
+              <label [for]="'motivo-' + solicitud.readableId">Motivo del rechazo</label>
+              <textarea
+                [id]="'motivo-' + solicitud.readableId"
+                rows="3"
+                [(ngModel)]="motivo"
+                [name]="'motivo-' + solicitud.readableId"
+                placeholder="Quien recibe el rechazo debe entender a qué atenerse"
+              ></textarea>
+              <div class="rechazo__acciones">
+                <button
+                  type="button"
+                  class="btn btn--rechazar"
+                  [disabled]="motivo.trim().length === 0 || enviando() === solicitud.readableId"
+                  (click)="confirmarRechazo(solicitud)"
+                >
+                  Confirmar rechazo
+                </button>
+                <button type="button" class="btn btn--plano" (click)="cancelarRechazo()">
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          } @else {
+            <div class="acciones">
+              <button
+                type="button"
+                class="btn btn--aprobar"
+                [disabled]="enviando() === solicitud.readableId"
+                (click)="aprobar(solicitud)"
+              >
+                Aprobar
+              </button>
+              <button
+                type="button"
+                class="btn btn--plano"
+                [disabled]="enviando() === solicitud.readableId"
+                (click)="abrirRechazo(solicitud)"
+              >
+                Rechazar
+              </button>
+            </div>
+          }
+        </li>
+      }
+    </ul>
+  }
+</main>

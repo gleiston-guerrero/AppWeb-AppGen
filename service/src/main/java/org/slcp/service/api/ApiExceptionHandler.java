@@ -4,8 +4,12 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.slcp.service.administration.InvalidDecisionException;
+import org.slcp.service.administration.RegistrationNotFoundException;
 import org.slcp.service.auth.AuthenticationFailedException;
 import org.slcp.service.auth.LoginFailure;
+import org.slcp.service.invitations.InvitationException;
+import org.slcp.service.projects.ProjectAccessException;
 import org.slcp.service.registration.RegistrationConflictException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +19,10 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 /**
  * Traduccion de los fallos a respuestas.
+ *
+ * <p>Se emplea el codigo 422 con su nombre actual, contenido no procesable. La
+ * RFC 9110 lo renombro y Spring 7 marco como obsoleta la denominacion anterior;
+ * el codigo numerico no cambia.</p>
  *
  * <p>Cada respuesta dice que ocurrio y, cuando procede, que hacer. Un mensaje
  * generico no protege nada que otra ruta no revele ya, y en cambio deja a quien
@@ -44,6 +52,38 @@ public class ApiExceptionHandler {
 			HttpServletRequest peticion) {
 		return ResponseEntity.status(HttpStatus.CONFLICT).body(new ApiError(Instant.now(),
 				HttpStatus.CONFLICT.value(), "REGISTRATION_CONFLICT", fallo.getMessage(),
+				peticion.getRequestURI(), Map.of()));
+	}
+
+	@ExceptionHandler(InvitationException.class)
+	public ResponseEntity<ApiError> invitacion(InvitationException fallo,
+			HttpServletRequest peticion) {
+		return ResponseEntity.unprocessableContent().body(new ApiError(Instant.now(),
+				HttpStatus.UNPROCESSABLE_CONTENT.value(), "INVITATION", fallo.getMessage(),
+				peticion.getRequestURI(), Map.of()));
+	}
+
+	@ExceptionHandler(ProjectAccessException.class)
+	public ResponseEntity<ApiError> proyecto(ProjectAccessException fallo,
+			HttpServletRequest peticion) {
+		return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ApiError(Instant.now(),
+				HttpStatus.FORBIDDEN.value(), "PROJECT_ACCESS", fallo.getMessage(),
+				peticion.getRequestURI(), Map.of()));
+	}
+
+	@ExceptionHandler(RegistrationNotFoundException.class)
+	public ResponseEntity<ApiError> noEncontrado(RegistrationNotFoundException fallo,
+			HttpServletRequest peticion) {
+		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiError(Instant.now(),
+				HttpStatus.NOT_FOUND.value(), "REGISTRATION_NOT_FOUND", fallo.getMessage(),
+				peticion.getRequestURI(), Map.of()));
+	}
+
+	@ExceptionHandler(InvalidDecisionException.class)
+	public ResponseEntity<ApiError> decisionInvalida(InvalidDecisionException fallo,
+			HttpServletRequest peticion) {
+		return ResponseEntity.unprocessableContent().body(new ApiError(Instant.now(),
+				HttpStatus.UNPROCESSABLE_CONTENT.value(), "INVALID_DECISION", fallo.getMessage(),
 				peticion.getRequestURI(), Map.of()));
 	}
 

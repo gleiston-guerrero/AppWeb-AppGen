@@ -1,6 +1,7 @@
 package org.slcp.service.config;
 
 import java.time.Clock;
+import org.slcp.service.registration.EmailDomainChecker;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -18,5 +19,17 @@ public class ClockConfiguration {
 	@Bean
 	public Clock clock() {
 		return Clock.systemUTC();
+	}
+
+	/**
+	 * Comprobador del dominio de correo.
+	 *
+	 * <p>Tres segundos de espera: suficiente para una consulta de nombres normal y
+	 * lo bastante corto para que una caida no deje colgado el formulario. Ante
+	 * fallo no bloquea.</p>
+	 */
+	@Bean
+	public EmailDomainChecker emailDomainChecker() {
+		return new EmailDomainChecker(3000);
 	}
 }

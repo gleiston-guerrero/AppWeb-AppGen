@@ -1,0 +1,192 @@
+.pagina {
+  padding-block: var(--gap-l) var(--gap-xl);
+  max-width: 42rem;
+}
+
+.titulo {
+  font-size: var(--step-3);
+  margin-block: var(--gap-xs) var(--gap-s);
+}
+
+.subtitulo {
+  font-size: var(--step-2);
+  margin-block: var(--gap-m) var(--gap-xs);
+}
+
+.entrada,
+.nota,
+.motivo {
+  color: var(--ink-soft);
+  max-width: 56ch;
+  margin-bottom: var(--gap-s);
+}
+
+.vacio {
+  color: var(--ink-faint);
+  padding-block: var(--gap-m);
+}
+
+.tarjeta {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--blue);
+  padding: var(--gap-s) var(--gap-m) var(--gap-m);
+  margin-bottom: var(--gap-s);
+}
+
+.resumen {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.5rem 1.5rem;
+  margin: 0;
+}
+
+.resumen dt {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-faint);
+  padding-top: 0.15rem;
+}
+
+.resumen dd {
+  margin: 0;
+}
+
+.mono {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+}
+
+.rol {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  background: var(--blue-soft);
+  color: var(--blue);
+  padding: 0.2rem 0.6rem;
+  border-radius: 2px;
+}
+
+.alcance {
+  display: block;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  margin-top: 0.3rem;
+}
+
+.fijo {
+  font-size: var(--step--1);
+  color: var(--ink-faint);
+  margin-top: var(--gap-s);
+  border-top: 1px solid var(--rule);
+  padding-top: 0.6rem;
+}
+
+/* --------------------------- Formulario --------------------------- */
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-s);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  padding: var(--gap-m);
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.campo label {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-faint);
+}
+
+.campo input {
+  font: inherit;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.campo input:focus {
+  background: var(--surface);
+  border-color: var(--blue);
+}
+
+.campo__ayuda,
+.campo__contador {
+  font-size: var(--step--1);
+  color: var(--ink-faint);
+}
+
+.campo__error {
+  font-size: var(--step--1);
+  color: #a3261f;
+}
+
+.clave {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.clave input {
+  flex: 1;
+  min-width: 0;
+}
+
+.clave__ver {
+  font: inherit;
+  font-size: var(--step--1);
+  padding: 0 0.9rem;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  background: var(--surface);
+  color: var(--ink-soft);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.error {
+  border-left: 3px solid #a3261f;
+  background: #fdf2f1;
+  padding: 0.75rem 1rem;
+  font-size: var(--step--1);
+}
+
+.boton {
+  display: inline-block;
+  font: inherit;
+  align-self: flex-start;
+  background: var(--blue);
+  color: #fff;
+  border: 0;
+  border-radius: 2px;
+  padding: 0.7rem 1.5rem;
+  cursor: pointer;
+  text-decoration: none;
+  margin-top: 0.4rem;
+}
+
+.boton:disabled {
+  background: var(--ink-faint);
+  cursor: progress;
+}
+
+.hecho {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  padding: var(--gap-m);
+}
+
+.volver {
+  font-size: var(--step--1);
+}

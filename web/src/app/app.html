@@ -11,12 +11,29 @@
       <a routerLink="/" routerLinkActive="nav__enlace--activo" [routerLinkActiveOptions]="{ exact: true }" class="nav__enlace">
         Qué hace
       </a>
-      <a routerLink="/solicitar-registro" routerLinkActive="nav__enlace--activo" class="nav__enlace">
-        Solicitar registro
-      </a>
-      <button type="button" class="nav__sesion" disabled>
-        Iniciar sesión
-      </button>
+
+      @if (sesion() && !esAdministrador()) {
+        <a routerLink="/trabajo" routerLinkActive="nav__enlace--activo" class="nav__enlace">
+          Mi trabajo
+        </a>
+      }
+
+      @if (esAdministrador()) {
+        <a routerLink="/administracion" routerLinkActive="nav__enlace--activo" class="nav__enlace">
+          Administración
+        </a>
+      }
+
+      @if (sesion(); as u) {
+        <span class="nav__quien">{{ u.username }}</span>
+      } @else {
+        <a routerLink="/solicitar-registro" routerLinkActive="nav__enlace--activo" class="nav__enlace">
+          Solicitar registro
+        </a>
+        <a routerLink="/entrar" routerLinkActive="nav__enlace--activo" class="nav__sesion">
+          Iniciar sesión
+        </a>
+      }
     </nav>
   </div>
 </header>

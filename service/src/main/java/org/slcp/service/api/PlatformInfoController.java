@@ -1,6 +1,9 @@
 package org.slcp.service.api;
 
+import java.time.Duration;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.CacheControl;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -24,8 +27,17 @@ public class PlatformInfoController {
 		this.version = version;
 	}
 
+	/**
+	 * Informacion publica de la plataforma.
+	 *
+	 * <p>El contenido no cambia entre despliegues, de modo que se declara
+	 * cacheable. Sin esa declaracion, cada visita vuelve a pedirlo entero aunque
+	 * nada haya cambiado, y el navegador no tiene forma de saberlo.</p>
+	 */
 	@GetMapping("/platform-info")
-	public PlatformInfo platformInfo() {
-		return PlatformInfo.current(version);
+	public ResponseEntity<PlatformInfo> platformInfo() {
+		return ResponseEntity.ok()
+				.cacheControl(CacheControl.maxAge(Duration.ofMinutes(10)).cachePublic())
+				.body(PlatformInfo.current(version));
 	}
 }

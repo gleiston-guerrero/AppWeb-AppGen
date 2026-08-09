@@ -60,6 +60,60 @@ class UserTest {
 	}
 
 	@Test
+	@DisplayName("FUN-16: aprobar deja la cuenta operativa")
+	void aprobar() {
+		User usuario = User.solicitar("gguerrero", "g@uteq.edu.ec", "Gleiston", VERIFICADOR, 1, MOMENTO);
+
+		usuario.aprobar();
+
+		assertThat(usuario.getStatus()).isEqualTo(UserStatus.ACTIVE);
+		assertThat(usuario.puedeIniciarSesion()).isTrue();
+	}
+
+	@Test
+	@DisplayName("FUN-16: el rechazo es terminal y no admite rectificacion")
+	void rechazoTerminal() {
+		User usuario = User.solicitar("gguerrero", "g@uteq.edu.ec", "Gleiston", VERIFICADOR, 1, MOMENTO);
+
+		usuario.rechazar();
+
+		assertThat(usuario.getStatus()).isEqualTo(UserStatus.REJECTED);
+		assertThatThrownBy(usuario::aprobar).isInstanceOf(IllegalStateException.class);
+	}
+
+	@Test
+	@DisplayName("Una cuenta nace sin atribuciones de plataforma")
+	void sinAtribuciones() {
+		User usuario = User.solicitar("gguerrero", "g@uteq.edu.ec", "Gleiston", VERIFICADOR, 1, MOMENTO);
+
+		assertThat(usuario.getPlatformRole()).isEqualTo(PlatformRole.MEMBER);
+		assertThat(usuario.esAdministrador()).isFalse();
+	}
+
+	@Test
+	@DisplayName("FUN-15: el autorregistro concede la atribucion de facilitador")
+	void autorregistroConcedeFacilitador() {
+		User usuario = User.solicitarComoFacilitador("gguerrero", "g@uteq.edu.ec", "Gleiston",
+				VERIFICADOR, 1, MOMENTO);
+
+		assertThat(usuario.getPlatformRole()).isEqualTo(PlatformRole.FACILITATOR);
+		assertThat(usuario.esAdministrador()).isFalse();
+		// La atribucion existe, pero no surte efecto hasta que la cuenta es operativa
+		assertThat(usuario.puedeIniciarSesion()).isFalse();
+	}
+
+	@Test
+	@DisplayName("Cambiar el verificador levanta la obligacion de cambiarlo")
+	void cambioDeVerificador() {
+		User usuario = User.solicitar("gguerrero", "g@uteq.edu.ec", "Gleiston", VERIFICADOR, 1, MOMENTO);
+
+		usuario.cambiarVerificador("$2a$12$otroVerificadorDistintoDelAnterior0000000000000000000");
+
+		assertThat(usuario.getPasswordVerifier()).isNotEqualTo(VERIFICADOR);
+		assertThat(usuario.isMustChangePassword()).isFalse();
+	}
+
+	@Test
 	@DisplayName("Una transicion no admitida se rechaza en lugar de aplicarse")
 	void transicionNoAdmitida() {
 		User usuario = User.solicitar("gguerrero", "g@uteq.edu.ec", "Gleiston", VERIFICADOR, 1, MOMENTO);

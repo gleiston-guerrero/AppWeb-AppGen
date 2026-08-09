@@ -1,0 +1,113 @@
+.pagina {
+  padding-block: var(--gap-l) var(--gap-xl);
+  max-width: 34rem;
+}
+
+.titulo {
+  font-size: var(--step-3);
+  margin-block: var(--gap-xs) var(--gap-m);
+}
+
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-s);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  padding: var(--gap-m);
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.campo label {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-faint);
+}
+
+.campo input {
+  font: inherit;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.campo input:focus {
+  background: var(--surface);
+  border-color: var(--blue);
+}
+
+.campo__ayuda {
+  font-size: var(--step--1);
+  color: var(--ink-faint);
+}
+
+.campo__error {
+  font-size: var(--step--1);
+  color: #a3261f;
+}
+
+.clave {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.clave input {
+  flex: 1;
+  min-width: 0;
+}
+
+.clave__ver {
+  font: inherit;
+  font-size: var(--step--1);
+  padding: 0 0.9rem;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  background: var(--surface);
+  color: var(--ink-soft);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.error-envio {
+  border-left: 3px solid #a3261f;
+  background: #fdf2f1;
+  padding: 0.75rem 1rem;
+  font-size: var(--step--1);
+}
+
+/* El bloqueo por intentos no es un error de la persona: se distingue. */
+.error-envio--espera {
+  border-left-color: #b07d2b;
+  background: #fdf8ef;
+}
+
+.enviar {
+  font: inherit;
+  align-self: flex-start;
+  background: var(--blue);
+  color: #fff;
+  border: 0;
+  border-radius: 2px;
+  padding: 0.7rem 1.5rem;
+  cursor: pointer;
+}
+
+.enviar:disabled {
+  background: var(--ink-faint);
+  cursor: progress;
+}
+
+.alternativa {
+  margin-top: var(--gap-s);
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}

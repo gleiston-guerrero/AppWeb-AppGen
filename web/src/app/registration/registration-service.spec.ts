@@ -21,10 +21,15 @@ describe('RegistrationService', () => {
 
   afterEach(() => http.verify());
 
+  const ejemplo = {
+    username: 'gguerrero',
+    email: 'g@uteq.edu.ec',
+    fullName: 'Gleiston',
+    password: 'una frase larga de acceso',
+  };
+
   it('envia la solicitud a la ruta acordada', () => {
-    service
-      .solicitar({ username: 'gguerrero', email: 'g@uteq.edu.ec', fullName: 'Gleiston' })
-      .subscribe();
+    service.solicitar(ejemplo).subscribe();
 
     const peticion = http.expectOne('/api/v1/registrations');
     expect(peticion.request.method).toBe('POST');
@@ -38,13 +43,19 @@ describe('RegistrationService', () => {
     });
   });
 
-  it('no envia el rol: no es elegible por quien solicita', () => {
-    service
-      .solicitar({ username: 'gguerrero', email: 'g@uteq.edu.ec', fullName: 'Gleiston' })
-      .subscribe();
+  it('FUN-15: no envia el rol, porque no es elegible por quien solicita', () => {
+    service.solicitar(ejemplo).subscribe();
 
     const peticion = http.expectOne('/api/v1/registrations');
     expect(peticion.request.body.role).toBeUndefined();
+    peticion.flush({});
+  });
+
+  it('FUN-05: envia la contrasena, que el servicio exige', () => {
+    service.solicitar(ejemplo).subscribe();
+
+    const peticion = http.expectOne('/api/v1/registrations');
+    expect(peticion.request.body.password).toBe(ejemplo.password);
     peticion.flush({});
   });
 });

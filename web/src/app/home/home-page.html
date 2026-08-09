@@ -50,11 +50,15 @@
     <section class="contenedor aviso">
       <p class="eyebrow">Servicio no disponible</p>
       <p class="aviso__texto">
-        La información sobre esta plataforma la proporciona su propio servicio, que ahora
-        mismo no responde. Para levantarlo:
+        La información sobre esta plataforma la proporciona su propio servicio, que debería
+        estar escuchando en <strong>localhost:8081</strong> y ahora mismo no responde. Para
+        levantarlo:
       </p>
       <pre class="aviso__orden">cd service
 mvn spring-boot:run</pre>
+      <p class="aviso__texto">
+        Si lo tiene arrancado en otro puerto, ajuste <code>proxy.conf.json</code>.
+      </p>
     </section>
   }
 

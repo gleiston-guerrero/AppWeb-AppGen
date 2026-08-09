@@ -49,6 +49,13 @@ public class User {
 	@Column(name = "status", nullable = false, length = 20)
 	private UserStatus status;
 
+	@Enumerated(EnumType.STRING)
+	@Column(name = "platform_role", nullable = false, length = 20)
+	private PlatformRole platformRole;
+
+	@Column(name = "must_change_password", nullable = false)
+	private boolean mustChangePassword;
+
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private Instant createdAt;
 
@@ -69,6 +76,8 @@ public class User {
 		this.fullName = fullName;
 		this.status = status;
 		this.createdAt = createdAt;
+		this.platformRole = PlatformRole.MEMBER;
+		this.mustChangePassword = false;
 	}
 
 	/**
@@ -136,6 +145,54 @@ public class User {
 	/** Indica si la cuenta puede iniciar sesion en este momento. */
 	public boolean puedeIniciarSesion() {
 		return status == UserStatus.ACTIVE && passwordVerifier != null;
+	}
+
+	public PlatformRole getPlatformRole() {
+		return platformRole;
+	}
+
+	public boolean esAdministrador() {
+		return platformRole == PlatformRole.ADMINISTRATOR;
+	}
+
+	public boolean isMustChangePassword() {
+		return mustChangePassword;
+	}
+
+	/**
+	 * Solicitud de quien se autorregistra, que aspira a facilitador.
+	 *
+	 * <p>FUN-15 establece que el autorregistro concede el rol de facilitador de
+	 * proyectos, que es quien puede crearlos. La atribucion se fija ya, y no
+	 * surte efecto hasta que la cuenta pasa a operativa.</p>
+	 */
+	public static User solicitarComoFacilitador(String username, String email, String fullName,
+			String passwordVerifier, long secuencia, Instant momento) {
+		User usuario = solicitar(username, email, fullName, passwordVerifier, secuencia, momento);
+		usuario.platformRole = PlatformRole.FACILITATOR;
+		return usuario;
+	}
+
+	/**
+	 * Aprueba la solicitud de registro.
+	 *
+	 * <p>Realiza FUN-16. La comprobacion de la transicion recae en la maquina de
+	 * estados, de modo que aprobar una cuenta ya aprobada o una rechazada falla
+	 * en lugar de pasar inadvertido.</p>
+	 */
+	public void aprobar() {
+		transitarA(UserStatus.ACTIVE);
+	}
+
+	/** Rechaza la solicitud de registro. El rechazo es terminal. */
+	public void rechazar() {
+		transitarA(UserStatus.REJECTED);
+	}
+
+	/** Fija un verificador nuevo y levanta la obligacion de cambiar la contrasena. */
+	public void cambiarVerificador(String nuevoVerificador) {
+		this.passwordVerifier = nuevoVerificador;
+		this.mustChangePassword = false;
 	}
 
 	public Instant getCreatedAt() {

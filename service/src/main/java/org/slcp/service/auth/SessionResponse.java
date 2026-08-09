@@ -15,5 +15,9 @@ public record SessionResponse(
 		String readableId,
 		String username,
 		String fullName,
+		/** Rol global. La interfaz lo usa para decidir que mostrar, nunca para autorizar. */
+		String platformRole,
+		/** Obliga a la interfaz a llevar a la persona a cambiar su contrasena. */
+		boolean mustChangePassword,
 		Instant expiresAt) {
 }

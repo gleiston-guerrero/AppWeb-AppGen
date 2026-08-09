@@ -1,11 +1,11 @@
 package org.slcp.service.registration;
 
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
+import java.net.URI;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -24,9 +24,19 @@ public class RegistrationController {
 		this.service = service;
 	}
 
+	/**
+	 * Registra la solicitud.
+	 *
+	 * <p>Devuelve 201 con la cabecera {@code Location} apuntando al recurso
+	 * creado. Sin ella, quien consume la respuesta no sabe donde quedo lo que
+	 * acaba de crear y ha de deducirlo, que es justo lo que la cabecera evita.</p>
+	 */
 	@PostMapping
-	@ResponseStatus(HttpStatus.CREATED)
-	public RegistrationResponse solicitar(@Valid @RequestBody RegistrationRequest peticion) {
-		return service.solicitar(peticion);
+	public ResponseEntity<RegistrationResponse> solicitar(
+			@Valid @RequestBody RegistrationRequest peticion) {
+
+		RegistrationResponse respuesta = service.solicitar(peticion);
+		URI ubicacion = URI.create("/api/v1/registrations/" + respuesta.readableId());
+		return ResponseEntity.created(ubicacion).body(respuesta);
 	}
 }

@@ -1,0 +1,121 @@
+<main class="pagina contenedor">
+  @if (cargando()) {
+    <p class="vacio">Comprobando la invitación…</p>
+  } @else if (resultado(); as r) {
+    <section class="hecho">
+      <p class="eyebrow">Registro completado</p>
+      <h1 class="titulo">Ya forma parte del equipo</h1>
+
+      <dl class="resumen">
+        <dt>Proyecto</dt>
+        <dd>{{ r.projectName }} <span class="mono">{{ r.projectReadableId }}</span></dd>
+        <dt>Su rol</dt>
+        <dd><span class="rol">{{ r.roleLabel }}</span></dd>
+      </dl>
+
+      <p class="nota">{{ r.message }}</p>
+      <a class="boton" routerLink="/entrar">Iniciar sesión</a>
+    </section>
+  } @else if (invitacion(); as inv) {
+    @if (!inv.valid) {
+      <section class="hecho">
+        <p class="eyebrow">Invitación no válida</p>
+        <h1 class="titulo">Este enlace no sirve</h1>
+        <p class="motivo">{{ inv.reason }}</p>
+        <a class="volver" routerLink="/">Ir al inicio</a>
+      </section>
+    } @else {
+      <section>
+        <p class="eyebrow">Invitación a un proyecto</p>
+        <h1 class="titulo">{{ inv.projectName }}</h1>
+
+        <div class="tarjeta">
+          <dl class="resumen">
+            <dt>Le invita</dt>
+            <dd>{{ inv.invitedBy }}</dd>
+            <dt>Correo</dt>
+            <dd class="mono">{{ inv.email }}</dd>
+            <dt>Su rol</dt>
+            <dd>
+              <span class="rol">{{ inv.roleLabel }}</span>
+              <span class="alcance">{{ inv.roleScope }}</span>
+            </dd>
+          </dl>
+          <p class="fijo">
+            El rol lo fijó quien le invita y no puede modificarse desde aquí.
+          </p>
+        </div>
+
+        @if (inv.requiereRegistro) {
+          <h2 class="subtitulo">Complete su registro</h2>
+          <p class="entrada">
+            Su correo ya está fijado por la invitación. Solo falta elegir cómo entrará.
+          </p>
+
+          <form class="formulario" [formGroup]="formulario" (ngSubmit)="completar()" novalidate>
+            <div class="campo">
+              <label for="fullName">Nombre completo</label>
+              <input id="fullName" type="text" formControlName="fullName" autocomplete="name" />
+              @if (formulario.controls.fullName.touched && formulario.controls.fullName.invalid) {
+                <p class="campo__error">Escriba su nombre completo.</p>
+              }
+            </div>
+
+            <div class="campo">
+              <label for="username">Nombre de usuario</label>
+              <input id="username" type="text" formControlName="username" autocomplete="username" />
+              <p class="campo__ayuda">Letras, dígitos, punto, guion y guion bajo. Sin espacios.</p>
+              @if (formulario.controls.username.touched && formulario.controls.username.invalid) {
+                <p class="campo__error">Entre 3 y 60 caracteres, sin espacios.</p>
+              }
+            </div>
+
+            <div class="campo">
+              <label for="password">Contraseña</label>
+              <div class="clave">
+                <input
+                  id="password"
+                  [type]="verClave() ? 'text' : 'password'"
+                  formControlName="password"
+                  autocomplete="new-password"
+                />
+                <button type="button" class="clave__ver" (click)="alternarClave()">
+                  {{ verClave() ? 'Ocultar' : 'Mostrar' }}
+                </button>
+              </div>
+              <p class="campo__ayuda">
+                Mínimo {{ MIN_PASSWORD }} caracteres. Una frase que recuerde es más segura que una
+                palabra corta con signos.
+              </p>
+              @if (faltan() > 0 && formulario.controls.password.value.length > 0) {
+                <p class="campo__contador">Faltan {{ faltan() }} caracteres.</p>
+              }
+            </div>
+
+            @if (error(); as mensaje) {
+              <p class="error" role="alert">{{ mensaje }}</p>
+            }
+
+            <button type="submit" class="boton" [disabled]="enviando()">
+              {{ enviando() ? 'Completando…' : 'Completar registro y unirme' }}
+            </button>
+          </form>
+        } @else {
+          <div class="tarjeta">
+            <h2 class="subtitulo">Ya tiene cuenta</h2>
+            <p class="entrada">
+              Esa dirección ya está registrada. Inicie sesión y encontrará esta invitación en su
+              espacio de trabajo, donde podrá aceptarla o rechazarla.
+            </p>
+            <a class="boton" routerLink="/entrar">Iniciar sesión</a>
+          </div>
+        }
+      </section>
+    }
+  } @else if (error(); as mensaje) {
+    <section class="hecho">
+      <p class="eyebrow">No se pudo comprobar</p>
+      <p class="motivo">{{ mensaje }}</p>
+    </section>
+  }
+</main>

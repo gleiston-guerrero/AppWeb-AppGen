@@ -1,15 +1,18 @@
-# Configuracion del servicio SLCP.
+# =====================================================================
+# Configuracion del servicio SLCP
 #
-# A partir de este incremento el servicio exige PostgreSQL en marcha. Si no lo
-# encuentra, no arranca: es deliberado. Un servicio que arranca sin su base de
-# datos falla despues, en la primera peticion, y con un error mucho menos claro.
-#
-# Para levantarla:  docker compose -f ../infra/docker-compose.yml up -d
+# El servicio exige PostgreSQL en marcha. Si no lo encuentra, no arranca: es
+# deliberado. Un servicio que arranca sin su base de datos falla despues, en la
+# primera peticion, y con un error mucho menos claro.
+# =====================================================================
 
 spring:
   application:
     name: slcp-service
 
+  # ---------------------------------------------------------------
+  # Base de datos
+  # ---------------------------------------------------------------
   datasource:
     url: jdbc:postgresql://localhost:5432/slcp
     username: slcp
@@ -18,8 +21,8 @@ spring:
   jpa:
     hibernate:
       # El esquema lo gobierna Flyway, no Hibernate. 'validate' comprueba que el
-      # modelo de entidades y el esquema real coinciden, y detiene el arranque si
-      # discrepan, en lugar de modificar la base de datos por su cuenta.
+      # modelo de entidades y el esquema real coinciden, y detiene el arranque
+      # si discrepan, en lugar de modificar la base de datos por su cuenta.
       ddl-auto: validate
     open-in-view: false
     properties:
@@ -31,10 +34,82 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: false
 
+  # ---------------------------------------------------------------
+  # Correo saliente (INV-03)
+  #
+  # NINGUNA CREDENCIAL FIGURA AQUI, Y NO DEBE FIGURAR NUNCA: el repositorio es
+  # publico, y lo que entra en el historial de Git no se puede retirar despues.
+  #
+  # Gmail exige una CONTRASENA DE APLICACION de 16 caracteres, no la contrasena
+  # de la cuenta. Se genera en myaccount.google.com/apppasswords con la
+  # verificacion en dos pasos activada, y se usa sin espacios.
+  #
+  #   $env:SLCP_MAIL_USERNAME = "tddiagen@gmail.com"
+  #   $env:SLCP_MAIL_PASSWORD = "<contrasena de aplicacion>"
+  # ---------------------------------------------------------------
+  mail:
+    host: ${SLCP_MAIL_HOST:smtp.gmail.com}
+    port: ${SLCP_MAIL_PORT:587}
+    username: ${SLCP_MAIL_USERNAME:}
+    password: ${SLCP_MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          # Diez segundos y no cinco: el saludo con Gmail incluye negociacion
+          # de cifrado y en redes lentas cinco segundos se agotan antes de que
+          # el servidor conteste, lo que produce un fallo que parece de
+          # credenciales sin serlo.
+          connectiontimeout: 10000
+          timeout: 10000
+          writetimeout: 10000
+          # Detalle de la conversacion con el servidor, en el registro. Solo se
+          # activa con SLCP_MAIL_DEBUG=true, porque es muy verboso.
+          debug: ${SLCP_MAIL_DEBUG:false}
+
+# =====================================================================
+# Parametros propios de la plataforma
+# =====================================================================
+
+slcp:
+  # ---------------------------------------------------------------
+  # Sesion (SEC-01 a SEC-04)
+  #
+  # ADVERTENCIA: la clave de firma que figura aqui es de desarrollo. En
+  # cualquier despliegue real debe proceder de la variable de entorno.
+  #
+  # cookie-secure queda en false SOLO porque el desarrollo local usa http. En
+  # cualquier otro entorno debe ser true: sin ello la cookie viajaria sin
+  # cifrar.
+  # ---------------------------------------------------------------
+  session:
+    secret: ${SLCP_SESSION_SECRET:clave-de-desarrollo-no-usar-en-produccion-32c}
+    access-ttl: PT15M
+    refresh-ttl: P7D
+    cookie-secure: false
+    access-cookie-name: slcp_access
+    refresh-cookie-name: slcp_refresh
+
+  # ---------------------------------------------------------------
+  # Correo de la plataforma
+  #
+  # El envio se activa por la sola presencia de remitente. Sin credenciales
+  # configuradas no se envia nada y el enlace se devuelve a quien invita, que
+  # es el modo de desarrollo.
+  # ---------------------------------------------------------------
+  mail:
+    from: ${SLCP_MAIL_USERNAME:}
+    from-name: ${SLCP_MAIL_FROM_NAME:Plataforma SLCP}
+    # Direccion publica desde la que se construyen los enlaces del correo.
+    base-url: ${SLCP_BASE_URL:http://localhost:4200}
+
 server:
   # Puerto 8081 y no 8080: en el entorno de desarrollo de la parte interesada,
-  # el 8080 lo ocupa de forma permanente un Apache HTTP Server (XAMPP o similar).
-  # Se puede sobreescribir al arrancar con --server.port=NNNN
+  # el 8080 lo ocupa un Apache HTTP Server. Se puede sobreescribir al arrancar
+  # con --server.port=NNNN
   port: 8081
 
 management:
@@ -46,26 +121,9 @@ management:
     health:
       show-details: always
 
-# ---------------------------------------------------------------------
-# Sesion (SEC-01 a SEC-04)
-#
-# ADVERTENCIA: la clave de firma que figura aqui es de desarrollo. En cualquier
-# despliegue real debe proceder de una variable de entorno y no del repositorio.
-#   $env:SLCP_SESSION_SECRET = "<cadena aleatoria de al menos 32 caracteres>"
-#
-# cookie-secure queda en false SOLO porque el desarrollo local usa http. En
-# cualquier otro entorno debe ser true: sin ello la cookie viajaria sin cifrar.
-# ---------------------------------------------------------------------
-slcp:
-  session:
-    secret: ${SLCP_SESSION_SECRET:clave-de-desarrollo-no-usar-en-produccion-32c}
-    access-ttl: PT15M
-    refresh-ttl: P7D
-    cookie-secure: false
-    access-cookie-name: slcp_access
-    refresh-cookie-name: slcp_refresh
-
 logging:
   level:
     org.slcp: INFO
     org.flywaydb: INFO
+    # Sube a DEBUG con SLCP_MAIL_DEBUG=true para ver por que falla un envio.
+    org.springframework.mail: ${SLCP_MAIL_LOG_LEVEL:INFO}

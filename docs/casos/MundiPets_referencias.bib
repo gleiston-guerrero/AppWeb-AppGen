@@ -1,0 +1,503 @@
+% ============================================================
+%  referencias.bib -- Entrega 3 (2A) -- MundiPets
+%  Ingenieria de Requerimientos [20303] -- UTEQ 2026-2027 PPA
+%
+%  ORGANIZACION:
+%    A. Normas y estandares
+%    B. Marco teorico de Ingenieria de Requerimientos
+%    C. IA generativa y LLM aplicados a IR
+%    D. Explicabilidad como requisito no funcional
+%    E. Metodo empirico en ingenieria de software
+%    F. Acuerdo entre evaluadores y calidad de requisitos
+%    G. Ciencia abierta, FAIR y citacion
+%    H. Marco legal
+%    I. Tecnicas de modelado y priorizacion
+%    J. Fuentes heredadas de la Entrega 2 (1B)
+%
+%  REQUISITO DE LA GUIA (Sec. 3.1): minimo 25 fuentes primarias,
+%  al menos 10 de los ultimos tres anios, indexadas en Scopus o WoS.
+%  Este archivo aporta 41 entradas, 13 de ellas de 2023 en adelante.
+%
+%  IMPORTANTE: antes del corte, verificar DOI y datos de cada
+%  entrada. La guia exige verificacion cruzada (Sec. 7.10).
+% ============================================================
+
+
+% ============================================================
+% A. NORMAS Y ESTANDARES
+% ============================================================
+
+@standard{iso29148,
+	title        = {Systems and Software Engineering --- Life Cycle Processes --- Requirements Engineering},
+	organization = {International Organization for Standardization, International Electrotechnical Commission, and Institute of Electrical and Electronics Engineers},
+	institution  = {ISO/IEC/IEEE},
+	number       = {ISO/IEC/IEEE 29148:2018(E)},
+	pages        = {1--104},
+	year         = {2018},
+	doi          = {10.1109/IEEESTD.2018.8559686}
+}
+
+@standard{iso25010,
+	title        = {Systems and Software Quality Requirements and Evaluation ({SQuaRE}) --- Product Quality Model},
+	organization = {International Organization for Standardization and International Electrotechnical Commission},
+	institution  = {ISO/IEC},
+	number       = {ISO/IEC 25010:2023},
+	address      = {Geneva, Switzerland},
+	year         = {2023},
+	url          = {https://www.iso.org/standard/78176.html}
+}
+
+@techreport{swebok2024,
+	author      = {Washizaki, Hironori},
+	title       = {Guide to the Software Engineering Body of Knowledge, Version 4.0},
+	institution = {IEEE Computer Society},
+	address     = {Los Alamitos, CA, USA},
+	year        = {2024},
+	url         = {https://www.computer.org/education/bodies-of-knowledge/software-engineering}
+}
+
+
+% ============================================================
+% B. MARCO TEORICO DE INGENIERIA DE REQUERIMIENTOS
+% ============================================================
+
+@book{pohl2025,
+	author    = {Pohl, Klaus},
+	title     = {Requirements Engineering: Fundamentals, Principles, and Techniques},
+	publisher = {Springer-Verlag},
+	address   = {Berlin, Heidelberg},
+	edition   = {2},
+	isbn      = {978-3-662-69204-2},
+	year      = {2025}
+}
+
+@article{mendez2017,
+	author  = {M{\'e}ndez Fern{\'a}ndez, Daniel and Wagner, Stefan and Kalinowski, Marcos and Felderer, Michael and Mafra, Priscilla and Vetr{\`o}, Antonio and Conte, Tayana and Christiansson, Marie-Terese and Greer, Des and Lassenius, Casper and M{\"a}nnist{\"o}, Tomi and Nayabi, Maryam and Oivo, Markku and Penzenstadler, Birgit and Pfahl, Dietmar and Prikladnicki, Rafael and Ruhe, Guenther and Schekelmann, Andr{\'e} and Sen, Sagar and Spinola, Rodrigo and Tuzcu, Ahmet and de la Vara, Jose Luis and Wieringa, Roel},
+	title   = {Naming the Pain in Requirements Engineering: Contemporary Problems, Causes, and Effects in Practice},
+	journal = {Empirical Software Engineering},
+	volume  = {22},
+	number  = {5},
+	pages   = {2298--2338},
+	year    = {2017},
+	doi     = {10.1007/s10664-016-9451-7}
+}
+
+
+% ============================================================
+% C. IA GENERATIVA Y LLM APLICADOS A LA IR
+%    (nucleo del enfoque empirico -- Sec. 5 de la guia)
+% ============================================================
+
+@article{cheng2026,
+	author  = {Cheng, Hongyu and Husen, Jati H. and Lu, Yifan and Racharak, Teeradaj and Yoshioka, Nobukazu and Ubayashi, Naoyasu and Washizaki, Hironori},
+	title   = {Generative {AI} for Requirements Engineering: A Systematic Literature Review},
+	journal = {Software: Practice and Experience},
+	volume  = {56},
+	number  = {2},
+	pages   = {141--170},
+	year    = {2026},
+	doi     = {10.1002/spe.3400}
+}
+
+@article{arora2024,
+	author  = {Arora, Chetan and Grundy, John and Abdelrazek, Mohamed},
+	title   = {Advancing Requirements Engineering Through Generative {AI}: Assessing the Role of {LLMs}},
+	journal = {Communications of the ACM},
+	volume  = {67},
+	number  = {6},
+	pages   = {84--91},
+	year    = {2024},
+	doi     = {10.1145/3654449}
+}
+
+@techreport{vogelsang2024,
+	author      = {Vogelsang, Andreas and Fischbach, Jannik},
+	title       = {Using Large Language Models for Natural Language Processing Tasks in Requirements Engineering: A Systematic Guideline},
+	institution = {arXiv},
+	number      = {2402.13823},
+	year        = {2024},
+	doi         = {10.48550/arXiv.2402.13823}
+}
+
+
+% ============================================================
+% D. EXPLICABILIDAD COMO REQUISITO NO FUNCIONAL
+%    (obligatorio por el gatekeeper G7 -- todo componente IA/AA)
+% ============================================================
+
+@article{chazette2020,
+	author  = {Chazette, Larissa and Schneider, Kurt},
+	title   = {Explainability as a Non-Functional Requirement: Challenges and Recommendations},
+	journal = {Requirements Engineering},
+	volume  = {25},
+	number  = {4},
+	pages   = {493--514},
+	year    = {2020},
+	doi     = {10.1007/s00766-020-00333-1}
+}
+
+@inproceedings{chazette2021,
+	author    = {Chazette, Larissa and Brunotte, Wasja and Speith, Timo},
+	title     = {Exploring Explainability: A Definition, a Model, and a Knowledge Catalogue},
+	booktitle = {Proceedings of the 29th IEEE International Requirements Engineering Conference (RE'21)},
+	pages     = {197--208},
+	publisher = {IEEE},
+	year      = {2021},
+	doi       = {10.1109/RE51729.2021.00025}
+}
+
+@article{chazette2022,
+	author  = {Chazette, Larissa and Brunotte, Wasja and Speith, Timo},
+	title   = {Explainable Software Systems: From Requirements Analysis to System Evaluation},
+	journal = {Requirements Engineering},
+	volume  = {27},
+	number  = {4},
+	pages   = {457--487},
+	year    = {2022},
+	doi     = {10.1007/s00766-022-00393-5}
+}
+
+
+% ============================================================
+% E. METODO EMPIRICO EN INGENIERIA DE SOFTWARE
+% ============================================================
+
+@book{wohlin2012,
+	author    = {Wohlin, Claes and Runeson, Per and H{\"o}st, Martin and Ohlsson, Magnus C. and Regnell, Bj{\"o}rn and Wessl{\'e}n, Anders},
+	title     = {Experimentation in Software Engineering},
+	publisher = {Springer},
+	address   = {Berlin, Heidelberg},
+	isbn      = {978-3-642-29043-5},
+	year      = {2012},
+	doi       = {10.1007/978-3-642-29044-2}
+}
+
+@article{runeson2009,
+	author  = {Runeson, Per and H{\"o}st, Martin},
+	title   = {Guidelines for Conducting and Reporting Case Study Research in Software Engineering},
+	journal = {Empirical Software Engineering},
+	volume  = {14},
+	number  = {2},
+	pages   = {131--164},
+	year    = {2009},
+	doi     = {10.1007/s10664-008-9102-8}
+}
+
+@incollection{jedlitschka2008,
+	author    = {Jedlitschka, Andreas and Ciolkowski, Marcus and Pfahl, Dietmar},
+	title     = {Reporting Experiments in Software Engineering},
+	booktitle = {Guide to Advanced Empirical Software Engineering},
+	editor    = {Shull, Forrest and Singer, Janice and Sj{\o}berg, Dag I. K.},
+	pages     = {201--228},
+	publisher = {Springer London},
+	address   = {London},
+	year      = {2008},
+	doi       = {10.1007/978-1-84800-044-5_8}
+}
+
+@article{molleri2020,
+	author  = {Moll{\'e}ri, Jefferson Seide and Petersen, Kai and Mendes, Emilia},
+	title   = {An Empirically Evaluated Checklist for Surveys in Software Engineering},
+	journal = {Information and Software Technology},
+	volume  = {119},
+	pages   = {106240},
+	year    = {2020},
+	doi     = {10.1016/j.infsof.2019.106240}
+}
+
+@article{hennink2017,
+	author  = {Hennink, Monique M. and Kaiser, Bonnie N. and Marconi, Vincent C.},
+	title   = {Code Saturation Versus Meaning Saturation: How Many Interviews Are Enough?},
+	journal = {Qualitative Health Research},
+	volume  = {27},
+	number  = {4},
+	pages   = {591--608},
+	year    = {2017},
+	doi     = {10.1177/1049732316665344}
+}
+
+@article{hagaman2017,
+	author  = {Hagaman, Ashley K. and Wutich, Amber},
+	title   = {How Many Interviews Are Enough to Identify Metathemes in Multisited and Cross-Cultural Research? Another Perspective on Guest, Bunce, and Johnson's (2006) Landmark Study},
+	journal = {Field Methods},
+	volume  = {29},
+	number  = {1},
+	pages   = {23--41},
+	year    = {2017},
+	doi     = {10.1177/1525822X16640447}
+}
+
+@article{guest2006,
+	author  = {Guest, Greg and Bunce, Arwen and Johnson, Laura},
+	title   = {How Many Interviews Are Enough? An Experiment with Data Saturation and Variability},
+	journal = {Field Methods},
+	volume  = {18},
+	number  = {1},
+	pages   = {59--82},
+	year    = {2006},
+	doi     = {10.1177/1525822X05279903}
+}
+
+@techreport{kitchenham2007,
+	author      = {Kitchenham, Barbara and Charters, Stuart},
+	title       = {Guidelines for Performing Systematic Literature Reviews in Software Engineering},
+	institution = {Keele University and Durham University},
+	address     = {Keele, UK},
+	number      = {EBSE 2007-001},
+	year        = {2007}
+}
+
+@article{nosek2018,
+	author  = {Nosek, Brian A. and Ebersole, Charles R. and DeHaven, Alexander C. and Mellor, David T.},
+	title   = {The Preregistration Revolution},
+	journal = {Proceedings of the National Academy of Sciences},
+	volume  = {115},
+	number  = {11},
+	pages   = {2600--2606},
+	year    = {2018},
+	doi     = {10.1073/pnas.1708274114}
+}
+
+
+% ============================================================
+% F. ACUERDO ENTRE EVALUADORES Y CALIDAD DE REQUISITOS
+% ============================================================
+
+@article{cohen1960,
+	author  = {Cohen, Jacob},
+	title   = {A Coefficient of Agreement for Nominal Scales},
+	journal = {Educational and Psychological Measurement},
+	volume  = {20},
+	number  = {1},
+	pages   = {37--46},
+	year    = {1960},
+	doi     = {10.1177/001316446002000104}
+}
+
+@article{fleiss1971,
+	author  = {Fleiss, Joseph L.},
+	title   = {Measuring Nominal Scale Agreement Among Many Raters},
+	journal = {Psychological Bulletin},
+	volume  = {76},
+	number  = {5},
+	pages   = {378--382},
+	year    = {1971},
+	doi     = {10.1037/h0031619}
+}
+
+@article{montgomery2022,
+	author  = {Montgomery, Lloyd and Fucci, Davide and Bouraffa, Abir and Scholz, Lisa and Maalej, Walid},
+	title   = {Empirical Research on Requirements Quality: A Systematic Mapping Study},
+	journal = {Requirements Engineering},
+	volume  = {27},
+	number  = {2},
+	pages   = {183--209},
+	year    = {2022},
+	doi     = {10.1007/s00766-021-00362-4}
+}
+
+@article{ferrari2016,
+	author  = {Ferrari, Alessio and Spoletini, Paola and Gnesi, Stefania},
+	title   = {Ambiguity and Tacit Knowledge in Requirements Elicitation Interviews},
+	journal = {Requirements Engineering},
+	volume  = {21},
+	number  = {3},
+	pages   = {333--355},
+	year    = {2016},
+	doi     = {10.1007/s00766-016-0249-3}
+}
+
+@article{fischbach2023,
+	author  = {Fischbach, Jannik and Frattini, Julian and Vogelsang, Andreas and Mendez, Daniel and Unterkalmsteiner, Michael and Wehrle, Andreas and Henao, Pablo Restrepo and Yousefi, Parisa and Juricic, Tedi and Radduenz, Jeannette and Wiecher, Carsten},
+	title   = {Automatic Creation of Acceptance Tests by Deriving Conditionals from Natural Language Requirements},
+	journal = {Information and Software Technology},
+	volume  = {154},
+	pages   = {107055},
+	year    = {2023},
+	doi     = {10.1016/j.infsof.2022.107055}
+}
+
+@article{atoum2021,
+	author  = {Atoum, Issa and Baklizi, Mahmoud and Alsmadi, Izzat and Otoom, Ahmed and Alhersh, Taha and Ababneh, Jafar and Almalki, Jameel and Alshahrani, Saeed},
+	title   = {Challenges of Software Requirements Quality Assurance and Validation: A Systematic Literature Review},
+	journal = {IEEE Access},
+	volume  = {9},
+	pages   = {137613--137634},
+	month   = {Oct.},
+	year    = {2021},
+	doi     = {10.1109/ACCESS.2021.3117989}
+}
+
+
+% ============================================================
+% G. CIENCIA ABIERTA, FAIR Y CITACION
+% ============================================================
+
+@article{wilkinson2016,
+	author  = {Wilkinson, Mark D. and Dumontier, Michel and Aalbersberg, IJsbrand Jan and Appleton, Gabrielle and Axton, Myles and Baak, Arie and Blomberg, Niklas and Boiten, Jan-Willem and da Silva Santos, Luiz Bonino and Bourne, Philip E.},
+	title   = {The {FAIR} Guiding Principles for Scientific Data Management and Stewardship},
+	journal = {Scientific Data},
+	volume  = {3},
+	number  = {160018},
+	pages   = {1--9},
+	year    = {2016},
+	doi     = {10.1038/sdata.2016.18}
+}
+
+@article{smith2016,
+	author  = {Smith, Arfon M. and Katz, Daniel S. and Niemeyer, Kyle E.},
+	title   = {Software Citation Principles},
+	journal = {PeerJ Computer Science},
+	volume  = {2},
+	pages   = {e86},
+	year    = {2016},
+	doi     = {10.7717/peerj-cs.86}
+}
+
+@misc{druskat2021,
+	author = {Druskat, Stephan and Spaaks, Jurriaan H. and Chue Hong, Neil and Haines, Robert and Baker, James and Bliven, Spencer and Willighagen, Egon and Perez-Riverol, Yasset and Israel, Alexander},
+	title  = {Citation File Format (Version 1.2.0)},
+	year   = {2021},
+	doi    = {10.5281/zenodo.5171937},
+	note   = {Software}
+}
+
+
+% ============================================================
+% H. MARCO LEGAL
+%    (base de la Seccion 3.4 -- requisitos legales, criterio C4)
+% ============================================================
+
+@report{lopdp2021,
+	author      = {{Asamblea Nacional del Ecuador}},
+	title       = {Ley Org{\'a}nica de Protecci{\'o}n de Datos Personales},
+	type        = {Registro Oficial Suplemento No. 459},
+	institution = {Asamblea Nacional del Ecuador},
+	address     = {Quito, Ecuador},
+	year        = {2021}
+}
+
+
+% ============================================================
+% I. TECNICAS DE MODELADO Y PRIORIZACION
+% ============================================================
+
+@phdthesis{yu1995,
+	author = {Yu, Eric Siu-Kwong},
+	title  = {Modelling Strategic Relationships for Process Reengineering},
+	school = {University of Toronto},
+	address = {Toronto, Canada},
+	year   = {1995}
+}
+
+@article{kano1984,
+	author  = {Kano, Noriaki and Seraku, Nobuhiko and Takahashi, Fumio and Tsuji, Shin-ichi},
+	title   = {Attractive Quality and Must-Be Quality},
+	journal = {Journal of the Japanese Society for Quality Control},
+	volume  = {14},
+	number  = {2},
+	pages   = {39--48},
+	year    = {1984},
+	doi     = {10.20684/quality.14.2_147}
+}
+
+@book{cohn2004,
+	author    = {Cohn, Mike},
+	title     = {User Stories Applied: For Agile Software Development},
+	publisher = {Addison-Wesley},
+	address   = {Boston, MA, USA},
+	isbn      = {978-0321205681},
+	year      = {2004}
+}
+
+@article{vijayakumar2024,
+	author  = {Vijayakumar, S. and Krishna, P. K. and Raviraja, H. M.},
+	title   = {Assessing the Effectiveness of {MoSCoW} Prioritization in Software Development: A Holistic Analysis Across Methodologies},
+	journal = {EAI Endorsed Transactions on Internet of Things},
+	volume  = {10},
+	month   = {Oct.},
+	year    = {2024},
+	doi     = {10.4108/eetiot.6515}
+}
+
+@article{vranic2023,
+	author  = {Vrani{\'c}, Valentino and Lang, J{\'a}n and L{\'o}pez-Nores, Mart{\'i}n and Arias, Jos{\'e} J. P. and Solano, Jaime and Laseca, Guillermo},
+	title   = {Use Case Modeling in a Research Setting of Developing an Innovative Pilgrimage Support System},
+	journal = {Universal Access in the Information Society},
+	volume  = {23},
+	number  = {4},
+	pages   = {1543--1560},
+	month   = {Nov.},
+	year    = {2023},
+	doi     = {10.1007/s10209-023-01047-1}
+}
+
+@article{narulita2024,
+	author  = {Narulita, Siska and Nugroho, Ahmad and Abdillah, M. Z.},
+	title   = {Diagram Unified Modelling Language ({UML}) untuk Perancangan Sistem Informasi Manajemen Penelitian dan Pengabdian Masyarakat ({SIMLITABMAS})},
+	journal = {Bridge: Jurnal Publikasi Sistem Informasi dan Telekomunikasi},
+	volume  = {2},
+	number  = {3},
+	pages   = {244--256},
+	month   = {Aug.},
+	year    = {2024},
+	doi     = {10.62951/bridge.v2i3.174}
+}
+
+
+% ============================================================
+% J. FUENTES HEREDADAS DE LA ENTREGA 2 (1B)
+% ============================================================
+
+@article{gobov2023,
+	author  = {Gobov, Denys},
+	title   = {Practical Study on Software Requirements Specification and Modelling Techniques},
+	journal = {International Journal of Computing},
+	volume  = {22},
+	number  = {1},
+	pages   = {78--86},
+	month   = {Mar.},
+	year    = {2023},
+	doi     = {10.47839/ijc.22.1.2882}
+}
+
+@article{said2026,
+	author  = {Said, Martina and El-Fangary, Laila and Abohany, Amr and Azzam, Safaa},
+	title   = {An Intelligent Model to Predict Functional and Non-Functional Requirements From Software Requirements Specification},
+	journal = {IEEE Access},
+	month   = {Jan.},
+	year    = {2026},
+	doi     = {10.1109/ACCESS.2026.3669501}
+}
+
+@article{bhar2026,
+	author  = {Bhar, Anirban and Sengupta, Sabnam and Choudhury, Sankhayan and Maiti, Suchismita Reefat and Banerjee, Shubhendu and Dasgupta, Suparna and Saha, Soumyabrata and Saha, Tanusree and Jena, Amrut Ranjan and Bhattacharyya, Soumya},
+	title   = {A Domain-Specific Framework for Priority-Based Modeling and Optimization of Non-Functional Requirements Beyond Binary Constraints},
+	journal = {IEEE Access},
+	month   = {Jan.},
+	year    = {2026},
+	doi     = {10.1109/ACCESS.2026.3666268}
+}
+
+@article{blasco2020,
+	author  = {Blasco-Arcas, Lorena and Alexander, Matthew and S{\"o}rhammar, David and Jonas, Julia M. and Raithel, Sascha and Chen, Tom},
+	title   = {Organizing Actor Engagement: A Platform Perspective},
+	journal = {Journal of Business Research},
+	volume  = {118},
+	pages   = {74--85},
+	month   = {Sep.},
+	year    = {2020},
+	issn    = {0148-2963},
+	doi     = {10.1016/j.jbusres.2020.06.050}
+}
+
+@article{khan2022,
+	author  = {Khan, Fahim Muhammad and Khan, Javed Ali and Assam, Muhammad and Almasoud, Ahmed S. and Abdelmaboud, Abdelzahir and Hamza, Manar Ali Maher},
+	title   = {A Comparative Systematic Analysis of Stakeholder's Identification Methods in Requirements Elicitation},
+	journal = {IEEE Access},
+	volume  = {10},
+	pages   = {30982--31011},
+	month   = {Mar.},
+	year    = {2022},
+	doi     = {10.1109/ACCESS.2022.3152073}
+}

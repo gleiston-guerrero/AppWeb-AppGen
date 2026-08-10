@@ -102,6 +102,12 @@
         <button type="submit" class="enviar" [disabled]="enviando()">
           {{ enviando() ? 'Enviando…' : 'Enviar solicitud' }}
         </button>
+
+        @if (formulario.invalid && !error()) {
+          <p class="pendiente" aria-live="polite">
+            Pendiente: {{ faltasPendientes().join('; ') }}.
+          </p>
+        }
       </form>
     </section>
   }

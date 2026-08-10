@@ -76,12 +76,48 @@ export class RegistrationPage {
     this.verClave.update((v) => !v);
   }
 
+  /**
+   * Enumera lo que falta, campo por campo.
+   *
+   * Sin esto, pulsar el botón con el formulario incompleto no produce efecto
+   * visible alguno, y quien mira concluye con razón que está averiado.
+   */
+  protected faltasPendientes(): string[] {
+    const faltas: string[] = [];
+    const c = this.formulario.controls;
+
+    if (c.fullName.invalid) {
+      faltas.push('Escriba su nombre completo');
+    }
+    if (c.username.invalid) {
+      faltas.push(
+        c.username.value.length === 0
+          ? 'Elija un nombre de usuario'
+          : 'El nombre de usuario admite entre 3 y 60 caracteres, sin espacios',
+      );
+    }
+    if (c.email.invalid) {
+      faltas.push(
+        c.email.value.length === 0 ? 'Escriba su correo' : 'El correo no tiene un formato válido',
+      );
+    }
+    if (c.password.invalid) {
+      faltas.push(
+        c.password.value.length === 0
+          ? `Escriba una contraseña de al menos ${RegistrationPage.MIN_PASSWORD} caracteres`
+          : `A la contraseña le faltan ${this.faltan()} caracteres`,
+      );
+    }
+    return faltas;
+  }
+
   protected enviar(): void {
     this.erroresServidor.set({});
     this.error.set(null);
 
     if (this.formulario.invalid) {
       this.formulario.markAllAsTouched();
+      this.error.set('Falta algo antes de continuar: ' + this.faltasPendientes().join('; ') + '.');
       return;
     }
 

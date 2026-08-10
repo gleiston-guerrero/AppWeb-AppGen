@@ -76,9 +76,43 @@ export class InvitationPage implements OnInit {
     this.verClave.update((v) => !v);
   }
 
+  /**
+   * Enumera lo que falta, campo por campo.
+   *
+   * Un formulario que se niega a enviarse sin decir por qué es indistinguible de
+   * uno averiado. El botón permanece habilitado a propósito: deshabilitarlo
+   * ocultaría igualmente el motivo, y quien mira no tendría a qué agarrarse.
+   */
+  protected faltasPendientes(): string[] {
+    const faltas: string[] = [];
+    const c = this.formulario.controls;
+
+    if (c.fullName.invalid) {
+      faltas.push('Escriba su nombre completo');
+    }
+    if (c.username.invalid) {
+      faltas.push(
+        c.username.value.length === 0
+          ? 'Elija un nombre de usuario'
+          : 'El nombre de usuario admite entre 3 y 60 caracteres, sin espacios',
+      );
+    }
+    if (c.password.invalid) {
+      faltas.push(
+        c.password.value.length === 0
+          ? `Escriba una contraseña de al menos ${this.MIN_PASSWORD} caracteres`
+          : `A la contraseña le faltan ${this.faltan()} caracteres`,
+      );
+    }
+    return faltas;
+  }
+
   protected completar(): void {
+    this.error.set(null);
+
     if (this.formulario.invalid) {
       this.formulario.markAllAsTouched();
+      this.error.set('Falta algo antes de continuar: ' + this.faltasPendientes().join('; ') + '.');
       return;
     }
     this.enviando.set(true);

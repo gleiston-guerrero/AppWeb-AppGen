@@ -99,6 +99,12 @@
             <button type="submit" class="boton" [disabled]="enviando()">
               {{ enviando() ? 'Completando…' : 'Completar registro y unirme' }}
             </button>
+
+            @if (formulario.invalid && !error()) {
+              <p class="pendiente" aria-live="polite">
+                Pendiente: {{ faltasPendientes().join('; ') }}.
+              </p>
+            }
           </form>
         } @else {
           <div class="tarjeta">

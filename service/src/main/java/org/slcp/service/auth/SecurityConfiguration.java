@@ -106,10 +106,16 @@ public class SecurityConfiguration {
 					.ignoringRequestMatchers(
 							"/api/v1/registrations",
 							"/api/v1/auth/sessions",
-							"/api/v1/invitations/*/completion"))
+							"/api/v1/invitations/*/completion",
+							"/api/v1/password-resets",
+							"/api/v1/password-resets/*/password"))
 			.sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 			.authorizeHttpRequests(rutas -> rutas
 					.requestMatchers(HttpMethod.GET, "/api/v1/platform-info").permitAll()
+					// Los formatos admitidos son informacion publica: quien va a
+					// preparar un documento debe poder consultarlos antes de tener
+					// cuenta siquiera.
+					.requestMatchers(HttpMethod.GET, "/api/v1/import-profiles").permitAll()
 					.requestMatchers(HttpMethod.POST, "/api/v1/registrations").permitAll()
 					.requestMatchers(HttpMethod.POST, "/api/v1/auth/sessions").permitAll()
 					.requestMatchers("/actuator/health").permitAll()
@@ -118,6 +124,11 @@ public class SecurityConfiguration {
 					// aleatorio, de un solo uso y ligado a un correo y un proyecto.
 					.requestMatchers(HttpMethod.GET, "/api/v1/invitations/*").permitAll()
 					.requestMatchers(HttpMethod.POST, "/api/v1/invitations/*/completion").permitAll()
+					// La recuperacion de acceso es publica: quien la usa no puede
+					// autenticarse, que es justamente su problema.
+					.requestMatchers(HttpMethod.POST, "/api/v1/password-resets").permitAll()
+					.requestMatchers(HttpMethod.GET, "/api/v1/password-resets/*").permitAll()
+					.requestMatchers(HttpMethod.POST, "/api/v1/password-resets/*/password").permitAll()
 					// La administracion exige el rol global. Ocultar la opcion en la
 					// interfaz no basta: SEC-05 exige que la restriccion este impuesta
 					// tambien aqui, donde una peticion construida a mano tropieza igual.

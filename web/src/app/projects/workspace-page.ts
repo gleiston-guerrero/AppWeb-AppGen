@@ -1,7 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 
 import { SessionService } from '../auth/session-service';
 import { InviteResult, PendingInvite } from '../invitations/invitation';
@@ -23,7 +23,7 @@ import { ProjectService } from './project-service';
  */
 @Component({
   selector: 'slcp-workspace-page',
-  imports: [FormsModule],
+  imports: [FormsModule, RouterLink],
   templateUrl: './workspace-page.html',
   styleUrl: './workspace-page.css',
 })

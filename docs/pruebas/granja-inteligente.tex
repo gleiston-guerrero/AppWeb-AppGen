@@ -1,0 +1,152 @@
+% =====================================================================
+%  Especificacion de Requisitos de Software
+%  Sistema de Gestion de Granja Inteligente (SGGI)
+%
+%  Formato: LaTeX con entorno de atributos
+%  Perfil de importacion: latex-atributos
+% =====================================================================
+
+\documentclass[journal,onecolumn]{IEEEtran}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+
+\begin{document}
+
+\section{Requisitos especificos}
+
+\subsection{Requisitos funcionales}
+
+\subsubsection{RF-01 --- Registrar parcela de cultivo}
+
+\begin{atributos}{RF-01}{RF-01 --- Registrar parcela de cultivo.}
+	Identificador & RF-01 \\
+	Nombre & Registrar parcela de cultivo \\
+	Descripcion & El sistema debera registrar una parcela de cultivo con su identificador, superficie en hectareas, tipo de suelo, cultivo sembrado y coordenadas de sus vertices. \\
+	Actor & Responsable de la explotacion \\
+	Entradas & Identificador, superficie, tipo de suelo, cultivo, coordenadas. \\
+	Salidas & Parcela registrada y disponible para asignarle sensores. \\
+	Precondiciones & El responsable debe estar autenticado. \\
+	Postcondiciones & La parcela queda almacenada y puede consultarse. \\
+	Prioridad (MoSCoW) & Must \\
+	Criterio de verificacion & Con datos validos, registrar una parcela y comprobar que aparece en el listado con su superficie y su cultivo. \\
+\end{atributos}
+
+\subsubsection{RF-02 --- Registrar lecturas de humedad del suelo}
+
+\begin{atributos}{RF-02}{RF-02 --- Registrar lecturas de humedad del suelo.}
+	Identificador & RF-02 \\
+	Nombre & Registrar lecturas de humedad del suelo \\
+	Descripcion & El sistema debera almacenar cada lectura de humedad del suelo recibida de un sensor, junto con el identificador del sensor, la marca de tiempo y la parcela a la que pertenece. \\
+	Actor & Sensor de humedad \\
+	Entradas & Identificador de sensor, valor de humedad, marca de tiempo. \\
+	Salidas & Lectura almacenada y asociada a su parcela. \\
+	Precondiciones & El sensor debe estar dado de alta y asignado a una parcela. \\
+	Postcondiciones & La lectura queda disponible para consulta y para el calculo de riego. \\
+	Prioridad (MoSCoW) & Must \\
+	Criterio de verificacion & Enviar una lectura desde un sensor dado de alta y comprobar que queda almacenada con su marca de tiempo y su parcela. \\
+\end{atributos}
+
+\subsubsection{RF-03 --- Activar el riego por umbral de humedad}
+
+\begin{atributos}{RF-03}{RF-03 --- Activar el riego por umbral de humedad.}
+	Identificador & RF-03 \\
+	Nombre & Activar el riego por umbral de humedad \\
+	Descripcion & Cuando la humedad media de una parcela descienda por debajo del umbral configurado para su cultivo, el sistema debera activar la valvula de riego de esa parcela. \\
+	Actor & Sistema \\
+	Entradas & Lecturas de humedad, umbral configurado por cultivo. \\
+	Salidas & Orden de apertura de valvula y registro de la activacion. \\
+	Precondiciones & La parcela debe tener valvula asociada y umbral configurado. \\
+	Postcondiciones & La valvula queda abierta y la activacion queda registrada. \\
+	Prioridad (MoSCoW) & Must \\
+	Criterio de verificacion & Con un umbral del 30 por ciento, enviar lecturas que promedien 25 por ciento y comprobar que se emite la orden de apertura y queda registrada. \\
+\end{atributos}
+
+\subsubsection{RF-04 --- Consultar el consumo de agua por parcela}
+
+\begin{atributos}{RF-04}{RF-04 --- Consultar el consumo de agua por parcela.}
+	Identificador & RF-04 \\
+	Nombre & Consultar el consumo de agua por parcela \\
+	Descripcion & El sistema debera mostrar el consumo de agua acumulado de cada parcela en el periodo que indique el responsable de la explotacion. \\
+	Actor & Responsable de la explotacion \\
+	Entradas & Parcela, fecha inicial, fecha final. \\
+	Salidas & Consumo acumulado en metros cubicos. \\
+	Prioridad (MoSCoW) & Should \\
+	Criterio de verificacion & Con tres riegos registrados de volumen conocido, consultar el periodo que los contiene y comprobar que el total coincide con su suma. \\
+\end{atributos}
+
+\subsubsection{RF-05 --- Emitir alerta por sensor sin comunicacion}
+
+\begin{atributos}{RF-05}{RF-05 --- Emitir alerta por sensor sin comunicacion.}
+	Identificador & RF-05 \\
+	Nombre & Emitir alerta por sensor sin comunicacion \\
+	Descripcion & Cuando un sensor deje de enviar lecturas durante mas de dos periodos consecutivos de muestreo, el sistema debera notificar al responsable de la explotacion. \\
+	Actor & Sistema \\
+	Salidas & Notificacion con el sensor afectado y el momento de su ultima lectura. \\
+	Prioridad (MoSCoW) & Must \\
+	Criterio de verificacion & Con un periodo de muestreo de 15 minutos, dejar de enviar lecturas durante 31 minutos y comprobar que llega la notificacion identificando el sensor. \\
+\end{atributos}
+
+% --- DEFECTO DELIBERADO: dos obligaciones en un mismo enunciado (Singular) ---
+\subsubsection{RF-06 --- Registrar el ganado y notificar al veterinario}
+
+\begin{atributos}{RF-06}{RF-06 --- Registrar el ganado y notificar al veterinario.}
+	Identificador & RF-06 \\
+	Nombre & Registrar el ganado y notificar al veterinario \\
+	Descripcion & El sistema debera registrar cada cabeza de ganado con su crotal, especie, raza y fecha de nacimiento, y ademas debera notificar al veterinario asignado cada alta realizada. \\
+	Actor & Responsable de la explotacion \\
+	Prioridad (MoSCoW) & Must \\
+	Criterio de verificacion & Registrar una cabeza de ganado y comprobar que queda almacenada y que el veterinario recibe el aviso. \\
+\end{atributos}
+
+% --- DEFECTO DELIBERADO: termino sin magnitud (Verificable) ---
+\subsubsection{RF-07 --- Mostrar el panel de la explotacion}
+
+\begin{atributos}{RF-07}{RF-07 --- Mostrar el panel de la explotacion.}
+	Identificador & RF-07 \\
+	Nombre & Mostrar el panel de la explotacion \\
+	Descripcion & El sistema debera mostrar un panel rapido y amigable con el estado de todas las parcelas de la explotacion. \\
+	Actor & Responsable de la explotacion \\
+	Prioridad (MoSCoW) & Should \\
+	Criterio de verificacion & Abrir el panel y comprobar que aparecen todas las parcelas de la explotacion. \\
+\end{atributos}
+
+% --- DEFECTO DELIBERADO: sin criterio de verificacion (Completo) ---
+\subsubsection{RF-08 --- Exportar el historial de riego}
+
+\begin{atributos}{RF-08}{RF-08 --- Exportar el historial de riego.}
+	Identificador & RF-08 \\
+	Nombre & Exportar el historial de riego \\
+	Descripcion & El sistema debera exportar el historial de riego de una explotacion en un archivo de valores separados por comas. \\
+	Actor & Responsable de la explotacion \\
+	Prioridad (MoSCoW) & Could \\
+\end{atributos}
+
+\subsection{Requisitos no funcionales}
+
+\subsubsection{RNF-01 --- Continuidad ante corte de comunicaciones}
+
+\begin{atributos}{RNF-01}{RNF-01 --- Continuidad ante corte de comunicaciones.}
+	Identificador & RNF-01 \\
+	Nombre & Continuidad ante corte de comunicaciones \\
+	Descripcion & El sistema debera conservar en el dispositivo de campo las lecturas que no haya podido transmitir, y enviarlas cuando se restablezca la comunicacion. \\
+	Caracteristica ISO 25010 & Fiabilidad --- Tolerancia a fallos \\
+	Metrica & Lecturas perdidas tras un corte, sobre el total generado durante el corte \\
+	Valor objetivo & Cero lecturas perdidas en cortes de hasta 24 horas \\
+	Prioridad (MoSCoW) & Must \\
+	Criterio de verificacion & Interrumpir la comunicacion durante 24 horas generando lecturas, restablecerla y comprobar que todas llegan y ninguna se duplica. \\
+\end{atributos}
+
+\subsubsection{RNF-02 --- Latencia de la orden de riego}
+
+\begin{atributos}{RNF-02}{RNF-02 --- Latencia de la orden de riego.}
+	Identificador & RNF-02 \\
+	Nombre & Latencia de la orden de riego \\
+	Descripcion & El sistema debera emitir la orden de apertura de valvula dentro del plazo establecido desde que se cumple la condicion de riego. \\
+	Caracteristica ISO 25010 & Eficiencia de desempeno --- Comportamiento temporal \\
+	Metrica & Tiempo entre el cumplimiento de la condicion y la emision de la orden \\
+	Valor objetivo & Menor de 5 segundos en el 95 por ciento de las activaciones \\
+	Prioridad (MoSCoW) & Must \\
+	Criterio de verificacion & Provocar 100 activaciones y comprobar que al menos 95 emiten la orden en menos de 5 segundos. \\
+\end{atributos}
+
+\end{document}

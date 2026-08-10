@@ -1,0 +1,40 @@
+Requirements construct
+Well-formed stakeholder requirements, system requirements and system element requirements shall be developed. This practice contributes to requirements validation with the stakeholders and helps ensure that the requirements accurately capture stakeholder needs.
+A well-formed specified requirement contains one or more of the following:
+— it shall be met or possessed by a system to solve a problem, achieve an objective or address a stakeholder concern;
+— it is qualified by measurable conditions;
+— it is bounded by constraints;
+— it defines the performance of the system when used by a specific stakeholder or the corresponding capability of the system, but not a capability of the user, operator or other stakeholder; and 
+— it can be verified (e.g., the realization of the requirement in the system can be demonstrated).
+NOTE 1 An additional consideration is that a requirement at lower levels aligns with the design of the higher
+physical-level system.
+This description provides a means for distinguishing between requirements and the attributes of those requirements (conditions, assumptions and constraints).
+A requirement is a statement that translates or expresses a need and its associated constraints and conditions. A requirement can be written in the form of a natural language or some other form of language. If expressed in the form of a natural language, the statement should include a subject and a verb, together with other elements necessary to adequately express the information content of the requirement. A requirement shall state the subject of the requirement (e.g., the system, the software, etc.), what shall be done (e.g., operate at a power level, provide a field for) or a constraint on the system. 
+Figure 1 shows example syntax for requirements. Condition-action tables and use cases are other means of capturing requirements.
+It is important to agree in advance on the specific keywords and terms that signal the presence of a requirement. A common approach is to stipulate the following.
+— Requirements are mandatory binding provisions and use 'shall'.
+— Non-requirements, such as descriptive text, use verbs such as ‘are’, ‘is’, and ‘was’. It is best to avoid using the term ‘must’, due to potential misinterpretation as a requirement.
+— Statements of fact, futurity, or a declaration of purpose are non-mandatory, non-binding provisions and use 'will'. 'Will' can also be used to establish context or limitations of use.
+— Preferences or goals are desired, non-mandatory, non-binding provisions and use 'should'. They are not requirements.
+— Suggestions or allowances are non-mandatory, non-binding provisions and use 'may'.
+— Use positive statements and avoid negative requirements such as ‘shall not’.
+— Use active voice: avoid using passive voice, such as ’it is required that’.
+— Avoid using terms such as ‘shall be able to’.
+NOTE 2 Requirements in agile may use alternative formulations such as user stories without explicitly using the term ‘shall’. See ISO/IEC/IEEE 12207:2017, Annex H for additional discussion on agile application.
+All terms specific to requirements engineering should be formally defined and applied consistently throughout all requirements of the system.
+
+[Condición] [Sujeto] [Acción] [Objeto] [Restricción de la acción]
+
+EJEMPLO: Cuando se recibe la señal x [Condición], el sistema [Sujeto] establecerá [Acción] el bit de señal x recibida [Objeto] en un plazo de 2 segundos [Restricción de la acción].
+
+O
+
+[Condición] [Sujeto] [Acción] [Objeto] [Restricción de la acción]
+
+EJEMPLO: En estado de mar 1 [Condición], el sistema de radar [Sujeto] detectará [Acción] objetivos [Objeto] a distancias de hasta 100 millas náuticas [Restricción de la acción].
+
+O
+
+[Sujeto] [Acción] [Restricción de la acción]
+
+EJEMPLO: El sistema de facturación [Sujeto] mostrará las facturas pendientes de los clientes [Acción] en orden ascendente según la fecha de vencimiento de la factura [Restricción de la acción].

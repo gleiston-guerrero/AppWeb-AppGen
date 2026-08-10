@@ -1,0 +1,237 @@
+package org.slcp.service.domain;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.Version;
+import java.time.Instant;
+import java.util.Objects;
+import java.util.UUID;
+
+/** Requisito de un proyecto. */
+@Entity
+@Table(name = "requirements")
+public class Requirement {
+
+	@Id
+	@Column(name = "id", nullable = false, updatable = false)
+	private UUID id;
+
+	@Column(name = "readable_id", nullable = false, length = 40)
+	private String readableId;
+
+	@Column(name = "project_id", nullable = false, updatable = false)
+	private UUID projectId;
+
+	@Column(name = "source_id", length = 40)
+	private String sourceId;
+
+	@Column(name = "source_line")
+	private Integer sourceLine;
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "kind", nullable = false, length = 20)
+	private RequirementKind kind;
+
+	@Column(name = "name", length = 300)
+	private String name;
+
+	@Column(name = "statement", nullable = false)
+	private String statement;
+
+	@Column(name = "verification")
+	private String verification;
+
+	@Column(name = "priority", length = 20)
+	private String priority;
+
+	@Column(name = "actor", length = 200)
+	private String actor;
+
+	@Column(name = "notes")
+	private String notes;
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "status", nullable = false, length = 20)
+	private RequirementStatus status;
+
+	@Column(name = "version", nullable = false)
+	private int version;
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "statement_origin", nullable = false, length = 20)
+	private TextOrigin statementOrigin;
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "verification_origin", nullable = false, length = 20)
+	private TextOrigin verificationOrigin;
+
+	@Column(name = "created_by", nullable = false, updatable = false)
+	private UUID createdBy;
+
+	@Column(name = "created_at", nullable = false, updatable = false)
+	private Instant createdAt;
+
+	@Column(name = "updated_at", nullable = false)
+	private Instant updatedAt;
+
+	@Version
+	@Column(name = "lock_version", nullable = false)
+	private int lockVersion;
+
+	protected Requirement() {
+	}
+
+	public static Requirement crear(UUID projectId, String readableId, String sourceId,
+			Integer sourceLine, RequirementKind kind, String name, String statement,
+			String verification, UUID createdBy, Instant momento) {
+
+		Requirement r = new Requirement();
+		r.id = UUID.randomUUID();
+		r.readableId = readableId;
+		r.projectId = projectId;
+		r.sourceId = (sourceId == null || sourceId.isBlank()) ? null : sourceId.trim();
+		r.sourceLine = sourceLine;
+		r.kind = kind;
+		r.name = limpiar(name);
+		r.statement = statement == null ? "" : statement.trim();
+		r.verification = limpiar(verification);
+		r.status = RequirementStatus.DRAFT;
+		r.version = 1;
+		r.statementOrigin = TextOrigin.HUMAN;
+		r.verificationOrigin = TextOrigin.HUMAN;
+		r.createdBy = createdBy;
+		r.createdAt = momento;
+		r.updatedAt = momento;
+		return r;
+	}
+
+	/**
+	 * Modifica el texto.
+	 *
+	 * <p>Un requisito aprobado no admite edicion directa: RQM-08 exige devolverlo
+	 * a revision, porque lo que se aprobo fue un texto concreto. La base de datos
+	 * impone la misma regla, para que ninguna via la sortee.</p>
+	 */
+	public void editar(String name, String statement, String verification,
+			TextOrigin origenEnunciado, TextOrigin origenCriterio, Instant momento) {
+
+		if (!status.admiteEdicion()) {
+			throw new IllegalStateException(
+					"Un requisito en estado " + status + " no admite edicion directa. "
+							+ "Devuelvalo a revision o formule una peticion de cambio");
+		}
+
+		if (statement != null && !statement.isBlank()) {
+			this.statement = statement.trim();
+			this.statementOrigin = origenEnunciado;
+		}
+		if (verification != null) {
+			this.verification = limpiar(verification);
+			this.verificationOrigin = origenCriterio;
+		}
+		if (name != null) {
+			this.name = limpiar(name);
+		}
+		this.version++;
+		this.updatedAt = momento;
+	}
+
+	public void transitarA(RequirementStatus destino, Instant momento) {
+		if (!status.puedeTransitarA(destino)) {
+			throw new IllegalStateException("Transicion no admitida de " + status + " a " + destino);
+		}
+		this.status = destino;
+		this.updatedAt = momento;
+	}
+
+	public boolean tieneCriterio() {
+		return verification != null && !verification.isBlank();
+	}
+
+	/** Indica si le falta algo exigible segun su naturaleza. */
+	public boolean incompleto() {
+		return statement.isBlank() || (kind.exigeCriterio() && !tieneCriterio());
+	}
+
+	private static String limpiar(String valor) {
+		if (valor == null) {
+			return null;
+		}
+		String t = valor.trim();
+		return t.isEmpty() ? null : t;
+	}
+
+	public UUID getId() {
+		return id;
+	}
+
+	public String getReadableId() {
+		return readableId;
+	}
+
+	public UUID getProjectId() {
+		return projectId;
+	}
+
+	public String getSourceId() {
+		return sourceId;
+	}
+
+	public Integer getSourceLine() {
+		return sourceLine;
+	}
+
+	public RequirementKind getKind() {
+		return kind;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public String getStatement() {
+		return statement;
+	}
+
+	public String getVerification() {
+		return verification;
+	}
+
+	public RequirementStatus getStatus() {
+		return status;
+	}
+
+	public int getVersion() {
+		return version;
+	}
+
+	public TextOrigin getStatementOrigin() {
+		return statementOrigin;
+	}
+
+	public TextOrigin getVerificationOrigin() {
+		return verificationOrigin;
+	}
+
+	public Instant getCreatedAt() {
+		return createdAt;
+	}
+
+	public Instant getUpdatedAt() {
+		return updatedAt;
+	}
+
+	@Override
+	public boolean equals(Object otro) {
+		return otro instanceof Requirement r && Objects.equals(id, r.id);
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(id);
+	}
+}

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Sistema de Gestion de Granja Inteligente (SGGI) -->
+<!-- Perfil de importacion: xml-requisitos -->
+<requirements project="Sistema de Gestion de Granja Inteligente (SGGI)" version="1.0">
+
+  <requirement id="RF-01" priority="Must" kind="FUNCTIONAL">
+    <name>Registrar explotacion agricola</name>
+    <description>El sistema debera registrar una explotacion agricola con su razon social, su codigo de identificacion fiscal, su domicilio y las parcelas que la componen.</description>
+    <actor>Responsable de la explotacion</actor>
+    <verification>Con datos validos, registrar una explotacion y comprobar que aparece con sus parcelas asociadas.</verification>
+  </requirement>
+
+  <requirement id="RF-02" priority="Must" kind="FUNCTIONAL">
+    <name>Registrar la pasarela de campo</name>
+    <description>El sistema debera registrar cada pasarela de campo con su identificador, su ubicacion y los sensores que le comunican.</description>
+    <actor>Responsable de la explotacion</actor>
+    <verification>Registrar una pasarela con dos sensores y comprobar que ambos aparecen asociados a ella.</verification>
+  </requirement>
+
+  <requirement id="RF-03" priority="Must" kind="FUNCTIONAL">
+    <name>Registrar lecturas de conductividad electrica del suelo</name>
+    <description>El sistema debera almacenar cada lectura de conductividad electrica del suelo con su sensor, su valor en decisiemens por metro y su marca de tiempo.</description>
+    <actor>Sensor de conductividad</actor>
+    <verification>Enviar una lectura de conductividad y comprobar que queda almacenada con su unidad y su marca de tiempo.</verification>
+  </requirement>
+
+  <requirement id="RF-04" priority="Must" kind="FUNCTIONAL">
+    <name>Emitir alerta por salinidad excesiva</name>
+    <description>Cuando la conductividad electrica media de una parcela supere el maximo configurado para su cultivo, el sistema debera notificar al responsable de la explotacion.</description>
+    <actor>Sistema</actor>
+    <verification>Configurar un maximo de 2 decisiemens por metro, enviar lecturas que promedien 2,4 y comprobar que llega la notificacion.</verification>
+  </requirement>
+
+  <requirement id="RF-05" priority="Should" kind="FUNCTIONAL">
+    <name>Registrar la aplicacion de fertilizante</name>
+    <description>El sistema debera registrar cada aplicacion de fertilizante sobre una parcela, con el producto, la dosis por hectarea y la fecha de aplicacion.</description>
+    <actor>Operario de campo</actor>
+    <verification>Registrar una aplicacion y comprobar que aparece en el cuaderno de la parcela con su dosis y su fecha.</verification>
+  </requirement>
+
+  <requirement id="RF-06" priority="Should" kind="FUNCTIONAL">
+    <name>Consultar el cuaderno de campo de una parcela</name>
+    <description>El sistema debera mostrar el cuaderno de campo de una parcela con sus siembras, riegos, fertilizaciones y tratamientos, ordenados por fecha.</description>
+    <actor>Responsable de la explotacion</actor>
+    <verification>Consultar una parcela con asientos de los cuatro tipos y comprobar que aparecen todos ordenados por fecha.</verification>
+  </requirement>
+
+  <requirement id="RF-07" priority="Could" kind="FUNCTIONAL">
+    <name>Estimar la necesidad de riego de la semana</name>
+    <description>El sistema debera estimar la necesidad de riego de cada parcela para los siete dias siguientes a partir de las lecturas de humedad y de la prevision meteorologica.</description>
+    <actor>Sistema</actor>
+    <verification>Con lecturas de una semana y una prevision conocida, comprobar que la estimacion se expresa en metros cubicos y que se recalcula al llegar una prevision nueva.</verification>
+  </requirement>
+
+  <requirement id="RF-08" priority="Must" kind="FUNCTIONAL">
+    <name>Dar de baja un sensor averiado</name>
+    <description>El sistema debera dar de baja un sensor conservando sus lecturas anteriores y dejando constancia del motivo de la baja.</description>
+    <actor>Responsable de la explotacion</actor>
+    <verification>Dar de baja un sensor con lecturas registradas y comprobar que deja de admitir lecturas nuevas y que las anteriores siguen consultables.</verification>
+  </requirement>
+
+  <requirement id="RNF-01" priority="Must" kind="NON_FUNCTIONAL">
+    <name>Resistencia ambiental de los dispositivos</name>
+    <description>El sistema debera operar sus dispositivos de campo dentro del rango de temperatura y humedad propios de la explotacion.</description>
+    <metric>Rango de temperatura ambiente y humedad relativa con operacion sin fallo</metric>
+    <target>De menos 10 a 55 grados centigrados, y hasta el 95 por ciento de humedad relativa</target>
+    <verification>Someter un dispositivo a camara climatica en los extremos del rango durante 48 horas y comprobar que sigue transmitiendo lecturas validas.</verification>
+  </requirement>
+
+  <requirement id="RNF-02" priority="Should" kind="NON_FUNCTIONAL">
+    <name>Capacidad por explotacion</name>
+    <description>El sistema debera admitir el numero de dispositivos de campo establecido por explotacion sin degradar su comportamiento temporal.</description>
+    <metric>Dispositivos simultaneos por explotacion manteniendo la latencia de la orden de riego</metric>
+    <target>Al menos 500 dispositivos por explotacion</target>
+    <verification>Simular 500 dispositivos emitiendo cada 15 minutos y comprobar que la latencia de la orden sigue por debajo de 5 segundos.</verification>
+  </requirement>
+
+</requirements>

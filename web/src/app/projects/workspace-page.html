@@ -126,6 +126,9 @@
 
             <div class="proyecto__acciones">
               <span class="equipo__tamano">{{ p.teamSize }} en el equipo</span>
+              <a class="btn btn--plano" [routerLink]="['/proyecto', p.readableId, 'requisitos']">
+                Requisitos
+              </a>
               <button type="button" class="btn btn--plano" (click)="alternarEquipo(p)">
                 {{ abierto() === p.readableId ? 'Ocultar equipo' : 'Ver equipo' }}
               </button>

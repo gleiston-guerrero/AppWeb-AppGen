@@ -21,6 +21,16 @@ export const routes: Routes = [
     title: 'Invitación a un proyecto — SLCP',
   },
   {
+    path: 'recuperar',
+    loadComponent: () => import('./recovery/recovery-page').then((m) => m.RecoveryPage),
+    title: 'Recuperar el acceso — SLCP',
+  },
+  {
+    path: 'recuperar/:token',
+    loadComponent: () => import('./recovery/recovery-page').then((m) => m.RecoveryPage),
+    title: 'Nueva contraseña — SLCP',
+  },
+  {
     path: 'entrar',
     loadComponent: () => import('./auth/login-page').then((m) => m.LoginPage),
     title: 'Iniciar sesión — SLCP',
@@ -30,6 +40,13 @@ export const routes: Routes = [
     canActivate: [sesionGuard],
     loadComponent: () => import('./projects/workspace-page').then((m) => m.WorkspacePage),
     title: 'Espacio de trabajo — SLCP',
+  },
+  {
+    path: 'proyecto/:projectId/requisitos',
+    canActivate: [sesionGuard],
+    loadComponent: () =>
+      import('./requirements/requirements-page').then((m) => m.RequirementsPage),
+    title: 'Requisitos — SLCP',
   },
   {
     path: 'administracion',

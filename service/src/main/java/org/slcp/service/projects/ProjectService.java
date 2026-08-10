@@ -140,6 +140,17 @@ public class ProjectService {
 				.stream().map(ProjectMembership::getProjectRole).toList();
 	}
 
+	/**
+	 * Comprueba el acceso y devuelve el proyecto.
+	 *
+	 * <p>Se expone para que otros servicios del mismo proyecto resuelvan el
+	 * alcance por la misma via, y no cada uno por la suya.</p>
+	 */
+	@Transactional(readOnly = true)
+	public Project exigirAccesoPublico(String readableId, UUID solicitante) {
+		return exigirAcceso(readableId, solicitante);
+	}
+
 	private Project exigirAcceso(String readableId, UUID solicitante) {
 		Project proyecto = projects.findByReadableId(readableId)
 				.orElseThrow(() -> new ProjectAccessException("No existe ese proyecto"));

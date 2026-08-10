@@ -1,0 +1,74 @@
+Sistema de Gestion de Granja Inteligente (SGGI)
+Especificacion de requisitos en texto plano con bloques separados.
+Perfil de importacion: texto-etiquetado
+
+[RF-01]
+Nombre: Registrar parcela de cultivo
+Descripcion: El sistema debera registrar una parcela de cultivo con su identificador, superficie en hectareas, tipo de suelo, cultivo sembrado y coordenadas de sus vertices.
+Actor: Responsable de la explotacion
+Prioridad: Must
+Criterio de verificacion: Con datos validos, registrar una parcela y comprobar que aparece en el listado con su superficie y su cultivo.
+
+[RF-02]
+Nombre: Registrar lecturas de humedad del suelo
+Descripcion: El sistema debera almacenar cada lectura de humedad del suelo recibida de un sensor, junto con el identificador del sensor, la marca de tiempo y la parcela a la que pertenece.
+Actor: Sensor de humedad
+Prioridad: Must
+Criterio de verificacion: Enviar una lectura desde un sensor dado de alta y comprobar que queda almacenada con su marca de tiempo y su parcela.
+
+[RF-03]
+Nombre: Activar el riego por umbral de humedad
+Descripcion: Cuando la humedad media de una parcela descienda por debajo del umbral configurado para su cultivo, el sistema debera activar la valvula de riego de esa parcela.
+Actor: Sistema
+Prioridad: Must
+Criterio de verificacion: Con un umbral del 30 por ciento, enviar lecturas que promedien 25 por ciento y comprobar que se emite la orden de apertura y queda registrada.
+
+[RF-04]
+Nombre: Cerrar el riego por volumen alcanzado
+Descripcion: Cuando el volumen de agua aportado a una parcela alcance la dosis configurada para su cultivo, el sistema debera cerrar la valvula de riego de esa parcela.
+Actor: Sistema
+Prioridad: Must
+Criterio de verificacion: Configurar una dosis de 200 litros, ejecutar un riego y comprobar que la valvula se cierra entre 195 y 205 litros aportados.
+
+[RF-05]
+Nombre: Registrar el pesaje de un animal
+Descripcion: El sistema debera registrar el peso de un animal identificado por su crotal, con la fecha del pesaje y el operario que lo realiza.
+Actor: Operario de ganaderia
+Prioridad: Should
+Criterio de verificacion: Registrar un pesaje y comprobar que aparece en el historial del animal con su fecha y su operario.
+
+[RF-06]
+Nombre: Consultar las lecturas de una parcela
+Descripcion: El sistema debera mostrar las lecturas registradas de una parcela en el periodo que indique el responsable, agrupadas por tipo de medida.
+Actor: Responsable de la explotacion
+Prioridad: Should
+Criterio de verificacion: Consultar un periodo con lecturas de humedad y temperatura y comprobar que aparecen separadas por tipo y ordenadas por fecha.
+
+[RF-07]
+Nombre: Notificar la retirada del ganado
+Descripcion: Se requiere que sea notificado el responsable cuando un animal salga del perimetro de su parcela.
+Actor: Sistema
+Prioridad: Must
+Criterio de verificacion: Sacar un collar del perimetro configurado y comprobar que llega la notificacion.
+
+[RF-08]
+Nombre: Gestionar la trazabilidad
+Descripcion: El sistema debera gestionar adecuadamente la trazabilidad de la explotacion.
+Actor: Responsable de la explotacion
+Prioridad: Must
+
+[RNF-01]
+Nombre: Disponibilidad de la plataforma
+Descripcion: El sistema debera mantener disponible la consulta de lecturas y el gobierno del riego durante la campana de cultivo.
+Metrica: Proporcion de tiempo con el servicio disponible, medida mensualmente
+Valor objetivo: Al menos el 99,5 por ciento mensual
+Prioridad: Must
+Criterio de verificacion: Medir la disponibilidad durante un mes de campana y comprobar que supera el 99,5 por ciento.
+
+[RNF-02]
+Nombre: Capacidad de la explotacion
+Descripcion: El sistema debera admitir el numero de dispositivos de campo establecido por explotacion sin degradar su comportamiento temporal.
+Metrica: Dispositivos simultaneos por explotacion manteniendo la latencia de RNF-02
+Valor objetivo: Al menos 500 dispositivos por explotacion
+Prioridad: Should
+Criterio de verificacion: Simular 500 dispositivos emitiendo cada 15 minutos y comprobar que la latencia de la orden de riego sigue por debajo de 5 segundos.

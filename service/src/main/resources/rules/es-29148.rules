@@ -1,0 +1,56 @@
+# =====================================================================
+# Reglas de redaccion conforme a ISO/IEC/IEEE 29148, adaptadas al castellano
+#
+# Cada regla declara la caracteristica de la norma que protege, de modo que
+# ningun defecto se reporte sin poder justificarse. Las listas son dato: un
+# proyecto puede ampliarlas sin tocar el codigo (RQM-12).
+# =====================================================================
+
+# ---------------------------------------------------------------------
+# Verbos que obligan. La norma reserva 'shall' para lo vinculante.
+# En castellano, la forma equivalente es 'debera' / 'debe'.
+# ---------------------------------------------------------------------
+verb.binding = debera, deberan, debe, deben
+
+# Verbos que NO obligan y cuya presencia en un requisito lo desnaturaliza.
+# 'should' expresa preferencia, 'may' concesion, 'will' futuro descriptivo.
+verb.preference = deberia, deberian, seria deseable, preferiblemente
+verb.permission = podra, podran, puede, pueden, podria
+verb.descriptive = sera, seran, es, son, era, eran
+
+# ---------------------------------------------------------------------
+# Terminos sin magnitud. Un requisito que los usa no es verificable
+# mientras no se acompanen de una cifra.
+# ---------------------------------------------------------------------
+vague = rapido, rapida, rapidamente, eficiente, eficiente mente, amigable, intuitivo, intuitiva, \
+        adecuado, adecuada, apropiado, apropiada, suficiente, razonable, optimo, optima, \
+        facil, sencillo, sencilla, flexible, robusto, robusta, escalable, moderno, moderna, \
+        amplio, amplia, minimo impacto, alta calidad, buen rendimiento, user friendly, \
+        lo antes posible, en la medida de lo posible, si es necesario, entre otros, etcetera, etc
+
+# ---------------------------------------------------------------------
+# Construcciones que la norma desaconseja de forma expresa.
+# ---------------------------------------------------------------------
+forbidden.capability = debera ser capaz de, debera poder, deberan ser capaces de, tendra la capacidad de
+forbidden.passive = se requiere que, es requerido que, sera requerido, se debera, debera ser realizado, \
+                    debera ser efectuado, debera ser generado, debera ser enviado
+forbidden.negative = no debera, no deberan, no debe, no deben
+
+# ---------------------------------------------------------------------
+# Conjunciones que pueden estar uniendo dos obligaciones en un enunciado.
+# Se reportan como sospecha, no como defecto cierto: 'nombre y especie' es
+# un objeto compuesto, no dos requisitos.
+# ---------------------------------------------------------------------
+conjunction = ademas, asimismo, tambien debera, y debera, o debera, y permitira, y generara
+
+# ---------------------------------------------------------------------
+# Sujetos admitidos. La norma exige que el requisito diga QUIEN actua, y
+# que ese sujeto sea el sistema y no la persona usuaria.
+# ---------------------------------------------------------------------
+subject = el sistema, la plataforma, la aplicacion, el modulo, el componente, el servicio
+
+# ---------------------------------------------------------------------
+# Longitud maxima recomendada del enunciado, en palabras. Por encima, la
+# probabilidad de que contenga mas de una obligacion crece deprisa.
+# ---------------------------------------------------------------------
+max.words = 50

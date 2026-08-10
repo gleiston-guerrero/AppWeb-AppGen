@@ -1,0 +1,114 @@
+<main class="pagina contenedor">
+  @if (!token) {
+    @if (enviado(); as mensaje) {
+      <section class="hecho">
+        <p class="eyebrow">Solicitud registrada</p>
+        <h1 class="titulo">Revise su correo</h1>
+        <p class="entrada">{{ mensaje }}</p>
+        <p class="nota">
+          Si no le llega en unos minutos, revise la carpeta de correo no deseado. El enlace no se
+          muestra aquí a propósito: solo debe conocerlo quien lea ese buzón.
+        </p>
+        <a class="volver" routerLink="/entrar">Volver al acceso</a>
+      </section>
+    } @else {
+      <section>
+        <p class="eyebrow">Acceso a la plataforma</p>
+        <h1 class="titulo">Recuperar el acceso</h1>
+        <p class="entrada">
+          Indique su nombre de usuario o su correo y le enviaremos un enlace para fijar una
+          contraseña nueva.
+        </p>
+
+        <form class="formulario" [formGroup]="solicitud" (ngSubmit)="solicitar()" novalidate>
+          <div class="campo">
+            <label for="identifier">Usuario o correo</label>
+            <input id="identifier" type="text" formControlName="identifier" autocomplete="username" />
+          </div>
+
+          @if (error(); as m) { <p class="error" role="alert">{{ m }}</p> }
+
+          <button type="submit" class="boton" [disabled]="enviando()">
+            {{ enviando() ? 'Enviando…' : 'Enviarme el enlace' }}
+          </button>
+        </form>
+
+        <p class="alternativa"><a routerLink="/entrar">Volver al acceso</a></p>
+      </section>
+    }
+  } @else if (hecho()) {
+    <section class="hecho">
+      <p class="eyebrow">Contraseña cambiada</p>
+      <h1 class="titulo">Ya puede entrar</h1>
+      <p class="entrada">
+        Se han cerrado todas las sesiones abiertas de su cuenta, incluidas las suyas en otros
+        dispositivos. Es deliberado: si alguien más tenía acceso, ya no lo tiene.
+      </p>
+      <a class="boton" routerLink="/entrar">Iniciar sesión</a>
+    </section>
+  } @else if (comprobando()) {
+    <p class="vacio">Comprobando el enlace…</p>
+  } @else if (enlace(); as e) {
+    @if (!e.valid) {
+      <section class="hecho">
+        <p class="eyebrow">Enlace no válido</p>
+        <h1 class="titulo">Este enlace no sirve</h1>
+        <p class="motivo">{{ e.reason }}</p>
+        <a class="boton" routerLink="/recuperar">Solicitar otro</a>
+      </section>
+    } @else {
+      <section>
+        <p class="eyebrow">Recuperación de acceso</p>
+        <h1 class="titulo">Nueva contraseña</h1>
+        <p class="entrada">
+          Para la cuenta <span class="mono">{{ e.username }}</span>.
+        </p>
+
+        <form class="formulario" [formGroup]="cambio" (ngSubmit)="restablecer()" novalidate>
+          <div class="campo">
+            <label for="password">Contraseña nueva</label>
+            <div class="clave">
+              <input
+                id="password"
+                [type]="verClave() ? 'text' : 'password'"
+                formControlName="password"
+                autocomplete="new-password"
+              />
+              <button type="button" class="clave__ver" (click)="alternarClave()">
+                {{ verClave() ? 'Ocultar' : 'Mostrar' }}
+              </button>
+            </div>
+            <p class="campo__ayuda">
+              Mínimo {{ MIN_PASSWORD }} caracteres. Una frase que recuerde es más segura que una
+              palabra corta con signos.
+            </p>
+            @if (faltan() > 0 && cambio.controls.password.value.length > 0) {
+              <p class="campo__contador">Faltan {{ faltan() }} caracteres.</p>
+            }
+          </div>
+
+          @if (error(); as m) { <p class="error" role="alert">{{ m }}</p> }
+
+          <button type="submit" class="boton" [disabled]="enviando()">
+            {{ enviando() ? 'Cambiando…' : 'Cambiar la contraseña' }}
+          </button>
+
+          @if (cambio.invalid) {
+            <p class="pendiente" aria-live="polite">
+              Pendiente: escriba una contraseña de al menos {{ MIN_PASSWORD }} caracteres.
+            </p>
+          }
+        </form>
+
+        <p class="alternativa">
+          Al cambiarla se cerrarán todas las sesiones abiertas de su cuenta.
+        </p>
+      </section>
+    }
+  } @else if (error(); as m) {
+    <section class="hecho">
+      <p class="eyebrow">No se pudo comprobar</p>
+      <p class="motivo">{{ m }}</p>
+    </section>
+  }
+</main>

@@ -1,0 +1,129 @@
+# Sistema de Gestion de Granja Inteligente (SGGI)
+# Perfil de importacion: yaml-requisitos
+
+project: Sistema de Gestion de Granja Inteligente (SGGI)
+version: "1.0"
+
+requirements:
+
+  - id: RF-01
+    kind: FUNCTIONAL
+    name: Registrar parcela de cultivo
+    description: >
+      El sistema debera registrar una parcela de cultivo con su identificador,
+      superficie en hectareas, tipo de suelo, cultivo sembrado y coordenadas
+      de sus vertices.
+    actor: Responsable de la explotacion
+    priority: Must
+    verification: >
+      Con datos validos, registrar una parcela y comprobar que aparece en el
+      listado con su superficie y su cultivo.
+
+  - id: RF-02
+    kind: FUNCTIONAL
+    name: Registrar el estado del invernadero
+    description: >
+      El sistema debera almacenar las lecturas de temperatura, humedad relativa
+      y luminosidad de cada invernadero, con su marca de tiempo.
+    actor: Sensor de invernadero
+    priority: Must
+    verification: >
+      Enviar una lectura de las tres magnitudes y comprobar que quedan
+      almacenadas con su marca de tiempo y su invernadero.
+
+  - id: RF-03
+    kind: FUNCTIONAL
+    name: Gobernar la ventilacion del invernadero
+    description: >
+      Cuando la temperatura de un invernadero supere el maximo configurado para
+      su cultivo, el sistema debera abrir sus ventanas cenitales.
+    actor: Sistema
+    priority: Must
+    verification: >
+      Configurar un maximo de 28 grados, simular una lectura de 31 grados y
+      comprobar que se emite la orden de apertura y queda registrada.
+
+  - id: RF-04
+    kind: FUNCTIONAL
+    name: Registrar el pesaje de un animal
+    description: >
+      El sistema debera registrar el peso de un animal identificado por su
+      crotal, con la fecha del pesaje y el operario que lo realiza.
+    actor: Operario de ganaderia
+    priority: Should
+    verification: >
+      Registrar un pesaje y comprobar que aparece en el historial del animal
+      con su fecha y su operario.
+
+  - id: RF-05
+    kind: FUNCTIONAL
+    name: Notificar la salida de un animal del perimetro
+    description: >
+      Cuando el collar de un animal comunique una posicion fuera del perimetro
+      de su parcela, el sistema debera notificar al responsable indicando el
+      animal y la posicion.
+    actor: Sistema
+    priority: Must
+    verification: >
+      Sacar un collar del perimetro configurado y comprobar que llega la
+      notificacion con el crotal y las coordenadas.
+
+  - id: RF-06
+    kind: FUNCTIONAL
+    name: Consultar el historial de un animal
+    description: >
+      El sistema debera mostrar el historial de un animal identificado por su
+      crotal, incluyendo pesajes, tratamientos veterinarios y traslados.
+    actor: Veterinario
+    priority: Should
+    verification: >
+      Consultar un animal con tres pesajes y dos tratamientos y comprobar que
+      aparecen los cinco asientos ordenados por fecha.
+
+  - id: RF-07
+    kind: FUNCTIONAL
+    name: Planificar el calendario de siembra
+    description: >
+      El sistema deberia permitir planificar el calendario de siembra de cada
+      parcela para la campana siguiente.
+    actor: Responsable de la explotacion
+    priority: Could
+    verification: >
+      Planificar una siembra y comprobar que aparece en el calendario de la
+      parcela.
+
+  - id: RF-08
+    kind: FUNCTIONAL
+    name: Registrar el tratamiento veterinario
+    description: >
+      El sistema debera registrar cada tratamiento veterinario aplicado a un
+      animal, con el producto, la dosis, la fecha y el plazo de espera antes
+      del aprovechamiento.
+    actor: Veterinario
+    priority: Must
+
+  - id: RNF-01
+    kind: NON_FUNCTIONAL
+    name: Autonomia de los dispositivos de campo
+    description: >
+      El sistema debera operar los dispositivos de campo con la autonomia
+      establecida sin sustitucion de bateria.
+    metric: Dias de operacion continua con una carga, muestreando cada 15 minutos
+    target: Al menos 180 dias
+    priority: Must
+    verification: >
+      Someter un dispositivo a muestreo cada 15 minutos y comprobar que supera
+      los 180 dias antes de agotar la bateria.
+
+  - id: RNF-02
+    kind: NON_FUNCTIONAL
+    name: Proteccion de las comunicaciones
+    description: >
+      El sistema debera cifrar las comunicaciones entre los dispositivos de
+      campo y la plataforma.
+    metric: Proporcion de comunicaciones con cifrado extremo a extremo
+    target: El 100 por ciento de las comunicaciones
+    priority: Must
+    verification: >
+      Interceptar el trafico entre un dispositivo y la plataforma y comprobar
+      que ningun dato de lectura viaja legible.

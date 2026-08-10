@@ -10,6 +10,8 @@ import org.slcp.service.auth.AuthenticationFailedException;
 import org.slcp.service.auth.LoginFailure;
 import org.slcp.service.invitations.InvitationException;
 import org.slcp.service.projects.ProjectAccessException;
+import org.slcp.service.recovery.RecoveryException;
+import org.slcp.service.requirements.RequirementException;
 import org.slcp.service.registration.RegistrationConflictException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -60,6 +62,30 @@ public class ApiExceptionHandler {
 			HttpServletRequest peticion) {
 		return ResponseEntity.unprocessableContent().body(new ApiError(Instant.now(),
 				HttpStatus.UNPROCESSABLE_CONTENT.value(), "INVITATION", fallo.getMessage(),
+				peticion.getRequestURI(), Map.of()));
+	}
+
+	@ExceptionHandler(RecoveryException.class)
+	public ResponseEntity<ApiError> recuperacion(RecoveryException fallo,
+			HttpServletRequest peticion) {
+		return ResponseEntity.unprocessableContent().body(new ApiError(Instant.now(),
+				HttpStatus.UNPROCESSABLE_CONTENT.value(), "PASSWORD_RECOVERY", fallo.getMessage(),
+				peticion.getRequestURI(), Map.of()));
+	}
+
+	@ExceptionHandler(RequirementException.class)
+	public ResponseEntity<ApiError> requisito(RequirementException fallo,
+			HttpServletRequest peticion) {
+		return ResponseEntity.unprocessableContent().body(new ApiError(Instant.now(),
+				HttpStatus.UNPROCESSABLE_CONTENT.value(), "REQUIREMENT", fallo.getMessage(),
+				peticion.getRequestURI(), Map.of()));
+	}
+
+	@ExceptionHandler(IllegalStateException.class)
+	public ResponseEntity<ApiError> estado(IllegalStateException fallo,
+			HttpServletRequest peticion) {
+		return ResponseEntity.unprocessableContent().body(new ApiError(Instant.now(),
+				HttpStatus.UNPROCESSABLE_CONTENT.value(), "INVALID_STATE", fallo.getMessage(),
 				peticion.getRequestURI(), Map.of()));
 	}
 

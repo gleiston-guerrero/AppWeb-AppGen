@@ -1,0 +1,248 @@
+<main class="pagina contenedor">
+  <header class="cabecera">
+    <div>
+      <p class="eyebrow">Requisitos</p>
+      <h1 class="titulo">{{ projectId }}</h1>
+    </div>
+    <a class="volver" routerLink="/trabajo">Volver a mi trabajo</a>
+  </header>
+
+  @if (resumen(); as r) {
+    <ul class="resumen">
+      <li><span class="resumen__cifra">{{ r.total }}</span> requisitos</li>
+      <li><span class="resumen__cifra resumen__cifra--bien">{{ r.conforming }}</span> conformes</li>
+      <li><span class="resumen__cifra resumen__cifra--aviso">{{ r.withFindings }}</span> con hallazgos</li>
+      <li><span class="resumen__cifra resumen__cifra--aviso">{{ r.withoutCriterion }}</span> sin criterio</li>
+      <li><span class="resumen__cifra">{{ r.approved }}</span> aprobados</li>
+      @if (r.suggestedText > 0) {
+        <li title="Requisitos cuyo texto procede de una propuesta aceptada">
+          <span class="resumen__cifra">{{ r.suggestedText }}</span> con texto sugerido
+        </li>
+      }
+    </ul>
+  }
+
+  @if (aviso(); as m) { <p class="aviso" role="status">{{ m }}</p> }
+  @if (error(); as m) { <p class="error" role="alert">{{ m }}</p> }
+
+  @if (esEquipo()) {
+    <section class="panel">
+      <h2 class="eyebrow">Cargar un documento de requisitos</h2>
+      <div class="panel__campos">
+        <select [(ngModel)]="perfil" name="perfil" (ngModelChange)="cambiarFormato()"
+          aria-label="Formato del archivo">
+          @for (f of formatos(); track f.id) {
+            <option [value]="f.id">{{ f.name }}</option>
+          }
+        </select>
+        <input type="file" [accept]="extensionesAceptadas()" (change)="archivoElegido($event)"
+          aria-label="Archivo" />
+        <button type="button" class="btn btn--principal" [disabled]="importando()" (click)="importar()">
+          {{ importando() ? 'Importando…' : 'Importar' }}
+        </button>
+      </div>
+
+      @if (formatoElegido(); as f) {
+        <div class="formato">
+          <p class="formato__descripcion">{{ f.description }}</p>
+
+          <dl class="formato__datos">
+            <dt>Extensiones</dt>
+            <dd class="mono">{{ f.extensions.join('  ') }}</dd>
+            <dt>Campos que reconoce</dt>
+            <dd>{{ f.fields.length }}</dd>
+            <dt>Exige</dt>
+            <dd class="mono">{{ f.expected.join('  ') }}</dd>
+          </dl>
+
+          <p class="formato__titulo">Así debe verse su archivo</p>
+          <pre class="formato__ejemplo"><code>{{ f.example }}</code></pre>
+          <p class="formato__nota">
+            El ejemplo sale del propio formato instalado, no de una captura: si el formato cambia,
+            este ejemplo cambia con él.
+          </p>
+        </div>
+      }
+
+      @if (nombreArchivo) {
+        <p class="panel__nota">Archivo elegido: <span class="mono">{{ nombreArchivo }}</span></p>
+      }
+      <p class="panel__nota">
+        Lo importado nace en borrador y con sus carencias reportadas. Nada se completa ni se corrige
+        al importar.
+      </p>
+
+      @if (resultadoImport(); as ri) {
+        <div class="informe">
+          <p class="informe__mensaje">{{ ri.message }}</p>
+          @if (ri.skipped > 0) {
+            <p class="informe__detalle">
+              Omitidos por existir ya: <span class="mono">{{ ri.skippedIds.join(', ') }}</span>
+            </p>
+          }
+          @if (ri.unknownLabels.length > 0) {
+            <p class="informe__detalle">
+              Etiquetas no reconocidas por el perfil:
+              <span class="mono">{{ ri.unknownLabels.join(', ') }}</span>
+            </p>
+          }
+        </div>
+      }
+    </section>
+
+    <section class="panel">
+      <h2 class="eyebrow">Redactar un requisito</h2>
+      <div class="panel__campos panel__campos--columna">
+        <input type="text" [(ngModel)]="nuevoNombre" name="nuevoNombre" placeholder="Nombre (opcional)" aria-label="Nombre" />
+        <textarea rows="3" [(ngModel)]="nuevoEnunciado" name="nuevoEnunciado"
+          placeholder="El sistema deberá… — enuncie una sola obligación, con sujeto expreso y sin términos vagos"
+          aria-label="Enunciado"></textarea>
+        <textarea rows="2" [(ngModel)]="nuevoCriterio" name="nuevoCriterio"
+          placeholder="Criterio de verificación (si lo deja vacío, la plataforma propondrá opciones)"
+          aria-label="Criterio de verificación"></textarea>
+        <div class="panel__campos">
+          <select [(ngModel)]="nuevoTipo" name="nuevoTipo" aria-label="Tipo">
+            <option value="FUNCTIONAL">Requisito funcional</option>
+            <option value="NON_FUNCTIONAL">Requisito no funcional</option>
+            <option value="CONSTRAINT">Restricción o diseño</option>
+            <option value="USER_STORY">Historia de usuario</option>
+            <option value="USE_CASE">Caso de uso</option>
+          </select>
+          <button type="button" class="btn btn--principal" [disabled]="redactando()" (click)="crear()">
+            {{ redactando() ? 'Creando…' : 'Crear requisito' }}
+          </button>
+        </div>
+      </div>
+    </section>
+  }
+
+  <nav class="filtros" aria-label="Filtro">
+    <button type="button" [class.filtro--activo]="filtro === 'TODOS'" (click)="filtro = 'TODOS'">Todos</button>
+    <button type="button" [class.filtro--activo]="filtro === 'CON_HALLAZGOS'" (click)="filtro = 'CON_HALLAZGOS'">Con hallazgos</button>
+    <button type="button" [class.filtro--activo]="filtro === 'SIN_CRITERIO'" (click)="filtro = 'SIN_CRITERIO'">Sin criterio</button>
+    <button type="button" [class.filtro--activo]="filtro === 'APROBADOS'" (click)="filtro = 'APROBADOS'">Aprobados</button>
+  </nav>
+
+  @if (cargando()) {
+    <p class="vacio">Consultando los requisitos…</p>
+  } @else if (visibles().length === 0) {
+    <p class="vacio">No hay requisitos que mostrar con este filtro.</p>
+  } @else {
+    <ul class="lista">
+      @for (r of visibles(); track r.readableId) {
+        <li class="requisito" [class.requisito--defecto]="defectos(r) > 0">
+          <div class="requisito__fila" (click)="alternar(r)">
+            <div class="requisito__datos">
+              <p class="requisito__ids">
+                <span class="mono">{{ r.readableId }}</span>
+                @if (r.sourceId) { <span class="origen">{{ r.sourceId }}</span> }
+                <span class="tipo">{{ r.kindLabel }}</span>
+                <span class="estado estado--{{ r.status }}">{{ etiquetaEstado[r.status] }}</span>
+                @if (r.statementOrigin === 'SUGGESTED' || r.verificationOrigin === 'SUGGESTED') {
+                  <span class="sugerido" title="Contiene texto procedente de una propuesta aceptada">texto sugerido</span>
+                }
+              </p>
+              <p class="requisito__enunciado">{{ r.statement }}</p>
+              @if (!r.verification) {
+                <p class="requisito__falta">Sin criterio de verificación</p>
+              }
+            </div>
+            <div class="requisito__marcas">
+              @if (r.conforming) {
+                <span class="marca marca--bien">conforme</span>
+              } @else {
+                <span class="marca marca--aviso">{{ r.findings.length }} hallazgos</span>
+              }
+            </div>
+          </div>
+
+          @if (abierto() === r.readableId) {
+            <div class="detalle">
+              @if (r.findings.length > 0) {
+                <h3 class="eyebrow">Lo que la norma exige y este enunciado no cumple</h3>
+                <ul class="hallazgos">
+                  @for (f of r.findings; track f.rule + f.evidence) {
+                    <li class="hallazgo hallazgo--{{ f.severity }}">
+                      <span class="hallazgo__carac">{{ f.characteristic }}</span>
+                      @if (f.evidence) { <span class="hallazgo__evid mono">{{ f.evidence }}</span> }
+                      <span class="hallazgo__expl">{{ f.explanation }}</span>
+                    </li>
+                  }
+                </ul>
+              }
+
+              @if (r.verification) {
+                <h3 class="eyebrow">Criterio de verificación</h3>
+                <p class="criterio">{{ r.verification }}</p>
+              }
+
+              @if (esEquipo()) {
+                @if (r.suggestions.length > 0) {
+                  <h3 class="eyebrow">Criterios propuestos</h3>
+                  <p class="propuestas__nota">
+                    Elija uno, modifíquelo antes de aceptarlo, o deje el requisito como está. Las tres
+                    opciones cuestan lo mismo.
+                  </p>
+                  <ul class="propuestas">
+                    @for (s of r.suggestions; track s.text) {
+                      <li class="propuesta">
+                        <p class="propuesta__texto">{{ s.text }}</p>
+                        <p class="propuesta__fundamento">{{ s.rationale }}</p>
+                        @if (s.needsDecision) {
+                          <p class="propuesta__hueco">
+                            Contiene huecos que debe rellenar usted: la plataforma no propone
+                            magnitudes, porque qué valor basta depende del riesgo que se tolere.
+                          </p>
+                        }
+                        <div class="propuesta__acciones">
+                          <button type="button" class="btn btn--aceptar"
+                            [disabled]="guardando() === r.readableId || s.needsDecision"
+                            (click)="aceptar(r, s)">Aceptar tal cual</button>
+                          <button type="button" class="btn btn--plano" (click)="modificar(s)">
+                            Modificar antes de aceptar
+                          </button>
+                        </div>
+                      </li>
+                    }
+                  </ul>
+                }
+
+                <h3 class="eyebrow">Escribir el criterio</h3>
+                <textarea rows="3" [(ngModel)]="edicionCriterio" [name]="'crit-' + r.readableId"
+                  placeholder="Qué se observa y qué resultado se espera" aria-label="Criterio"></textarea>
+                <div class="detalle__acciones">
+                  <button type="button" class="btn btn--principal"
+                    [disabled]="guardando() === r.readableId" (click)="guardarCriterio(r)">
+                    Guardar criterio
+                  </button>
+                  @if (r.status === 'DRAFT') {
+                    <button type="button" class="btn btn--plano" (click)="transitar(r, 'REVIEWED')">
+                      Marcar como revisado
+                    </button>
+                  }
+                </div>
+              }
+
+              @if (esPropietario() && r.status === 'REVIEWED') {
+                <div class="aprobacion">
+                  <p class="aprobacion__nota">
+                    Aprobar afirma que esto es lo que el sistema debe hacer. No afirma que ya lo haga:
+                    el requisito se cierra solo cuando sus entregables se aceptan.
+                  </p>
+                  <div class="detalle__acciones">
+                    <button type="button" class="btn btn--aceptar" (click)="transitar(r, 'APPROVED')">
+                      Aprobar
+                    </button>
+                    <button type="button" class="btn btn--plano" (click)="transitar(r, 'REJECTED')">
+                      Reprobar
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </li>
+      }
+    </ul>
+  }
+</main>

@@ -1,0 +1,99 @@
+{
+  "project": "Sistema de Gestion de Granja Inteligente (SGGI)",
+  "version": "1.0",
+  "requirements": [
+    {
+      "id": "RF-01",
+      "kind": "FUNCTIONAL",
+      "name": "Registrar parcela de cultivo",
+      "description": "El sistema debera registrar una parcela de cultivo con su identificador, superficie en hectareas, tipo de suelo, cultivo sembrado y coordenadas de sus vertices.",
+      "actor": "Responsable de la explotacion",
+      "inputs": ["Identificador", "Superficie", "Tipo de suelo", "Cultivo", "Coordenadas"],
+      "outputs": "Parcela registrada y disponible para asignarle sensores",
+      "priority": "Must",
+      "verification": "Con datos validos, registrar una parcela y comprobar que aparece en el listado con su superficie y su cultivo."
+    },
+    {
+      "id": "RF-02",
+      "kind": "FUNCTIONAL",
+      "name": "Dar de alta un sensor en una parcela",
+      "description": "El sistema debera dar de alta un sensor asociandolo a una parcela, con su tipo de medida, su periodo de muestreo y su ubicacion dentro de la parcela.",
+      "actor": "Responsable de la explotacion",
+      "priority": "Must",
+      "verification": "Dar de alta un sensor y comprobar que aparece asociado a su parcela con su periodo de muestreo."
+    },
+    {
+      "id": "RF-03",
+      "kind": "FUNCTIONAL",
+      "name": "Registrar lecturas de los sensores",
+      "description": "El sistema debera almacenar cada lectura recibida de un sensor, con el identificador del sensor, el tipo de medida, el valor, la unidad y la marca de tiempo.",
+      "actor": ["Sensor de campo", "Pasarela de campo"],
+      "priority": "Must",
+      "verification": "Enviar una lectura desde un sensor dado de alta y comprobar que queda almacenada con todos sus datos."
+    },
+    {
+      "id": "RF-04",
+      "kind": "FUNCTIONAL",
+      "name": "Activar el riego por umbral de humedad",
+      "description": "Cuando la humedad media de una parcela descienda por debajo del umbral configurado para su cultivo, el sistema debera activar la valvula de riego de esa parcela.",
+      "actor": "Sistema",
+      "priority": "Must",
+      "verification": "Con un umbral del 30 por ciento, enviar lecturas que promedien 25 por ciento y comprobar que se emite la orden de apertura y queda registrada."
+    },
+    {
+      "id": "RF-05",
+      "kind": "FUNCTIONAL",
+      "name": "Cerrar el riego por dosis alcanzada",
+      "description": "Cuando el volumen aportado a una parcela alcance la dosis configurada para su cultivo, el sistema debera cerrar la valvula de riego de esa parcela.",
+      "actor": "Sistema",
+      "priority": "Must",
+      "verification": "Configurar una dosis de 200 litros, ejecutar un riego y comprobar que la valvula se cierra entre 195 y 205 litros aportados."
+    },
+    {
+      "id": "RF-06",
+      "kind": "FUNCTIONAL",
+      "name": "Consultar el consumo de agua por parcela",
+      "description": "El sistema debera mostrar el consumo de agua acumulado de cada parcela en el periodo que indique el responsable de la explotacion.",
+      "actor": "Responsable de la explotacion",
+      "priority": "Should",
+      "verification": "Con tres riegos de volumen conocido, consultar el periodo que los contiene y comprobar que el total coincide con su suma."
+    },
+    {
+      "id": "RF-07",
+      "kind": "FUNCTIONAL",
+      "name": "Emitir alerta por sensor sin comunicacion",
+      "description": "Cuando un sensor deje de enviar lecturas durante mas de dos periodos consecutivos de muestreo, el sistema debera notificar al responsable de la explotacion.",
+      "actor": "Sistema",
+      "priority": "Must",
+      "verification": "Con un periodo de 15 minutos, dejar de enviar lecturas durante 31 minutos y comprobar que llega la notificacion identificando el sensor."
+    },
+    {
+      "id": "RF-08",
+      "kind": "FUNCTIONAL",
+      "name": "Exportar el historial de riego",
+      "description": "El sistema debera exportar el historial de riego de una explotacion en un archivo de valores separados por comas.",
+      "actor": "Responsable de la explotacion",
+      "priority": "Could"
+    },
+    {
+      "id": "RNF-01",
+      "kind": "NON_FUNCTIONAL",
+      "name": "Continuidad ante corte de comunicaciones",
+      "description": "El sistema debera conservar en el dispositivo de campo las lecturas que no haya podido transmitir, y enviarlas cuando se restablezca la comunicacion.",
+      "metric": "Lecturas perdidas tras un corte, sobre el total generado durante el corte",
+      "target": "Cero lecturas perdidas en cortes de hasta 24 horas",
+      "priority": "Must",
+      "verification": "Interrumpir la comunicacion durante 24 horas generando lecturas, restablecerla y comprobar que todas llegan y ninguna se duplica."
+    },
+    {
+      "id": "RNF-02",
+      "kind": "NON_FUNCTIONAL",
+      "name": "Latencia de la orden de riego",
+      "description": "El sistema debera emitir la orden de apertura de valvula dentro del plazo establecido desde que se cumple la condicion de riego.",
+      "metric": "Tiempo entre el cumplimiento de la condicion y la emision de la orden",
+      "target": "Menor de 5 segundos en el 95 por ciento de las activaciones",
+      "priority": "Must",
+      "verification": "Provocar 100 activaciones y comprobar que al menos 95 emiten la orden en menos de 5 segundos."
+    }
+  ]
+}

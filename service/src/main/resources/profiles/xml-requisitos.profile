@@ -11,6 +11,8 @@ profile.name        = XML con elementos de requisito
 profile.description = Archivo XML donde cada requisito es un elemento hijo de la raiz. Sus campos pueden ir como atributos o como elementos, indistintamente.
 profile.extensions  = .xml
 profile.reader      = xml
+# Nombre del elemento que representa un requisito.
+xml.item            = requirement
 
 field.id                       = id
 field.identificador            = id

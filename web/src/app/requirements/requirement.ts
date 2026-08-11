@@ -40,6 +40,9 @@ export interface Requirement {
   verificationOrigin: 'HUMAN' | 'SUGGESTED';
   conforming: boolean;
   findings: Finding[];
+  /** Redacciones alternativas del enunciado. */
+  statementSuggestions: Suggestion[];
+  /** Propuestas de criterio de verificación. */
   suggestions: Suggestion[];
   updatedAt: string;
 }

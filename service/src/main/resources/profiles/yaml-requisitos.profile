@@ -7,7 +7,8 @@ profile.name        = YAML con lista de requisitos
 profile.description = Archivo YAML con una lista de requisitos, en la raiz o bajo la clave "requirements". Admite texto de varias lineas con la barra vertical, que es lo comodo para enunciados largos.
 profile.extensions  = .yaml, .yml
 profile.reader      = yaml
-list.path           = requirements
+# Clave que contiene la lista de requisitos.
+yaml.list           = requirements
 
 field.id                       = id
 field.identificador            = id

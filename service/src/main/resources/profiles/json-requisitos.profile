@@ -11,7 +11,8 @@ profile.name        = JSON con lista de requisitos
 profile.description = Archivo JSON con un arreglo de requisitos, en la raiz o bajo la clave "requirements". Cada requisito es un objeto cuyas claves son sus campos. Los valores multiples pueden ir como arreglo.
 profile.extensions  = .json
 profile.reader      = json
-list.path           = requirements
+# Clave que contiene la lista de requisitos.
+json.list           = requirements
 
 field.id                       = id
 field.identificador            = id

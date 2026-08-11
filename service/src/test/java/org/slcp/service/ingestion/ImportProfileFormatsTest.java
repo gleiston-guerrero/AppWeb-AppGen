@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -49,12 +48,9 @@ class ImportProfileFormatsTest {
 	@DisplayName("El ejemplo de cada formato se lee con su propio perfil")
 	void ejemploCoherente(String id) throws IOException {
 		ImportProfile p = cargar(id);
-		ObjectMapper om = new ObjectMapper();
 
-		ExtractionReport informe = p.esEstructurado()
-				? new StructuredExtractor(p, om)
-						.extraer(new DocumentReader(om).leer(p.getExample(), p.getReader()))
-				: new RequirementExtractor(p).extraer(new StringReader(p.getExample()));
+		ExtractionReport informe = RequirementSource.of(p)
+				.extraer(new StringReader(p.getExample()));
 
 		assertThat(informe.total()).isPositive();
 		assertThat(informe.unknownLabels()).isEmpty();
@@ -88,12 +84,9 @@ class ImportProfileFormatsTest {
 	@DisplayName("Se extrae mas de un requisito seguido, sin confundir donde acaba cada uno")
 	void bloquesConsecutivos(String id) throws IOException {
 		ImportProfile p = cargar(id);
-		ObjectMapper om = new ObjectMapper();
 
-		ExtractionReport informe = p.esEstructurado()
-				? new StructuredExtractor(p, om)
-						.extraer(new DocumentReader(om).leer(p.getExample(), p.getReader()))
-				: new RequirementExtractor(p).extraer(new StringReader(p.getExample()));
+		ExtractionReport informe = RequirementSource.of(p)
+				.extraer(new StringReader(p.getExample()));
 
 		assertThat(informe.total()).isGreaterThanOrEqualTo(2);
 		assertThat(informe.duplicateIds()).isEmpty();

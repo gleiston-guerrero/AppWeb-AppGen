@@ -65,6 +65,9 @@ public final class RequirementContracts {
 			String verificationOrigin,
 			boolean conforming,
 			List<FindingView> findings,
+			/** Propuestas de redaccion del enunciado (ANA-14). */
+			List<SuggestionView> statementSuggestions,
+			/** Propuestas de criterio de verificacion. */
 			List<SuggestionView> suggestions,
 			Instant updatedAt) {
 	}

@@ -90,14 +90,68 @@
       }
     </section>
 
-    <section class="panel">
-      <h2 class="eyebrow">Redactar un requisito</h2>
+    <section class="panel" id="formulario-requisito" [class.panel--corrigiendo]="editando()">
+      @if (editando(); as enCorreccion) {
+        <h2 class="eyebrow">Corregir {{ enCorreccion.readableId }}</h2>
+
+        @if (opciones().length > 0) {
+          <div class="opciones">
+            <div class="opciones__barra">
+              <button type="button" class="opciones__flecha" [disabled]="opcionActual() === 0"
+                (click)="opcionAnterior()" aria-label="Opción anterior">‹</button>
+
+              <span class="opciones__indice">
+                @if (opcionActual() === 0) {
+                  Texto original
+                } @else {
+                  Opción {{ opcionActual() }} de {{ opciones().length }}
+                }
+              </span>
+
+              <button type="button" class="opciones__flecha"
+                [disabled]="opcionActual() === opciones().length"
+                (click)="opcionSiguiente()" aria-label="Opción siguiente">›</button>
+
+              <span class="opciones__puntos">
+                <button type="button" class="punto" [class.punto--activo]="opcionActual() === 0"
+                  (click)="mostrarOpcion(0)" aria-label="Texto original">·</button>
+                @for (o of opciones(); track o.text; let i = $index) {
+                  <button type="button" class="punto" [class.punto--activo]="opcionActual() === i + 1"
+                    (click)="mostrarOpcion(i + 1)" [attr.aria-label]="'Opción ' + (i + 1)">·</button>
+                }
+              </span>
+            </div>
+
+            @if (opcionMostrada(); as o) {
+              <p class="opciones__fundamento">{{ o.rationale }}</p>
+              @if (o.needsDecision) {
+                <p class="opciones__hueco">
+                  Esta redacción deja huecos que debe rellenar usted. La plataforma no propone
+                  magnitudes: qué valor basta depende del riesgo que se tolere.
+                </p>
+              }
+            } @else {
+              <p class="opciones__fundamento">
+                Este es el texto tal como está ahora. Avance para ver las redacciones propuestas.
+              </p>
+            }
+          </div>
+        } @else {
+          <p class="panel__nota">
+            La plataforma no ha podido derivar ninguna redacción alternativa para este enunciado.
+            Corríjalo usted a la vista de los hallazgos.
+          </p>
+        }
+      } @else {
+        <h2 class="eyebrow">Redactar un requisito</h2>
+      }
+
       <div class="panel__campos panel__campos--columna">
         <input type="text" [(ngModel)]="nuevoNombre" name="nuevoNombre" placeholder="Nombre (opcional)" aria-label="Nombre" />
-        <textarea rows="3" [(ngModel)]="nuevoEnunciado" name="nuevoEnunciado"
+        <textarea rows="4" [(ngModel)]="nuevoEnunciado" name="nuevoEnunciado" (ngModelChange)="textoTocado()"
           placeholder="El sistema deberá… — enuncie una sola obligación, con sujeto expreso y sin términos vagos"
           aria-label="Enunciado"></textarea>
-        <textarea rows="2" [(ngModel)]="nuevoCriterio" name="nuevoCriterio"
+        <textarea rows="3" [(ngModel)]="nuevoCriterio" name="nuevoCriterio"
           placeholder="Criterio de verificación (si lo deja vacío, la plataforma propondrá opciones)"
           aria-label="Criterio de verificación"></textarea>
         <div class="panel__campos">
@@ -108,11 +162,29 @@
             <option value="USER_STORY">Historia de usuario</option>
             <option value="USE_CASE">Caso de uso</option>
           </select>
-          <button type="button" class="btn btn--principal" [disabled]="redactando()" (click)="crear()">
-            {{ redactando() ? 'Creando…' : 'Crear requisito' }}
+          <button type="button" class="btn btn--principal" [disabled]="redactando()" (click)="guardar()">
+            @if (redactando()) {
+              Guardando…
+            } @else if (editando()) {
+              Actualizar requisito
+            } @else {
+              Crear requisito
+            }
           </button>
+          @if (editando()) {
+            <button type="button" class="btn btn--plano" (click)="cancelarCorreccion()">
+              Cancelar
+            </button>
+          }
         </div>
       </div>
+
+      @if (editando() && deSugerencia()) {
+        <p class="panel__nota">
+          El texto es el de una propuesta sin modificar. Al actualizar quedará registrado que
+          procede de la plataforma, no de una persona.
+        </p>
+      }
     </section>
   }
 
@@ -198,7 +270,7 @@
                           <button type="button" class="btn btn--aceptar"
                             [disabled]="guardando() === r.readableId || s.needsDecision"
                             (click)="aceptar(r, s)">Aceptar tal cual</button>
-                          <button type="button" class="btn btn--plano" (click)="modificar(s)">
+                          <button type="button" class="btn btn--plano" (click)="modificarEnFormulario(r, s)">
                             Modificar antes de aceptar
                           </button>
                         </div>
@@ -207,17 +279,14 @@
                   </ul>
                 }
 
-                <h3 class="eyebrow">Escribir el criterio</h3>
-                <textarea rows="3" [(ngModel)]="edicionCriterio" [name]="'crit-' + r.readableId"
-                  placeholder="Qué se observa y qué resultado se espera" aria-label="Criterio"></textarea>
                 <div class="detalle__acciones">
-                  <button type="button" class="btn btn--principal"
-                    [disabled]="guardando() === r.readableId" (click)="guardarCriterio(r)">
-                    Guardar criterio
+                  <button type="button" class="btn btn--principal" (click)="corregir(r)">
+                    Corregir en el formulario
                   </button>
                   @if (r.status === 'DRAFT') {
-                    <button type="button" class="btn btn--plano" (click)="transitar(r, 'REVIEWED')">
-                      Marcar como revisado
+                    <button type="button" class="btn btn--plano"
+                      [disabled]="guardando() === r.readableId" (click)="transitar(r, 'REVIEWED')">
+                      {{ guardando() === r.readableId ? 'Guardando…' : 'Marcar como revisado' }}
                     </button>
                   }
                 </div>

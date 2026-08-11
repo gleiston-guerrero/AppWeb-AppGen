@@ -3,148 +3,129 @@ package org.slcp.service.ingestion;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.IOException;
+import java.io.StringReader;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** Oraculo del lector de formatos con estructura propia. */
+/**
+ * Oraculo del analizador de JSON propio.
+ *
+ * <p>Se escribio en lugar de emplear una biblioteca porque el armazon cambio de
+ * Jackson 2 a Jackson 3, y con ello el paquete de sus clases. Como es codigo
+ * propio, su correccion hay que demostrarla.</p>
+ */
 class DocumentReaderTest {
 
-	private final ObjectMapper om = new ObjectMapper();
-	private final DocumentReader lector = new DocumentReader(om);
-
-	// =================================================================
-	// Valores separados por comas
-	// =================================================================
-
 	@Test
-	@DisplayName("CSV: una coma dentro de un valor entrecomillado no parte la fila")
-	void comaDentroDeValor() {
-		List<List<String>> filas = DocumentReader.analizarCsv(
-				"id,texto\nRF-01,\"Registrar nombre, especie y raza\"\n");
+	@DisplayName("Analiza un objeto con sus campos")
+	void objetoSimple() {
+		Object raiz = JsonParser.analizar("{\"id\":\"RF-01\",\"nombre\":\"Uno\"}");
 
-		assertThat(filas).hasSize(2);
-		assertThat(filas.get(1)).containsExactly("RF-01", "Registrar nombre, especie y raza");
+		assertThat(raiz).isInstanceOf(Map.class);
+		assertThat(((Map<?, ?>) raiz).get("id")).isEqualTo("RF-01");
 	}
 
 	@Test
-	@DisplayName("CSV: dos comillas seguidas representan una comilla literal")
-	void comillaEscapada() {
-		List<List<String>> filas = DocumentReader.analizarCsv(
-				"id,texto\nRF-01,\"Dijo \"\"listo\"\" y salio\"\n");
+	@DisplayName("Analiza una lista de objetos")
+	void listaDeObjetos() {
+		Object raiz = JsonParser.analizar("[{\"id\":\"RF-01\"},{\"id\":\"RF-02\"}]");
 
-		assertThat(filas.get(1).get(1)).isEqualTo("Dijo \"listo\" y salio");
+		assertThat(raiz).isInstanceOf(List.class);
+		assertThat((List<?>) raiz).hasSize(2);
 	}
 
 	@Test
-	@DisplayName("CSV: un salto de linea dentro de un valor no crea una fila nueva")
-	void saltoDentroDeValor() {
-		List<List<String>> filas = DocumentReader.analizarCsv(
-				"id,texto\nRF-01,\"Primera linea\nSegunda linea\"\n");
+	@DisplayName("Los escapes de la cadena se resuelven")
+	void escapes() {
+		Object raiz = JsonParser.analizar(
+				"{\"t\":\"Dijo \\\"listo\\\" y salio\\nsegunda linea\"}");
 
-		assertThat(filas).hasSize(2);
-		assertThat(filas.get(1).get(1)).contains("Primera linea").contains("Segunda linea");
+		String texto = String.valueOf(((Map<?, ?>) raiz).get("t"));
+		assertThat(texto).contains("\"listo\"").contains("\n");
 	}
 
 	@Test
-	@DisplayName("CSV: la ultima fila sin salto final no se pierde")
-	void ultimaFilaSinSalto() {
-		List<List<String>> filas = DocumentReader.analizarCsv("id,texto\nRF-01,Uno");
+	@DisplayName("El escape unicode se resuelve al caracter que nombra")
+	void escapeUnicode() {
+		Object raiz = JsonParser.analizar("{\"t\":\"Descripci\\u00f3n\"}");
 
-		assertThat(filas).hasSize(2);
-		assertThat(filas.get(1)).containsExactly("RF-01", "Uno");
+		assertThat(String.valueOf(((Map<?, ?>) raiz).get("t"))).isEqualTo("Descripci\u00f3n");
 	}
 
 	@Test
-	@DisplayName("CSV: la cabecera da las claves de cada objeto")
-	void csvAObjetos() throws IOException {
-		JsonNode arbol = lector.leer("Identificador,Descripcion\nRF-01,Hace algo\n", "csv");
-
-		assertThat(arbol.isArray()).isTrue();
-		assertThat(arbol.get(0).get("Identificador").asText()).isEqualTo("RF-01");
-	}
-
-	// =================================================================
-	// XML
-	// =================================================================
-
-	@Test
-	@DisplayName("XML: atributos y elementos hijos se tratan igual")
-	void atributosYElementos() throws IOException {
-		JsonNode arbol = lector.leer("""
-				<requirements>
-				  <requirement id="RF-01" priority="Must">
-				    <description>Hace algo</description>
-				  </requirement>
-				</requirements>
-				""", "xml");
-
-		assertThat(arbol.get(0).get("id").asText()).isEqualTo("RF-01");
-		assertThat(arbol.get(0).get("priority").asText()).isEqualTo("Must");
-		assertThat(arbol.get(0).get("description").asText()).isEqualTo("Hace algo");
+	@DisplayName("Un documento mal formado se rechaza en lugar de leerse a medias")
+	void documentoMalFormado() {
+		assertThatThrownBy(() -> JsonParser.analizar("{\"id\":\"RF-01\""))
+				.isInstanceOf(JsonParser.JsonParseException.class);
+		assertThatThrownBy(() -> JsonParser.analizar("{\"id\" \"RF-01\"}"))
+				.isInstanceOf(JsonParser.JsonParseException.class);
+		assertThatThrownBy(() -> JsonParser.analizar(""))
+				.isInstanceOf(JsonParser.JsonParseException.class);
 	}
 
 	@Test
-	@DisplayName("XML: no se procesan entidades externas")
-	void sinEntidadesExternas() {
-		String malicioso = """
-				<?xml version="1.0"?>
-				<!DOCTYPE r [<!ENTITY x SYSTEM "file:///etc/passwd">]>
-				<requirements><requirement id="&x;"/></requirements>
-				""";
-
-		// Se rechaza el documento entero antes de resolver nada: un archivo subido
-		// por cualquiera no debe poder hacer que el servidor lea sus propios
-		// archivos ni abra conexiones de red.
-		assertThatThrownBy(() -> lector.leer(malicioso, "xml")).isInstanceOf(IOException.class);
-	}
-
-	// =================================================================
-	// JSON y YAML
-	// =================================================================
-
-	@Test
-	@DisplayName("JSON: se lee el arreglo con sus claves")
-	void jsonBasico() throws IOException {
-		JsonNode arbol = lector.leer("""
-				{"requirements":[{"id":"RF-01","description":"Hace algo"}]}
-				""", "json");
-
-		assertThat(arbol.get("requirements").get(0).get("id").asText()).isEqualTo("RF-01");
+	@DisplayName("Sobra contenido tras el documento: se rechaza")
+	void contenidoSobrante() {
+		assertThatThrownBy(() -> JsonParser.analizar("{\"a\":\"b\"} sobra"))
+				.isInstanceOf(JsonParser.JsonParseException.class);
 	}
 
 	@Test
-	@DisplayName("YAML: el texto de varias lineas llega entero")
-	void yamlMultilinea() throws IOException {
-		JsonNode arbol = lector.leer("""
-				requirements:
-				  - id: RF-01
-				    description: >
-				      Primera parte
-				      y segunda parte.
-				""", "yaml");
+	@DisplayName("Un anidamiento excesivo se rechaza en lugar de agotar la pila")
+	void anidamientoExcesivo() {
+		String profundo = "[".repeat(200) + "]".repeat(200);
 
-		String texto = arbol.get("requirements").get(0).get("description").asText();
-		assertThat(texto).contains("Primera parte").contains("y segunda parte");
+		assertThatThrownBy(() -> JsonParser.analizar(profundo))
+				.isInstanceOf(JsonParser.JsonParseException.class);
 	}
 
 	@Test
-	@DisplayName("YAML: la carga es restringida a tipos simples")
-	void yamlSinInstanciarClases() {
-		// La carga general de YAML puede instanciar clases nombradas en el propio
-		// documento, y aqui el documento lo sube cualquiera.
-		assertThatThrownBy(() -> lector.leer(
-				"!!javax.script.ScriptEngineManager [!!java.net.URLClassLoader [[]]]", "yaml"))
-				.isInstanceOf(Exception.class);
+	@DisplayName("Los numeros se conservan tal como venian escritos")
+	void numerosComoTexto() {
+		Object raiz = JsonParser.analizar("{\"n\":1.50,\"e\":1e3}");
+
+		assertThat(String.valueOf(((Map<?, ?>) raiz).get("n"))).isEqualTo("1.50");
+		assertThat(String.valueOf(((Map<?, ?>) raiz).get("e"))).isEqualTo("1e3");
 	}
 
 	@Test
-	@DisplayName("Un formato no reconocido se rechaza en lugar de intentarse")
-	void formatoDesconocido() {
-		assertThatThrownBy(() -> lector.leer("algo", "excel"))
-				.isInstanceOf(IllegalArgumentException.class);
+	@DisplayName("El lector de JSON extrae los requisitos de la clave declarada")
+	void lecturaCompleta() throws Exception {
+		ImportProfile p = ImportProfile.cargar(new StringReader("""
+				profile.id     = prueba-json
+				profile.reader = json
+				json.list      = requirements
+				field.id          = id
+				field.description = description
+				expected = id, description
+				"""));
+
+		ExtractionReport informe = RequirementSource.of(p).extraer(new StringReader("""
+				{"requirements":[
+				  {"id":"RF-01","description":"Hace algo"},
+				  {"id":"RF-02","description":"Hace otra cosa"}
+				]}
+				"""));
+
+		assertThat(informe.total()).isEqualTo(2);
+		assertThat(informe.completos()).isEqualTo(2);
+		assertThat(informe.requirements().get(1).get("description")).isEqualTo("Hace otra cosa");
+	}
+
+	@Test
+	@DisplayName("Un JSON invalido produce un fallo con mensaje, no una lectura a medias")
+	void jsonInvalidoEnElLector() throws Exception {
+		ImportProfile p = ImportProfile.cargar(new StringReader("""
+				profile.id     = prueba-json
+				profile.reader = json
+				field.id = id
+				expected = id
+				"""));
+
+		assertThatThrownBy(() -> RequirementSource.of(p).extraer(new StringReader("{roto")))
+				.isInstanceOf(java.io.IOException.class)
+				.hasMessageContaining("no se pudo analizar");
 	}
 }

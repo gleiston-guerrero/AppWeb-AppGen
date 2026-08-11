@@ -20,15 +20,13 @@ import org.slcp.service.domain.RequirementKind;
 import org.slcp.service.domain.RequirementStatus;
 import org.slcp.service.domain.TextOrigin;
 import org.slcp.service.domain.User;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slcp.service.ingestion.CriterionSuggester;
-import org.slcp.service.ingestion.DocumentReader;
 import org.slcp.service.ingestion.ExtractionReport;
 import org.slcp.service.ingestion.ImportProfile;
 import org.slcp.service.ingestion.ParsedRequirement;
 import org.slcp.service.ingestion.RequirementSource;
 import org.slcp.service.ingestion.RequirementLinter;
-import org.slcp.service.ingestion.StructuredExtractor;
+import org.slcp.service.ingestion.StatementSuggester;
 import org.slcp.service.projects.ProjectAccessException;
 import org.slcp.service.projects.ProjectService;
 import org.slcp.service.registration.EventRecordRepository;
@@ -63,19 +61,17 @@ public class RequirementService {
 	private final EventRecordRepository events;
 	private final CriterionSuggester suggester;
 	private final ResourceLoader resources;
-	private final ObjectMapper mapper;
 	private final Clock clock;
 
 	public RequirementService(RequirementRepository requirements, ProjectService projects,
 			UserRepository users, EventRecordRepository events, CriterionSuggester suggester,
-			ResourceLoader resources, ObjectMapper mapper, Clock clock) {
+			ResourceLoader resources, Clock clock) {
 		this.requirements = requirements;
 		this.projects = projects;
 		this.users = users;
 		this.events = events;
 		this.suggester = suggester;
 		this.resources = resources;
-		this.mapper = mapper;
 		this.clock = clock;
 	}
 
@@ -274,6 +270,12 @@ public class RequirementService {
 						h.gravedad().name(), h.evidencia(), h.explicacion()))
 				.toList();
 
+		// Redacciones alternativas del enunciado, solo si tiene algo que corregir.
+		List<SuggestionView> redacciones = new StatementSuggester(linter)
+				.proponer(r.getStatement()).stream()
+				.map(p -> new SuggestionView(p.texto(), p.fundamento(), p.exigeDecision()))
+				.toList();
+
 		List<SuggestionView> propuestas = List.of();
 		if (!r.tieneCriterio() && r.getKind().exigeCriterio()) {
 			boolean magnitud = r.getKind() == RequirementKind.NON_FUNCTIONAL;
@@ -289,7 +291,7 @@ public class RequirementService {
 				r.getKind().name(), r.getKind().getEtiqueta(), r.getName(), r.getStatement(),
 				r.getVerification(), r.getStatus().name(), r.getVersion(),
 				r.getStatementOrigin().name(), r.getVerificationOrigin().name(),
-				conforme, hallazgos, propuestas, r.getUpdatedAt());
+				conforme, hallazgos, redacciones, propuestas, r.getUpdatedAt());
 	}
 
 	private RequirementLinter cargarLinter() {

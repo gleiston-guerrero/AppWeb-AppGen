@@ -198,3 +198,87 @@ input:focus, select:focus, textarea:focus { background: var(--surface); border-c
   margin-top: 0.5rem;
   max-width: 70ch;
 }
+
+/* --------------------------- Formulario en corrección --------------------------- */
+.panel--corrigiendo {
+  border-left: 3px solid var(--blue);
+  background: var(--paper);
+}
+
+.opciones {
+  border: 1px solid var(--rule);
+  background: var(--surface);
+  padding: 0.7rem 0.9rem;
+  margin-top: 0.6rem;
+}
+
+.opciones__barra {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.opciones__flecha {
+  font: inherit;
+  font-size: 1.1rem;
+  line-height: 1;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  background: var(--paper);
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.opciones__flecha:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.opciones__indice {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
+  min-width: 11rem;
+}
+
+.opciones__puntos {
+  display: flex;
+  gap: 0.2rem;
+  margin-left: auto;
+}
+
+.punto {
+  font: inherit;
+  font-size: 1.4rem;
+  line-height: 0.6;
+  width: 1.3rem;
+  height: 1.3rem;
+  border: 0;
+  background: transparent;
+  color: var(--ink-faint);
+  cursor: pointer;
+  padding: 0;
+}
+
+.punto--activo {
+  color: var(--blue);
+}
+
+.opciones__fundamento {
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  margin-top: 0.55rem;
+  max-width: 72ch;
+}
+
+.opciones__hueco {
+  font-size: var(--step--1);
+  color: #b07d2b;
+  margin-top: 0.4rem;
+  max-width: 72ch;
+}

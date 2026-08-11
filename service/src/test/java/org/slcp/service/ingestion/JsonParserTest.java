@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test;
  * Jackson 2 a Jackson 3, y con ello el paquete de sus clases. Como es codigo
  * propio, su correccion hay que demostrarla.</p>
  */
-class DocumentReaderTest {
+class JsonParserTest {
 
 	@Test
 	@DisplayName("Analiza un objeto con sus campos")

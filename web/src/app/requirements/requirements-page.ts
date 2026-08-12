@@ -7,6 +7,9 @@ import { SessionService } from '../auth/session-service';
 import { ProjectService } from '../projects/project-service';
 import { ApiError } from '../registration/registration';
 import {
+  CheckResult,
+  HeldGroup,
+  HeldSuspect,
   ETIQUETA_ESTADO,
   ImportProfile,
   ImportResult,
@@ -52,12 +55,20 @@ export class RequirementsPage implements OnInit {
   /** Identificador de quien está usando la aplicación, para la doble etapa. */
   protected readonly yo = computed(() => this.sesion.sesion()?.userId ?? '');
 
-  /** Filtro de la lista. */
-  protected filtro: 'TODOS' | 'CON_HALLAZGOS' | 'SIN_CRITERIO' | 'APROBADOS' = 'TODOS';
+  /**
+   * Filtro de la lista, como señal.
+   *
+   * Igual que el formato: `visibles` lo deriva con `computed`, y un valor
+   * calculado solo se recalcula cuando cambia una señal. Con un campo normal,
+   * los botones de filtro cambiaban de aspecto y la lista no se movía.
+   */
+  protected readonly filtro = signal<'TODOS' | 'CON_HALLAZGOS' | 'SIN_CRITERIO' | 'APROBADOS'>(
+    'TODOS',
+  );
 
   protected readonly visibles = computed(() => {
     const todos = this.requisitos();
-    switch (this.filtro) {
+    switch (this.filtro()) {
       case 'CON_HALLAZGOS':
         return todos.filter((r) => r.findings.length > 0);
       case 'SIN_CRITERIO':
@@ -74,12 +85,20 @@ export class RequirementsPage implements OnInit {
   protected readonly resultadoImport = signal<ImportResult | null>(null);
   protected contenido = '';
   protected nombreArchivo = '';
-  protected perfil = '';
+  /**
+   * Formato elegido, como señal.
+   *
+   * Ha de serlo porque `formatoElegido` lo deriva con `computed`, y un valor
+   * calculado solo se recalcula cuando cambia una señal. Con un campo normal, el
+   * panel quedaba fijado en el primer formato y describía uno distinto del
+   * seleccionado.
+   */
+  protected readonly perfil = signal('');
 
   /** Formatos admitidos y el elegido, con su ejemplo. */
   protected readonly formatos = signal<ImportProfile[]>([]);
-  protected readonly formatoElegido = computed(() =>
-    this.formatos().find((f) => f.id === this.perfil) ?? null,
+  protected readonly formatoElegido = computed(
+    () => this.formatos().find((f) => f.id === this.perfil()) ?? null,
   );
 
   /** Extensiones que acepta el selector de archivo, según el formato elegido. */
@@ -132,19 +151,30 @@ export class RequirementsPage implements OnInit {
     this.service.formatos().subscribe({
       next: (lista) => {
         this.formatos.set(lista);
-        if (!this.perfil && lista.length > 0) {
-          this.perfil = lista[0].id;
+        if (this.perfil().length === 0 && lista.length > 0) {
+          this.perfil.set(lista[0].id);
         }
       },
       error: () => this.formatos.set([]),
     });
   }
 
-  /** Al cambiar de formato, el archivo elegido deja de ser válido para él. */
-  protected cambiarFormato(): void {
+  /**
+   * Cambia de formato.
+   *
+   * Recibe el valor nuevo como argumento en lugar de leerlo del campo: con
+   * `[(ngModel)]` y `(ngModelChange)` juntos, el manejador puede ejecutarse antes
+   * de que el enlace haya escrito el valor, y entonces se actuaría sobre el
+   * anterior.
+   *
+   * El archivo elegido se descarta: fue elegido para otro formato.
+   */
+  protected cambiarFormato(id: string): void {
+    this.perfil.set(id);
     this.contenido = '';
     this.nombreArchivo = '';
     this.resultadoImport.set(null);
+    this.error.set(null);
   }
 
   private cargarRoles(): void {
@@ -163,12 +193,17 @@ export class RequirementsPage implements OnInit {
     });
   }
 
-  protected cargar(): void {
+  protected cargar(despues?: () => void): void {
     this.cargando.set(true);
     this.service.listar(this.projectId).subscribe({
       next: (lista) => {
         this.requisitos.set(lista);
         this.cargando.set(false);
+        if (despues) {
+          // Se espera al siguiente ciclo: la lista acaba de cambiar y el elemento
+          // al que hay que volver todavía no está en la página.
+          setTimeout(despues, 0);
+        }
       },
       error: (fallo: HttpErrorResponse) => {
         this.error.set(this.explicar(fallo));
@@ -193,6 +228,64 @@ export class RequirementsPage implements OnInit {
     archivo.text().then((texto) => (this.contenido = texto));
   }
 
+  /** Da de alta un grupo retenido. La decisión es de quien produce. */
+  protected aceptarGrupo(g: HeldGroup, transversal: boolean): void {
+    this.aceptandoGrupo.set(g.label);
+
+    this.service.aceptarRetenidos(this.projectId, g.requirements).subscribe({
+      next: (r) => {
+        this.aceptandoGrupo.set(null);
+        this.aviso.set(r.message);
+        this.descartarGrupo(g, transversal);
+        this.cargar();
+      },
+      error: (fallo: HttpErrorResponse) => {
+        this.aceptandoGrupo.set(null);
+        this.error.set(this.explicar(fallo));
+      },
+    });
+  }
+
+  /** Descarta el grupo sin darlo de alta: no se guardó nada, no hay que deshacer. */
+  protected descartarGrupo(g: HeldGroup, transversal: boolean): void {
+    const quitar = (lista: HeldGroup[]) => lista.filter((x) => x.label !== g.label);
+    if (transversal) {
+      this.transversales.set(quitar(this.transversales()));
+    } else {
+      this.ajenos.set(quitar(this.ajenos()));
+    }
+  }
+
+  /** Da de alta un requisito que se parecía a otro, tras decidir que es distinto. */
+  protected aceptarSospechoso(s: HeldSuspect): void {
+    this.aceptandoGrupo.set(s.requirement.statement);
+
+    this.service.aceptarRetenidos(this.projectId, [s.requirement]).subscribe({
+      next: (r) => {
+        this.aceptandoGrupo.set(null);
+        this.aviso.set(r.message);
+        this.descartarSospechoso(s);
+        this.cargar();
+      },
+      error: (fallo: HttpErrorResponse) => {
+        this.aceptandoGrupo.set(null);
+        this.error.set(this.explicar(fallo));
+      },
+    });
+  }
+
+  /** Lo descarta por ser el mismo requisito que el que ya existe. */
+  protected descartarSospechoso(s: HeldSuspect): void {
+    this.sospechosos.set(
+      this.sospechosos().filter((x) => x.requirement.statement !== s.requirement.statement),
+    );
+  }
+
+  protected cuantosRetenidos(): number {
+    const contar = (l: HeldGroup[]) => l.reduce((n, g) => n + g.requirements.length, 0);
+    return contar(this.transversales()) + contar(this.ajenos()) + this.sospechosos().length;
+  }
+
   protected importar(): void {
     if (this.contenido.trim().length === 0) {
       this.error.set('Elija un archivo o pegue el contenido antes de importar.');
@@ -201,10 +294,13 @@ export class RequirementsPage implements OnInit {
     this.importando.set(true);
     this.error.set(null);
 
-    this.service.importar(this.projectId, this.perfil, this.contenido).subscribe({
+    this.service.importar(this.projectId, this.perfil(), this.contenido).subscribe({
       next: (r) => {
         this.importando.set(false);
         this.resultadoImport.set(r);
+        this.transversales.set(r.crossCutting);
+        this.ajenos.set(r.foreign);
+        this.sospechosos.set(r.suspected);
         this.contenido = '';
         this.nombreArchivo = '';
         this.cargar();
@@ -273,6 +369,25 @@ export class RequirementsPage implements OnInit {
     this.deSugerencia.set(propuesta !== null && propuesta === this.nuevoEnunciado);
   }
 
+  /**
+   * Prepara el formulario para un requisito nuevo y lleva la vista hasta él.
+   *
+   * Se limpia lo que hubiera: si se venía de corregir otro, sus datos seguirían
+   * en los campos y el alta saldría con ellos.
+   */
+  protected nuevo(): void {
+    this.cancelarCorreccion();
+    this.comprobacion.set(null);
+    this.error.set(null);
+
+    setTimeout(() => {
+      document
+        .getElementById('formulario-requisito')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document.getElementById('enunciado-requisito')?.focus();
+    }, 0);
+  }
+
   protected cancelarCorreccion(): void {
     this.editando.set(null);
     this.opciones.set([]);
@@ -283,12 +398,44 @@ export class RequirementsPage implements OnInit {
     this.nuevoNombre = '';
   }
 
-  /** Crea o actualiza, según haya requisito en corrección. */
-  protected guardar(): void {
+  /**
+   * Crea o actualiza, comprobando antes si ya existe algo parecido.
+   *
+   * La comprobación se salta al modificar un requisito existente —se parecería a
+   * sí mismo— y cuando quien redacta ya la ha visto y decide seguir.
+   */
+  protected guardar(forzar = false): void {
     if (this.nuevoEnunciado.trim().length === 0) {
       this.error.set('El enunciado es obligatorio.');
       return;
     }
+
+    if (!forzar && !this.editando()) {
+      this.service.comprobar(this.projectId, this.nuevoEnunciado.trim()).subscribe({
+        next: (r) => {
+          if (r.clean) {
+            this.comprobacion.set(null);
+            this.guardarDeVerdad();
+          } else {
+            this.comprobacion.set(r);
+          }
+        },
+        // Si la comprobación falla, se crea igualmente: es una ayuda, no una
+        // condición para trabajar.
+        error: () => this.guardarDeVerdad(),
+      });
+      return;
+    }
+
+    this.comprobacion.set(null);
+    this.guardarDeVerdad();
+  }
+
+  protected descartarComprobacion(): void {
+    this.comprobacion.set(null);
+  }
+
+  private guardarDeVerdad(): void {
     this.redactando.set(true);
     this.error.set(null);
 
@@ -315,7 +462,14 @@ export class RequirementsPage implements OnInit {
             : `Requisito ${r.readableId} creado en borrador.`,
         );
         this.cancelarCorreccion();
-        this.cargar();
+        this.comprobacion.set(null);
+
+        // Se vuelve al requisito y se deja desplegado, tanto al corregir uno como
+        // al crear otro: quien acaba de escribirlo suele querer seguir con él
+        // —marcarlo como revisado, ver los hallazgos—, y devolver la vista al
+        // principio de la lista le obliga a buscarlo cada vez.
+        this.abierto.set(r.readableId);
+        this.cargar(() => this.volverA(r.readableId));
       },
       error: (fallo: HttpErrorResponse) => {
         this.redactando.set(false);
@@ -360,7 +514,8 @@ export class RequirementsPage implements OnInit {
               ? `Propuesta aceptada en ${r.readableId}. Queda registrada su procedencia.`
               : `Criterio guardado en ${r.readableId}.`,
           );
-          this.cargar();
+          this.abierto.set(r.readableId);
+          this.cargar(() => this.volverA(r.readableId));
         },
         error: (fallo: HttpErrorResponse) => {
           this.guardando.set(null);
@@ -369,13 +524,22 @@ export class RequirementsPage implements OnInit {
       });
   }
 
+  /**
+   * Cambia el estado y deja la pantalla donde estaba.
+   *
+   * Recargar la lista sustituye los elementos, y sin devolver la vista al
+   * requisito recién decidido la página salta al principio: quien está
+   * aprobando veinte requisitos seguidos tendría que buscar el siguiente cada
+   * vez.
+   */
   protected transitar(r: Requirement, destino: string): void {
     this.guardando.set(r.readableId);
     this.service.transitar(this.projectId, r.readableId, destino).subscribe({
       next: () => {
         this.guardando.set(null);
         this.aviso.set(`${r.readableId}: ${this.etiquetaEstado[destino] ?? destino}.`);
-        this.cargar();
+        this.abierto.set(r.readableId);
+        this.cargar(() => this.volverA(r.readableId));
       },
       error: (fallo: HttpErrorResponse) => {
         this.guardando.set(null);
@@ -386,6 +550,27 @@ export class RequirementsPage implements OnInit {
 
   /** Requisito cuya eliminación se está confirmando. */
   protected readonly confirmando = signal<string | null>(null);
+
+  /**
+   * Resultado de la comprobación previa al alta.
+   *
+   * Se comprueba antes de crear y no después porque quien escribe puede querer
+   * corregir; avisar una vez creado obligaría a deshacer.
+   */
+  protected readonly comprobacion = signal<CheckResult | null>(null);
+
+  /**
+   * Grupos retenidos que aún esperan decisión.
+   *
+   * Se descartan de la lista al decidir sobre ellos, de modo que lo que queda a
+   * la vista es siempre lo pendiente.
+   */
+  protected readonly transversales = signal<HeldGroup[]>([]);
+  protected readonly ajenos = signal<HeldGroup[]>([]);
+  protected readonly aceptandoGrupo = signal<string | null>(null);
+
+  /** Retenidos por parecerse a otro: se muestran ambos enunciados. */
+  protected readonly sospechosos = signal<HeldSuspect[]>([]);
 
   protected pedirConfirmacion(r: Requirement): void {
     this.confirmando.set(r.readableId);
@@ -411,6 +596,36 @@ export class RequirementsPage implements OnInit {
         this.error.set(this.explicar(fallo));
       },
     });
+  }
+
+  /** Devuelve la vista al requisito indicado, sin sobresaltos. */
+  private volverA(readableId: string): void {
+    document
+      .getElementById('req-' + readableId)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  /** Requisito siguiente pendiente de la misma decisión, para encadenarlas. */
+  protected siguientePendiente(r: Requirement): Requirement | null {
+    const lista = this.visibles();
+    const desde = lista.findIndex((x) => x.readableId === r.readableId);
+
+    for (let i = desde + 1; i < lista.length; i++) {
+      if (lista[i].status === r.status) {
+        return lista[i];
+      }
+    }
+    return null;
+  }
+
+  /** Abre el siguiente pendiente y lleva la vista hasta él. */
+  protected irAlSiguiente(r: Requirement): void {
+    const siguiente = this.siguientePendiente(r);
+    if (!siguiente) {
+      return;
+    }
+    this.abierto.set(siguiente.readableId);
+    setTimeout(() => this.volverA(siguiente.readableId), 0);
   }
 
   protected defectos(r: Requirement): number {

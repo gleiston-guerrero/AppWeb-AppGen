@@ -30,7 +30,11 @@ public enum RequirementStatus {
 		return switch (this) {
 			case DRAFT -> destino == REVIEWED || destino == REJECTED || destino == ANNULLED;
 			case REVIEWED -> destino == APPROVED || destino == REJECTED || destino == DRAFT;
-			case APPROVED -> destino == DRAFT || destino == SUPERSEDED || destino == ANNULLED;
+			// Desde aprobado se admite reprobar: quien aprueba puede rectificar
+			// mientras no haya trabajo aceptado sobre ese requisito, lo que el
+			// servicio comprueba aparte.
+			case APPROVED -> destino == DRAFT || destino == REJECTED
+					|| destino == SUPERSEDED || destino == ANNULLED;
 			case REJECTED -> destino == DRAFT;
 			case SUPERSEDED, ANNULLED -> false;
 		};

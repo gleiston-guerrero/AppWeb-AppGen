@@ -77,11 +77,111 @@ public final class RequirementContracts {
 	}
 
 	/** Resultado de importar un documento. */
+	/** Requisito omitido por decir lo mismo que otro ya presente. */
+	public record DuplicateView(
+			String sourceId,
+			String matchedReadableId,
+			String matchedSourceId,
+			double similarity,
+			String matchedStatement) {
+	}
+
+	/** Requisito cuyo identificador de origen estaba tomado por otro distinto. */
+	public record RenumberedView(String from, String to, String statement) {
+	}
+
+	/** Requisito que se parece a uno ya presente sin llegar a ser el mismo. */
+	public record SuspectedView(
+			String readableId,
+			String sourceId,
+			String similarToReadableId,
+			double similarity,
+			String similarStatement) {
+	}
+
+	/** Aviso de que lo examinado no parece del mismo asunto que el proyecto. */
+	public record DomainAlert(
+			boolean alert,
+			double overlap,
+			List<String> sharedTerms,
+			List<String> newTerms,
+			String message) {
+	}
+
+	/** Peticion de comprobacion previa al alta manual. */
+	public record CheckRequest(String statement) {
+	}
+
+	/**
+	 * Resultado de la comprobacion previa.
+	 *
+	 * <p>Se comprueba antes de crear y no despues porque quien escribe puede
+	 * querer corregir; avisar una vez creado obligaria a deshacer.</p>
+	 */
+	public record CheckResult(
+			List<SuspectedView> similar,
+			DomainAlert domain,
+			boolean clean) {
+	}
+
+	/**
+	 * Requisito retenido: leido pero no dado de alta.
+	 *
+	 * <p>Viaja entero de vuelta para que pueda darse de alta despues sin volver a
+	 * subir el documento. Guardarlo en la base mientras se decide seria darle un
+	 * estado mas que mantener, y un requisito a medias entre existir y no existir
+	 * es peor que no tenerlo.</p>
+	 */
+	public record HeldRequirement(
+			String sourceId,
+			String kind,
+			String name,
+			String statement,
+			String verification) {
+	}
+
+	/**
+	 * Requisito retenido por parecerse a uno ya presente.
+	 *
+	 * <p>Viajan los dos enunciados, el que llega y aquel al que se parece: la
+	 * pregunta que hay que responder es si dicen lo mismo, y esa no puede
+	 * responderse viendo uno solo.</p>
+	 */
+	public record HeldSuspect(
+			HeldRequirement requirement,
+			String matchedReadableId,
+			String matchedSourceId,
+			double similarity,
+			String matchedStatement) {
+	}
+
+	/** Conjunto de requisitos retenidos que tratan de lo mismo. */
+	public record HeldGroup(
+			String label,
+			List<String> terms,
+			List<HeldRequirement> requirements) {
+	}
+
+	/** Peticion de alta de requisitos retenidos, tras decidirlo una persona. */
+	public record AcceptHeldRequest(List<HeldRequirement> requirements) {
+	}
+
 	public record ImportResult(
 			int found,
 			int imported,
 			int skipped,
-			List<String> skippedIds,
+			/** Los omitidos, con el requisito al que se parecen y cuanto. */
+			List<DuplicateView> duplicates,
+			/** Los que entraron con otro identificador por estar el suyo tomado. */
+			List<RenumberedView> renumbered,
+			/** Retenidos por parecerse a uno ya presente: los decide una persona. */
+			List<HeldSuspect> suspected,
+			/** Aviso si el documento no parece del mismo asunto que el proyecto. */
+			DomainAlert domain,
+			/** Exigencias que valen para cualquier sistema: las decide una persona. */
+			List<HeldGroup> crossCutting,
+			/** Requisitos que parecen de otro asunto: no se dan de alta sin decision. */
+			List<HeldGroup> foreign,
 			Map<String, Integer> missingByField,
 			List<String> unknownLabels,
 			String message) {

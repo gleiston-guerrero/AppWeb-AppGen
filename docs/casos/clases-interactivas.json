@@ -1,0 +1,45 @@
+{
+  "project": "Aula Interactiva",
+  "requirements": [
+    {
+      "id": "RF-01",
+      "name": "Registrar la asistencia",
+      "description": "El sistema debera registrar la asistencia de cada estudiante a la clase, con la fecha, la asignatura y el docente que la imparte.",
+      "actor": "Docente",
+      "priority": "Must",
+      "verification": "Marcar la asistencia de un grupo y comprobar que queda registrada con su fecha y su asignatura."
+    },
+    {
+      "id": "RF-02",
+      "name": "Publicar material de estudio",
+      "description": "El docente debera publicar material de estudio asociado a una unidad del programa de la asignatura.",
+      "actor": "Docente",
+      "priority": "Must",
+      "verification": "Publicar un material en una unidad y comprobar que los estudiantes matriculados lo ven."
+    },
+    {
+      "id": "RF-03",
+      "name": "Calificar cuestionarios",
+      "description": "El sistema debera calificar automaticamente los cuestionarios de opcion multiple resueltos por el estudiante.",
+      "actor": "Sistema",
+      "priority": "Must",
+      "verification": "Resolver un cuestionario de diez preguntas con seis aciertos y comprobar que la calificacion es seis sobre diez."
+    },
+    {
+      "id": "RF-04",
+      "name": "Consultar el avance del estudiante",
+      "description": "El sistema debera mostrar al docente el avance de cada estudiante en las unidades del curso.",
+      "actor": "Docente",
+      "priority": "Should",
+      "verification": "Consultar un curso con tres unidades y comprobar que se ve el avance por estudiante y unidad."
+    },
+    {
+      "id": "RF-05",
+      "name": "Entregar trabajos",
+      "description": "El estudiante debera entregar sus trabajos antes de la fecha limite establecida por el docente.",
+      "actor": "Estudiante",
+      "priority": "Must",
+      "verification": "Entregar un trabajo antes del limite y comprobar que consta como entregado en plazo."
+    }
+  ]
+}

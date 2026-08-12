@@ -24,8 +24,23 @@ public final class DeliverableContracts {
 			List<String> requirementIds) {
 	}
 
-	/** Requisito enlazado, tal como se muestra junto al entregable. */
-	public record LinkedRequirement(String readableId, String statement, boolean closed) {
+	/**
+	 * Requisito enlazado, tal como se muestra junto al entregable.
+	 *
+	 * <p>Se devuelven los dos identificadores. El de origen --- RF-01, RNF-02 ---
+	 * es el que la gente del proyecto reconoce, porque es el de su documento; el
+	 * de la plataforma es el que la identifica dentro de ella y no cambia aunque
+	 * el documento se renumere. Mostrar solo el segundo obliga a traducir
+	 * mentalmente en cada pantalla.</p>
+	 */
+	public record LinkedRequirement(
+			String readableId,
+			String sourceId,
+			String kind,
+			String kindLabel,
+			String name,
+			String statement,
+			boolean closed) {
 	}
 
 	/** Entregable tal como lo ve quien consulta. */
@@ -46,6 +61,12 @@ public final class DeliverableContracts {
 
 	/** Requisito aprobado del proyecto, para poder enlazarlo. */
 	public record LinkableRequirement(
-			String readableId, String name, String statement, boolean alreadyLinked) {
+			String readableId,
+			String sourceId,
+			String kind,
+			String kindLabel,
+			String name,
+			String statement,
+			boolean alreadyLinked) {
 	}
 }

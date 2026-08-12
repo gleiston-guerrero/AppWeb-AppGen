@@ -19,6 +19,17 @@ public interface DeliverableRepository extends JpaRepository<Deliverable, UUID> 
 	long countByProjectId(UUID projectId);
 
 	/**
+	 * Mayor numero de identificador usado en el proyecto.
+	 *
+	 * <p>Se consulta el mayor y no la cuenta: si se elimino un entregable, la
+	 * cuenta devuelve un numero ya usado y el alta choca contra la restriccion de
+	 * unicidad. El mayor no vuelve atras.</p>
+	 */
+	@Query(value = "SELECT COALESCE(MAX(CAST(SUBSTRING(readable_id FROM 'ENT-([0-9]+)') AS INTEGER)), 0) "
+			+ "FROM deliverables WHERE project_id = :proyecto", nativeQuery = true)
+	int mayorNumero(@Param("proyecto") UUID projectId);
+
+	/**
 	 * El enlace se maneja con consultas directas y no con una entidad propia.
 	 *
 	 * <p>Es una tabla de union sin datos propios mas alla de la fecha, y modelarla

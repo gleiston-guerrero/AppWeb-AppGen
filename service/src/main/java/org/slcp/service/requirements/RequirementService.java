@@ -10,12 +10,18 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.UUID;
 import org.slcp.service.domain.EventRecord;
 import org.slcp.service.domain.Project;
 import org.slcp.service.domain.ProjectRole;
 import org.slcp.service.domain.Requirement;
+import org.slcp.service.domain.RequirementDecision;
 import org.slcp.service.domain.RequirementKind;
 import org.slcp.service.domain.RequirementStatus;
 import org.slcp.service.domain.TextOrigin;
@@ -26,18 +32,30 @@ import org.slcp.service.ingestion.ImportProfile;
 import org.slcp.service.ingestion.ParsedRequirement;
 import org.slcp.service.ingestion.RequirementSource;
 import org.slcp.service.ingestion.RequirementLinter;
+import org.slcp.service.ingestion.DomainClassifier;
+import org.slcp.service.ingestion.DomainCoherence;
+import org.slcp.service.ingestion.StatementSimilarity;
 import org.slcp.service.ingestion.StatementSuggester;
 import org.slcp.service.projects.ProjectAccessException;
 import org.slcp.service.projects.ProjectService;
 import org.slcp.service.registration.EventRecordRepository;
 import org.slcp.service.registration.UserRepository;
+import org.slcp.service.requirements.RequirementContracts.AcceptHeldRequest;
+import org.slcp.service.requirements.RequirementContracts.HeldGroup;
+import org.slcp.service.requirements.RequirementContracts.HeldSuspect;
+import org.slcp.service.requirements.RequirementContracts.HeldRequirement;
+import org.slcp.service.requirements.RequirementContracts.CheckResult;
+import org.slcp.service.requirements.RequirementContracts.DomainAlert;
+import org.slcp.service.requirements.RequirementContracts.DuplicateView;
 import org.slcp.service.requirements.RequirementContracts.FindingView;
 import org.slcp.service.requirements.RequirementContracts.ImportRequest;
 import org.slcp.service.requirements.RequirementContracts.ImportResult;
+import org.slcp.service.requirements.RequirementContracts.RenumberedView;
 import org.slcp.service.requirements.RequirementContracts.RequirementRequest;
 import org.slcp.service.requirements.RequirementContracts.RequirementSummary;
 import org.slcp.service.requirements.RequirementContracts.RequirementView;
 import org.slcp.service.requirements.RequirementContracts.SuggestionView;
+import org.slcp.service.requirements.RequirementContracts.SuspectedView;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
@@ -60,17 +78,22 @@ public class RequirementService {
 	private final UserRepository users;
 	private final EventRecordRepository events;
 	private final CriterionSuggester suggester;
+	private final RequirementDecisionRepository decisiones;
+	private final DeliverableLookup deliverables;
 	private final ResourceLoader resources;
 	private final Clock clock;
 
 	public RequirementService(RequirementRepository requirements, ProjectService projects,
 			UserRepository users, EventRecordRepository events, CriterionSuggester suggester,
+			RequirementDecisionRepository decisiones, DeliverableLookup deliverables,
 			ResourceLoader resources, Clock clock) {
 		this.requirements = requirements;
 		this.projects = projects;
 		this.users = users;
 		this.events = events;
 		this.suggester = suggester;
+		this.decisiones = decisiones;
+		this.deliverables = deliverables;
 		this.resources = resources;
 		this.clock = clock;
 	}
@@ -141,7 +164,22 @@ public class RequirementService {
 		Instant momento = Instant.now(clock);
 
 		TextOrigin origen = aceptaSugerencia ? TextOrigin.SUGGESTED : TextOrigin.HUMAN;
-		requisito.editar(peticion.name(), peticion.statement(), peticion.verification(),
+		// Cambiar de clase arrastra el identificador de origen: su prefijo dice si
+		// el requisito es funcional o no, y dejarlo como estaba haria que la
+		// etiqueta contradijera al requisito.
+		RequirementKind clase = tipoDe(peticion.kind(), requisito.getSourceId());
+		if (clase != requisito.getKind() && requisito.getSourceId() != null
+				&& !requisito.getSourceId().isBlank()) {
+
+			requisito.renombrarOrigen(origenPara(proyecto.getId(), clase, requisito));
+		}
+
+		// El identificador legible lleva la version: modificar lo lleva a la
+		// siguiente, de modo que quien vea REQ-0007-v2 sepa sin preguntar que ese
+		// requisito ya cambio desde que se redacto.
+		requisito.renumerarVersion();
+
+		requisito.editar(clase, peticion.name(), peticion.statement(), peticion.verification(),
 				origen, origen, momento);
 
 		registrar(aceptaSugerencia ? "REQUIREMENT_SUGGESTION_ACCEPTED" : "REQUIREMENT_EDITED",
@@ -180,15 +218,163 @@ public class RequirementService {
 							+ "aprobacion son dos etapas y las hacen dos personas distintas");
 		}
 
+		// Rectificar una aprobacion es legitimo mientras nadie haya construido y
+		// entregado sobre ella. Un entregable aceptado dio por buena una decision
+		// que ahora se retira, y esa aceptacion quedaria sin fundamento.
+		if (requisito.getStatus() == RequirementStatus.APPROVED
+				&& estado != RequirementStatus.APPROVED) {
+			comprobarQueNoHayTrabajoAceptado(requisito);
+		}
+
 		if (estado == RequirementStatus.REVIEWED) {
 			requisito.registrarRevision(autor);
 		}
+
+		// La decision se conserva con la version sobre la que se tomo y con el texto
+		// tal como estaba: si el requisito cambia despues, la decision seguiria
+		// apuntando a un texto que quien decidio no leyo.
+		decisiones.save(RequirementDecision.de(requisito.getId(), requisito.getVersion(),
+				estado.name(), autor,
+				users.findById(autor).map(User::getUsername).orElse("desconocido"),
+				requisito.getStatement(), momento));
 
 		requisito.transitarA(estado, momento);
 		registrar("REQUIREMENT_" + estado.name(), proyecto.getId(), autor,
 				requisito.getReadableId(), momento);
 
 		return vista(requisito, cargarLinter());
+	}
+
+	/**
+	 * Comprueba un enunciado antes de darlo de alta.
+	 *
+	 * <p>Se informa de a que se parece y de si trata del asunto del proyecto, y no
+	 * se impide nada: la decision es de quien redacta, que sabe si su requisito es
+	 * el mismo que otro o solo se le parece.</p>
+	 */
+	@Transactional(readOnly = true)
+	public CheckResult comprobar(String projectReadableId, String enunciado, UUID solicitante) {
+		Project proyecto = projects.exigirAccesoPublico(projectReadableId, solicitante);
+		List<Requirement> existentes = requirements
+				.findByProjectIdOrderByReadableIdAsc(proyecto.getId());
+
+		List<SuspectedView> parecidos = new ArrayList<>();
+		for (Requirement r : existentes) {
+			double s = StatementSimilarity.entre(enunciado, r.getStatement());
+			if (s >= StatementSimilarity.UMBRAL_SOSPECHA) {
+				parecidos.add(new SuspectedView(r.getReadableId(), r.getSourceId(),
+						r.getReadableId(), redondear(s), r.getStatement()));
+			}
+		}
+		parecidos.sort((a, b) -> Double.compare(b.similarity(), a.similarity()));
+
+		DomainCoherence.Veredicto dominio = DomainCoherence.examinarUno(
+				existentes.stream().map(Requirement::getStatement).toList(), enunciado);
+
+		return new CheckResult(parecidos, avisoDe(dominio),
+				parecidos.isEmpty() && !dominio.aviso());
+	}
+
+	/** Convierte los grupos del clasificador en lo que viaja a la interfaz. */
+	private List<HeldGroup> gruposDe(List<DomainClassifier.Grupo> grupos,
+			ExtractionReport informe) {
+
+		List<HeldGroup> salida = new ArrayList<>();
+		for (DomainClassifier.Grupo g : grupos) {
+			List<HeldRequirement> lista = new ArrayList<>();
+			for (int indice : g.indices()) {
+				ParsedRequirement parsed = informe.requirements().get(indice);
+				lista.add(new HeldRequirement(parsed.sourceId(),
+						RequirementKind.conjeturar(parsed.sourceId()).name(),
+						parsed.get("name"), enunciadoDe(parsed), parsed.get("verification")));
+			}
+			salida.add(new HeldGroup(g.etiqueta(), g.terminos(), lista));
+		}
+		return salida;
+	}
+
+	/**
+	 * Da de alta requisitos retenidos, tras decidirlo una persona.
+	 *
+	 * <p>Corresponde a quien produce, que es tanto el miembro del equipo como el
+	 * facilitador --- este lo es tambien de su proyecto. Se comprueban duplicados
+	 * e identificadores igual que al importar: la decision fue sobre el dominio, no
+	 * sobre lo demas.</p>
+	 */
+	@Transactional
+	public ImportResult aceptarRetenidos(String projectReadableId,
+			AcceptHeldRequest peticion, UUID autor) {
+
+		Project proyecto = exigirRol(projectReadableId, autor, ProjectRole.TEAM_MEMBER);
+		Instant momento = Instant.now(clock);
+
+		List<Requirement> existentes = requirements
+				.findByProjectIdOrderByReadableIdAsc(proyecto.getId());
+		Set<String> origenesUsados = existentes.stream()
+				.map(Requirement::getSourceId)
+				.filter(id -> id != null && !id.isBlank())
+				.collect(Collectors.toCollection(HashSet::new));
+
+		int secuencia = requirements.mayorNumero(proyecto.getId());
+		List<DuplicateView> duplicados = new ArrayList<>();
+		List<RenumberedView> renumerados = new ArrayList<>();
+		int importados = 0;
+
+		for (HeldRequirement retenido : peticion.requirements()) {
+			Requirement parecido = null;
+			double semejanza = 0.0;
+			for (Requirement existente : existentes) {
+				double s = StatementSimilarity.entre(retenido.statement(), existente.getStatement());
+				if (s > semejanza) {
+					semejanza = s;
+					parecido = existente;
+				}
+			}
+			if (parecido != null && semejanza >= StatementSimilarity.UMBRAL_DUPLICADO) {
+				duplicados.add(new DuplicateView(retenido.sourceId(), parecido.getReadableId(),
+						parecido.getSourceId(), redondear(semejanza), parecido.getStatement()));
+				continue;
+			}
+
+			String origenFinal = retenido.sourceId();
+			if (origenFinal != null && !origenFinal.isBlank() && origenesUsados.contains(origenFinal)) {
+				origenFinal = siguienteLibre(origenFinal, origenesUsados);
+				renumerados.add(new RenumberedView(retenido.sourceId(), origenFinal,
+						retenido.statement()));
+			}
+			if (origenFinal != null && !origenFinal.isBlank()) {
+				origenesUsados.add(origenFinal);
+			}
+
+			secuencia++;
+			Requirement requisito = Requirement.crear(proyecto.getId(),
+					String.format("REQ-%04d-v1", secuencia),
+					origenFinal, null,
+					RequirementKind.valueOf(retenido.kind()),
+					retenido.name(), retenido.statement(), retenido.verification(),
+					autor, momento);
+
+			requirements.save(requisito);
+			existentes.add(requisito);
+			importados++;
+		}
+
+		registrar("REQUIREMENTS_ACCEPTED", proyecto.getId(), autor,
+				importados + " retenidos aceptados", momento);
+
+		String mensaje = importados + " requisitos dados de alta en borrador."
+				+ (duplicados.isEmpty() ? "" : " " + duplicados.size()
+						+ " se omitieron por decir lo mismo que otros ya presentes.");
+
+		return new ImportResult(peticion.requirements().size(), importados, duplicados.size(),
+				duplicados, renumerados, List.of(),
+				new DomainAlert(false, 1.0, List.of(), List.of(), "Aceptados por decision expresa"),
+				List.of(), List.of(), Map.of(), List.of(), mensaje);
+	}
+
+	private DomainAlert avisoDe(DomainCoherence.Veredicto v) {
+		return new DomainAlert(v.aviso(), v.coincidencia(), v.terminosCompartidos(),
+				v.terminosDeLoQueLlega(), v.explicacion());
 	}
 
 	/**
@@ -241,45 +427,155 @@ public class RequirementService {
 			throw new RequirementException("No se pudo leer el documento: " + e.getMessage());
 		}
 
-		long secuencia = requirements.countByProjectId(proyecto.getId());
-		List<String> omitidos = new ArrayList<>();
+		int secuencia = requirements.mayorNumero(proyecto.getId());
+		List<Requirement> existentes = requirements.findByProjectIdOrderByReadableIdAsc(proyecto.getId());
+
+		// Los identificadores de origen ya usados, para no repetirlos al renumerar.
+		Set<String> origenesUsados = existentes.stream()
+				.map(Requirement::getSourceId)
+				.filter(id -> id != null && !id.isBlank())
+				.collect(Collectors.toCollection(HashSet::new));
+
+		// Se examina el conjunto entero antes de importar nada: el dominio es una
+		// propiedad del documento, no de cada requisito por separado.
+		DomainCoherence.Veredicto dominio = DomainCoherence.examinar(
+				existentes.stream().map(Requirement::getStatement).toList(),
+				informe.requirements().stream().map(this::enunciadoDe)
+						.filter(e -> !e.isBlank()).toList());
+
+		// Se reparte antes de dar nada de alta. Lo ajeno no entra ni como borrador:
+		// un requisito de otro sistema en la lista contamina cuanto se calcule
+		// despues --- la validacion, los duplicados, el propio vocabulario del
+		// proyecto --- y quien lo encuentre semanas mas tarde no sabra si sobraba o
+		// si el proyecto crecio.
+		List<String> enunciadosEntrantes = informe.requirements().stream()
+				.map(this::enunciadoDe).toList();
+
+		DomainClassifier.Reparto reparto = DomainClassifier.repartir(
+				existentes.stream().map(Requirement::getStatement).toList(),
+				enunciadosEntrantes);
+
+		Set<Integer> aImportar = new HashSet<>(reparto.propios());
+
+		List<DuplicateView> duplicados = new ArrayList<>();
+		List<RenumberedView> renumerados = new ArrayList<>();
+		List<HeldSuspect> sospechas = new ArrayList<>();
 		int importados = 0;
 
-		for (ParsedRequirement parsed : informe.requirements()) {
-			String sourceId = parsed.sourceId();
-
-			// Un identificador ya presente no se sobreescribe: importar dos veces el
-			// mismo documento no debe duplicar ni pisar el trabajo hecho encima.
-			if (sourceId != null && !sourceId.isBlank()
-					&& requirements.findByProjectIdAndSourceId(proyecto.getId(), sourceId).isPresent()) {
-				omitidos.add(sourceId);
+		for (int indice = 0; indice < informe.requirements().size(); indice++) {
+			if (!aImportar.contains(indice)) {
 				continue;
+			}
+			ParsedRequirement parsed = informe.requirements().get(indice);
+			String sourceId = parsed.sourceId();
+			String enunciado = enunciadoDe(parsed);
+
+			// Se compara por lo que el requisito dice, no por como se llama. El
+			// identificador lo pone quien redacta el documento: dos documentos
+			// distintos numeran desde uno, y el mismo requisito puede llegar con
+			// otro numero. Decidir por el identificador descartaria requisitos
+			// nuevos por llevar un numero ya usado, y admitiria dos veces el mismo
+			// por venir numerado distinto.
+			Requirement parecido = null;
+			double semejanza = 0.0;
+
+			for (Requirement existente : existentes) {
+				double s = StatementSimilarity.entre(enunciado, existente.getStatement());
+				if (s > semejanza) {
+					semejanza = s;
+					parecido = existente;
+				}
+			}
+
+			if (parecido != null && semejanza >= StatementSimilarity.UMBRAL_DUPLICADO) {
+				duplicados.add(new DuplicateView(sourceId, parecido.getReadableId(),
+						parecido.getSourceId(), redondear(semejanza), parecido.getStatement()));
+				continue;
+			}
+
+			// Ni identico ni claramente distinto: no entra. Solo se da de alta sin
+			// preguntar lo que es del dominio y no se parece a nada; en la franja
+			// intermedia, decidir solo significa equivocarse a veces, y equivocarse
+			// hacia "es el mismo" pierde un requisito sin que nadie se entere.
+			if (parecido != null && semejanza >= StatementSimilarity.UMBRAL_SOSPECHA) {
+				sospechas.add(new HeldSuspect(
+						new HeldRequirement(sourceId,
+								RequirementKind.conjeturar(sourceId).name(),
+								parsed.get("name"), enunciado, parsed.get("verification")),
+						parecido.getReadableId(), parecido.getSourceId(),
+						redondear(semejanza), parecido.getStatement()));
+				continue;
+			}
+
+			// El identificador de origen es solo una etiqueta. Si ya esta tomado por
+			// otro requisito, se le asigna el siguiente libre de su familia y se
+			// informa: el requisito entra igualmente, porque dice algo distinto.
+			String origenFinal = sourceId;
+			if (sourceId != null && !sourceId.isBlank() && origenesUsados.contains(sourceId)) {
+				origenFinal = siguienteLibre(sourceId, origenesUsados);
+				renumerados.add(new RenumberedView(sourceId, origenFinal, enunciado));
+			}
+			if (origenFinal != null && !origenFinal.isBlank()) {
+				origenesUsados.add(origenFinal);
 			}
 
 			secuencia++;
 			Requirement requisito = Requirement.crear(proyecto.getId(),
 					String.format("REQ-%04d-v1", secuencia),
-					sourceId, parsed.sourceLine(),
-					RequirementKind.conjeturar(sourceId),
+					origenFinal, parsed.sourceLine(),
+					RequirementKind.conjeturar(origenFinal),
 					parsed.get("name"),
-					enunciadoDe(parsed),
+					enunciado,
 					parsed.get("verification"),
 					autor, momento);
 
 			requirements.save(requisito);
+			existentes.add(requisito);
 			importados++;
+
 		}
 
 		registrar("REQUIREMENTS_IMPORTED", proyecto.getId(), autor,
 				importados + " de " + informe.total(), momento);
 
-		String mensaje = importados + " requisitos importados de " + informe.total() + " encontrados."
-				+ (omitidos.isEmpty() ? "" : " " + omitidos.size()
-						+ " se omitieron por existir ya en el proyecto.")
-				+ " Todos quedan en borrador y con sus carencias reportadas.";
+		StringBuilder mensaje = new StringBuilder();
+		mensaje.append(importados).append(" requisitos importados de ")
+				.append(informe.total()).append(" encontrados.");
 
-		return new ImportResult(informe.total(), importados, omitidos.size(), omitidos,
-				informe.missingByField(), informe.unknownLabels(), mensaje);
+		if (!duplicados.isEmpty()) {
+			mensaje.append(" ").append(duplicados.size())
+					.append(" se omitieron por decir lo mismo que otros ya presentes.");
+		}
+		if (!renumerados.isEmpty()) {
+			mensaje.append(" ").append(renumerados.size())
+					.append(" llegaban con un identificador ya usado por otro requisito distinto y "
+							+ "se les asigno el siguiente libre.");
+		}
+		if (!sospechas.isEmpty()) {
+			mensaje.append(" ").append(sospechas.size())
+					.append(" no se dieron de alta por parecerse a otros ya presentes: decida si "
+							+ "son el mismo requisito.");
+		}
+		int retenidos = reparto.transversales().stream().mapToInt(g -> g.indices().size()).sum()
+				+ reparto.ajenos().stream().mapToInt(g -> g.indices().size()).sum();
+
+		if (retenidos > 0) {
+			mensaje.append(" ").append(retenidos)
+					.append(" no se dieron de alta por no parecer de este proyecto: quedan a la "
+							+ "espera de que usted decida.");
+		}
+		if (dominio.aviso()) {
+			mensaje.append(" AVISO: este documento apenas comparte vocabulario con lo que ya hay "
+					+ "en el proyecto; compruebe que corresponde a este sistema.");
+		}
+		mensaje.append(" Todos quedan en borrador y con sus carencias reportadas.");
+
+		List<HeldGroup> transversales = gruposDe(reparto.transversales(), informe);
+		List<HeldGroup> ajenos = gruposDe(reparto.ajenos(), informe);
+
+		return new ImportResult(informe.total(), importados, duplicados.size(), duplicados,
+				renumerados, sospechas, avisoDe(dominio), transversales, ajenos,
+				informe.missingByField(), informe.unknownLabels(), mensaje.toString());
 	}
 
 	// =================================================================
@@ -355,7 +651,9 @@ public class RequirementService {
 	}
 
 	private String siguienteIdentificador(UUID projectId) {
-		return String.format("REQ-%04d-v1", requirements.countByProjectId(projectId) + 1);
+		// Por el mayor usado y no por la cuenta: si se elimino un requisito, contar
+		// devuelve un numero ya tomado y el alta choca contra la unicidad.
+		return String.format("REQ-%04d-v1", requirements.mayorNumero(projectId) + 1);
 	}
 
 	private RequirementKind tipoDe(String declarado, String sourceId) {
@@ -378,9 +676,94 @@ public class RequirementService {
 	private ProjectRole rolQueDecide(RequirementStatus estado) {
 		return switch (estado) {
 			case REVIEWED -> ProjectRole.PROJECT_FACILITATOR;
-			case APPROVED -> ProjectRole.PRODUCT_OWNER;
+			case APPROVED, REJECTED -> ProjectRole.PRODUCT_OWNER;
 			default -> ProjectRole.TEAM_MEMBER;
 		};
+	}
+
+	/**
+	 * Impide retirar la aprobacion de un requisito con trabajo ya aceptado.
+	 *
+	 * <p>La comprobacion se hace en el servicio y no en la base porque el motivo
+	 * es de proceso y no de integridad: la fila seguiria siendo valida, pero la
+	 * aceptacion de un entregable habria dado por buena una decision que se
+	 * retira despues.</p>
+	 */
+	private void comprobarQueNoHayTrabajoAceptado(Requirement requisito) {
+		List<String> aceptados = deliverables.aceptadosDe(requisito.getId());
+
+		if (!aceptados.isEmpty()) {
+			throw new RequirementException(
+					"No puede retirarse la aprobacion de este requisito: ya hay trabajo aceptado "
+							+ "sobre el (" + String.join(", ", aceptados) + "). Formule una peticion "
+							+ "de cambio, que deja constancia de por que cambia lo decidido");
+		}
+	}
+
+	/**
+	 * Siguiente identificador libre de la misma familia.
+	 *
+	 * <p>De RF-01 se pasa a RF-09 si los ocho primeros estan tomados, conservando
+	 * el prefijo y el ancho del numero. Se conserva la familia porque distingue lo
+	 * funcional de lo que no lo es, y perderla al renumerar cambiaria como se lee
+	 * el requisito.</p>
+	 */
+	/**
+	 * Identificador de origen que corresponde a la clase indicada.
+	 *
+	 * <p>Se conserva el numero si esta libre en la familia de destino, y se toma
+	 * el siguiente si no lo esta. Conservarlo ayuda a seguir el rastro de un
+	 * requisito que cambio de clase, que de otro modo pareceria otro distinto.</p>
+	 */
+	private String origenPara(UUID projectId, RequirementKind clase, Requirement requisito) {
+		String prefijo = switch (clase) {
+			case NON_FUNCTIONAL -> "RNF-";
+			case CONSTRAINT -> "RES-";
+			case USER_STORY -> "HU-";
+			case USE_CASE -> "CU-";
+			default -> "RF-";
+		};
+
+		Matcher m = Pattern.compile("(\\d+)$").matcher(requisito.getSourceId());
+		String numero = m.find() ? m.group(1) : "01";
+
+		Set<String> usados = requirements.findByProjectIdOrderByReadableIdAsc(projectId).stream()
+				.filter(r -> !r.getId().equals(requisito.getId()))
+				.map(Requirement::getSourceId)
+				.filter(id -> id != null && !id.isBlank())
+				.collect(Collectors.toCollection(HashSet::new));
+
+		String candidato = prefijo + numero;
+		return usados.contains(candidato) ? siguienteLibre(candidato, usados) : candidato;
+	}
+
+	private String siguienteLibre(String sourceId, Set<String> usados) {
+		Matcher m = Pattern.compile("^(.*?)(\\d+)$").matcher(sourceId.trim());
+		if (!m.find()) {
+			// Sin numero al final no hay familia que continuar: se sufija.
+			String candidato = sourceId + "-bis";
+			int n = 2;
+			while (usados.contains(candidato)) {
+				candidato = sourceId + "-bis" + n++;
+			}
+			return candidato;
+		}
+
+		String prefijo = m.group(1);
+		String digitos = m.group(2);
+		int numero = Integer.parseInt(digitos);
+
+		String candidato;
+		do {
+			numero++;
+			candidato = prefijo + String.format("%0" + digitos.length() + "d", numero);
+		} while (usados.contains(candidato));
+
+		return candidato;
+	}
+
+	private double redondear(double valor) {
+		return Math.round(valor * 100.0) / 100.0;
 	}
 
 	private Requirement buscar(UUID projectId, String readableId) {

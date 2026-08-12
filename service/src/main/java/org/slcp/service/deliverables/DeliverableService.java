@@ -91,7 +91,8 @@ public class DeliverableService {
 		return requirements
 				.findByProjectIdAndStatusOrderByReadableIdAsc(proyecto.getId(), RequirementStatus.APPROVED)
 				.stream()
-				.map(r -> new LinkableRequirement(r.getReadableId(), r.getName(), r.getStatement(),
+				.map(r -> new LinkableRequirement(r.getReadableId(), r.getSourceId(),
+						r.getKind().name(), r.getKind().getEtiqueta(), r.getName(), r.getStatement(),
 						yaEnlazados.contains(r.getId())))
 				.toList();
 	}
@@ -105,15 +106,23 @@ public class DeliverableService {
 		Project proyecto = exigirFacilitador(projectReadableId, autor);
 		Instant momento = Instant.now(clock);
 
-		long secuencia = deliverables.countByProjectId(proyecto.getId()) + 1;
+		int secuencia = deliverables.mayorNumero(proyecto.getId()) + 1;
 		Deliverable entregable = Deliverable.crear(proyecto.getId(),
 				String.format("ENT-%04d-v1", secuencia),
 				peticion.name(), peticion.description(), peticion.acceptance(), autor, momento);
+
+		Set<UUID> antes = cerradosDe(proyecto);
 
 		deliverables.save(entregable);
 		enlazarTodos(proyecto, entregable, peticion.requirementIds());
 
 		registrar("DELIVERABLE_CREATED", proyecto.getId(), autor, entregable.getReadableId(), momento);
+
+		// Enlazar un entregable nuevo a un requisito cerrado lo reabre: le queda
+		// trabajo por aceptar. Anotarlo aqui evita que esa reapertura pase inadvertida.
+		deliverables.flush();
+		anotarCambiosDeCierre(proyecto, antes, autor, entregable, momento);
+
 		return vista(entregable, cerradosDe(proyecto));
 	}
 
@@ -125,6 +134,8 @@ public class DeliverableService {
 		Deliverable entregable = buscar(proyecto.getId(), readableId);
 		Instant momento = Instant.now(clock);
 
+		Set<UUID> antes = cerradosDe(proyecto);
+
 		entregable.editar(peticion.name(), peticion.description(), peticion.acceptance(), momento);
 
 		// Los enlaces se rehacen: quien modifica el entregable puede haber cambiado
@@ -135,6 +146,10 @@ public class DeliverableService {
 		enlazarTodos(proyecto, entregable, peticion.requirementIds());
 
 		registrar("DELIVERABLE_EDITED", proyecto.getId(), autor, entregable.getReadableId(), momento);
+
+		deliverables.flush();
+		anotarCambiosDeCierre(proyecto, antes, autor, entregable, momento);
+
 		return vista(entregable, cerradosDe(proyecto));
 	}
 
@@ -181,9 +196,19 @@ public class DeliverableService {
 							+ "enlacelo antes con los requisitos que realiza");
 		}
 
+		// Que requisitos estaban cerrados ANTES de la transicion. Sin esta foto no
+		// hay forma de saber cuales cierra esta aceptacion y cuales ya lo estaban,
+		// y el registro atribuiria a este acto cierres ajenos.
+		Set<UUID> antes = cerradosDe(proyecto);
+
 		entregable.transitarA(estado, autor, momento);
 		registrar("DELIVERABLE_" + estado.name(), proyecto.getId(), autor,
 				entregable.getReadableId(), momento);
+
+		// El cambio ha de estar en la base antes de volver a consultar la vista: sin
+		// esto se leeria el estado anterior y el cierre no se registraria nunca.
+		deliverables.flush();
+		anotarCambiosDeCierre(proyecto, antes, autor, entregable, momento);
 
 		return vista(entregable, cerradosDe(proyecto));
 	}
@@ -208,6 +233,50 @@ public class DeliverableService {
 		}
 	}
 
+	/**
+	 * Deja constancia de los requisitos que se cierran o se reabren.
+	 *
+	 * <p>El cierre sigue calculandose y no se almacena: lo que se registra no es el
+	 * estado sino el hecho de haber cambiado, con su fecha y su causa. Asi puede
+	 * responderse cuando se cerro un requisito --- que la vista no dice, porque
+	 * solo conoce el ahora --- sin duplicar el <em>si</em> en dos sitios que
+	 * puedan discrepar.</p>
+	 *
+	 * <p>Se registra tambien la reapertura. Un requisito que se cierra y vuelve a
+	 * abrirse cuenta una historia distinta de uno que nunca se cerro, y sin este
+	 * asiento ambos pareceria lo mismo.</p>
+	 */
+	private void anotarCambiosDeCierre(Project proyecto, Set<UUID> antes, UUID autor,
+			Deliverable causa, Instant momento) {
+
+		Set<UUID> despues = cerradosDe(proyecto);
+
+		for (UUID id : despues) {
+			if (!antes.contains(id)) {
+				registrarRequisito("REQUIREMENT_CLOSED", id, autor,
+						"cerrado al aceptarse " + causa.getReadableId(), momento);
+			}
+		}
+		for (UUID id : antes) {
+			if (!despues.contains(id)) {
+				registrarRequisito("REQUIREMENT_REOPENED", id, autor,
+						"reabierto al cambiar " + causa.getReadableId(), momento);
+			}
+		}
+	}
+
+	/** Asiento referido al requisito, no al proyecto: el sujeto del hecho es aquel. */
+	private void registrarRequisito(String tipo, UUID requirementId, UUID actorId,
+			String detalle, Instant momento) {
+
+		String quien = users.findById(actorId).map(User::getUsername).orElse("desconocido");
+		String cual = requirements.findById(requirementId)
+				.map(Requirement::getReadableId).orElse(requirementId.toString());
+
+		events.save(EventRecord.de(tipo, "Requirement", requirementId, actorId, quien,
+				cual + ": " + detalle, momento));
+	}
+
 	private Set<UUID> cerradosDe(Project proyecto) {
 		return new HashSet<>(deliverables.requisitosCerrados(proyecto.getId()));
 	}
@@ -215,8 +284,9 @@ public class DeliverableService {
 	private DeliverableView vista(Deliverable d, Set<UUID> cerrados) {
 		List<LinkedRequirement> enlazados = deliverables.requisitosDe(d.getId()).stream()
 				.map(id -> requirements.findById(id)
-						.map(r -> new LinkedRequirement(r.getReadableId(), r.getStatement(),
-								cerrados.contains(r.getId())))
+						.map(r -> new LinkedRequirement(r.getReadableId(), r.getSourceId(),
+								r.getKind().name(), r.getKind().getEtiqueta(), r.getName(),
+								r.getStatement(), cerrados.contains(r.getId())))
 						.orElse(null))
 				.filter(r -> r != null)
 				.toList();

@@ -199,6 +199,7 @@
                       <th>Persona</th>
                       <th>Usuario</th>
                       <th>Rol</th>
+                      <th></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -206,7 +207,46 @@
                       <tr>
                         <td>{{ m.fullName }}</td>
                         <td class="mono">{{ m.username }}</td>
-                        <td>{{ m.roleLabel }}</td>
+                        <td>
+                          @if (cambiandoRol() === m.username) {
+                            <select [(ngModel)]="rolDeCambio" [name]="'rol-' + m.username"
+                              aria-label="Rol nuevo">
+                              <option value="TEAM_MEMBER">Miembro del equipo</option>
+                              <option value="PROJECT_FACILITATOR">Facilitador de proyectos</option>
+                              <option value="PRODUCT_OWNER">Propietario del producto</option>
+                              <option value="STAKEHOLDER">Parte interesada</option>
+                            </select>
+                          } @else {
+                            {{ m.roleLabel }}
+                          }
+                        </td>
+                        <td class="acciones-miembro">
+                          @if (esFacilitadorDe(p)) {
+                            @if (cambiandoRol() === m.username) {
+                              <button type="button" class="btn btn--principal" (click)="guardarRol(p, m)">
+                                Guardar
+                              </button>
+                              <button type="button" class="btn btn--plano" (click)="cancelarCambioDeRol()">
+                                Cancelar
+                              </button>
+                            } @else if (retirando() === m.username) {
+                              <span class="miembro__aviso">¿Retirar? Su rastro se conserva.</span>
+                              <button type="button" class="btn btn--eliminar" (click)="retirar(p, m)">
+                                Sí
+                              </button>
+                              <button type="button" class="btn btn--plano" (click)="cancelarRetirada()">
+                                No
+                              </button>
+                            } @else {
+                              <button type="button" class="btn btn--plano" (click)="empezarCambioDeRol(m)">
+                                Cambiar rol
+                              </button>
+                              <button type="button" class="btn btn--plano" (click)="pedirRetirada(m)">
+                                Retirar
+                              </button>
+                            }
+                          }
+                        </td>
                       </tr>
                     }
                   </tbody>

@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 
 import { ProjectService } from '../projects/project-service';
+import { RequirementService } from '../requirements/requirement-service';
+import { RequirementSummary } from '../requirements/requirement';
 import { ApiError } from '../registration/registration';
 import { Deliverable, LinkableRequirement } from './deliverable';
 import { DeliverableService } from './deliverable-service';
@@ -24,11 +26,21 @@ import { DeliverableService } from './deliverable-service';
 export class DeliverablesPage implements OnInit {
   private readonly service = inject(DeliverableService);
   private readonly proyectos = inject(ProjectService);
+  private readonly requisitos = inject(RequirementService);
   private readonly ruta = inject(ActivatedRoute);
 
   protected projectId = '';
   protected readonly entregables = signal<Deliverable[]>([]);
   protected readonly enlazables = signal<LinkableRequirement[]>([]);
+
+  /**
+   * Resumen de los requisitos del proyecto.
+   *
+   * Sirve para explicar una lista vacía. Sin él, quien no ve requisitos que
+   * enlazar no sabe si es que no hay ninguno o si es que ninguno está aprobado,
+   * y son dos situaciones con remedios distintos.
+   */
+  protected readonly resumenRequisitos = signal<RequirementSummary | null>(null);
   protected readonly cargando = signal(true);
   protected readonly error = signal<string | null>(null);
   protected readonly aviso = signal<string | null>(null);
@@ -83,12 +95,17 @@ export class DeliverablesPage implements OnInit {
     });
   }
 
-  protected cargar(): void {
+  protected cargar(despues?: () => void): void {
     this.cargando.set(true);
     this.service.listar(this.projectId).subscribe({
       next: (lista) => {
         this.entregables.set(lista);
         this.cargando.set(false);
+        if (despues) {
+          // En el ciclo siguiente: la lista acaba de cambiar y el elemento al que
+          // hay que volver todavía no está en la página.
+          setTimeout(despues, 0);
+        }
       },
       error: (fallo: HttpErrorResponse) => {
         this.error.set(this.explicar(fallo));
@@ -96,6 +113,11 @@ export class DeliverablesPage implements OnInit {
       },
     });
     this.cargarEnlazables();
+
+    this.requisitos.resumen(this.projectId).subscribe({
+      next: (r) => this.resumenRequisitos.set(r),
+      error: () => this.resumenRequisitos.set(null),
+    });
   }
 
   private cargarEnlazables(deliverable?: string): void {
@@ -128,6 +150,27 @@ export class DeliverablesPage implements OnInit {
     this.error.set(null);
     this.cargarEnlazables(d.readableId);
     document.getElementById('formulario-entregable')?.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  /**
+   * Prepara el formulario para un entregable nuevo y lleva la vista hasta él.
+   *
+   * Se limpia lo que hubiera: si se venía de modificar otro, sus datos seguirían
+   * en los campos y el alta saldría con ellos.
+   */
+  protected nuevo(): void {
+    this.cancelar();
+    this.error.set(null);
+    this.cargarEnlazables();
+
+    // En el ciclo siguiente: el formulario cambia de estado al limpiarlo, y
+    // desplazarse antes llevaría a donde estaba, no a donde queda.
+    setTimeout(() => {
+      document
+        .getElementById('formulario-entregable')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document.getElementById('nombre-entregable')?.focus();
+    }, 0);
   }
 
   protected cancelar(): void {
@@ -172,7 +215,8 @@ export class DeliverablesPage implements OnInit {
           enEdicion ? `Entregable ${d.readableId} actualizado.` : `Entregable ${d.readableId} creado.`,
         );
         this.cancelar();
-        this.cargar();
+        this.abierto.set(d.readableId);
+        this.cargar(() => this.volverA(d.readableId));
       },
       error: (fallo: HttpErrorResponse) => {
         this.guardando.set(false);
@@ -187,7 +231,8 @@ export class DeliverablesPage implements OnInit {
     this.service.transitar(this.projectId, d.readableId, destino).subscribe({
       next: (r) => {
         this.aviso.set(`${r.readableId}: ${r.statusLabel}.`);
-        this.cargar();
+        this.abierto.set(r.readableId);
+        this.cargar(() => this.volverA(r.readableId));
       },
       error: (fallo: HttpErrorResponse) => this.error.set(this.explicar(fallo)),
     });
@@ -214,6 +259,13 @@ export class DeliverablesPage implements OnInit {
         this.error.set(this.explicar(fallo));
       },
     });
+  }
+
+  /** Devuelve la vista al entregable indicado. */
+  private volverA(readableId: string): void {
+    document
+      .getElementById('ent-' + readableId)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
   protected alternarDetalle(d: Deliverable): void {

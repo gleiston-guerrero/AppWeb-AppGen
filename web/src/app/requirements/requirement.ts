@@ -52,11 +52,91 @@ export interface Requirement {
 }
 
 /** Resultado de importar un documento. */
+/** Requisito omitido por decir lo mismo que otro ya presente. */
+export interface Duplicate {
+  sourceId: string | null;
+  matchedReadableId: string;
+  matchedSourceId: string | null;
+  similarity: number;
+  matchedStatement: string;
+}
+
+/** Requisito cuyo identificador de origen estaba tomado por otro distinto. */
+export interface Renumbered {
+  from: string;
+  to: string;
+  statement: string;
+}
+
+/** Requisito que se parece a otro sin llegar a ser el mismo. */
+export interface Suspected {
+  readableId: string;
+  sourceId: string | null;
+  similarToReadableId: string;
+  similarity: number;
+  similarStatement: string;
+}
+
+/** Aviso de que lo examinado no parece del mismo asunto que el proyecto. */
+export interface DomainAlert {
+  alert: boolean;
+  overlap: number;
+  sharedTerms: string[];
+  newTerms: string[];
+  message: string;
+}
+
+/** Resultado de la comprobación previa al alta manual. */
+export interface CheckResult {
+  similar: Suspected[];
+  domain: DomainAlert;
+  crossCutting: HeldGroup[];
+  foreign: HeldGroup[];
+  clean: boolean;
+}
+
+/** Requisito leído pero no dado de alta, a la espera de decisión. */
+export interface HeldRequirement {
+  sourceId: string | null;
+  kind: string;
+  name: string | null;
+  statement: string;
+  verification: string | null;
+}
+
+/**
+ * Requisito retenido por parecerse a uno ya presente.
+ *
+ * Viajan los dos enunciados: la pregunta es si dicen lo mismo, y eso no puede
+ * responderse viendo uno solo.
+ */
+export interface HeldSuspect {
+  requirement: HeldRequirement;
+  matchedReadableId: string;
+  matchedSourceId: string | null;
+  similarity: number;
+  matchedStatement: string;
+}
+
+/** Conjunto de requisitos retenidos que tratan de lo mismo. */
+export interface HeldGroup {
+  label: string;
+  terms: string[];
+  requirements: HeldRequirement[];
+}
+
 export interface ImportResult {
   found: number;
   imported: number;
   skipped: number;
-  skippedIds: string[];
+  duplicates: Duplicate[];
+  renumbered: Renumbered[];
+  suspected: HeldSuspect[];
+  domain: DomainAlert;
+  /** Exigencias que valen para cualquier sistema: las decide una persona. */
+  crossCutting: HeldGroup[];
+  /** Requisitos que parecen de otro asunto: no se dan de alta sin decisión. */
+  foreign: HeldGroup[];
   missingByField: Record<string, number>;
   unknownLabels: string[];
   message: string;

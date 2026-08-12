@@ -3,6 +3,7 @@ package org.slcp.service.projects;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
+import org.slcp.service.domain.ProjectRole;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -67,6 +68,19 @@ public class ProjectController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void eliminar(@PathVariable String readableId, @AuthenticationPrincipal Jwt jwt) {
 		service.eliminar(readableId, UUID.fromString(jwt.getSubject()));
+	}
+
+	@PutMapping("/{readableId}/team/{username}")
+	public MemberView cambiarRol(@PathVariable String readableId, @PathVariable String username,
+			@RequestParam ProjectRole role, @AuthenticationPrincipal Jwt jwt) {
+		return service.cambiarRol(readableId, username, role, UUID.fromString(jwt.getSubject()));
+	}
+
+	@DeleteMapping("/{readableId}/team/{username}")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void retirarDelEquipo(@PathVariable String readableId, @PathVariable String username,
+			@AuthenticationPrincipal Jwt jwt) {
+		service.retirarDelEquipo(readableId, username, UUID.fromString(jwt.getSubject()));
 	}
 
 	@GetMapping("/{readableId}/team")

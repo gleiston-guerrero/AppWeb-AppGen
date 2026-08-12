@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 
 import { administratorGuard, sesionGuard } from './auth/administrator-guard';
+import { invitadoGuard } from './auth/invitado-guard';
 
 export const routes: Routes = [
   {
@@ -32,6 +33,7 @@ export const routes: Routes = [
   },
   {
     path: 'entrar',
+    canActivate: [invitadoGuard],
     loadComponent: () => import('./auth/login-page').then((m) => m.LoginPage),
     title: 'Iniciar sesión — SLCP',
   },
@@ -47,6 +49,11 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./requirements/requirements-page').then((m) => m.RequirementsPage),
     title: 'Requisitos — SLCP',
+  },
+  {
+    path: 'sesion-abierta',
+    loadComponent: () => import('./auth/session-open-page').then((m) => m.SessionOpenPage),
+    title: 'Sesión abierta — SLCP',
   },
   {
     path: 'cuenta/contrasena',

@@ -52,7 +52,9 @@ public class ProjectService {
 	@Transactional
 	public ProjectView crear(ProjectRequest peticion, UUID creador) {
 		Instant momento = Instant.now(clock);
-		long secuencia = projects.count() + 1;
+		// Por el mayor usado, no por la cuenta: contar devuelve un numero ya tomado
+		// en cuanto se elimina un proyecto.
+		long secuencia = projects.mayorNumero() + 1;
 
 		Project proyecto = Project.crear(peticion.name(), peticion.purpose(), creador, secuencia, momento);
 		projects.save(proyecto);
@@ -218,6 +220,105 @@ public class ProjectService {
 						ProjectRole.TEAM_MEMBER, momento));
 			}
 		}
+	}
+
+	/**
+	 * Cambia el rol de alguien del equipo.
+	 *
+	 * <p>Se retira el rol anterior y se concede el nuevo, en lugar de modificar la
+	 * fila: la membresia anterior existio y su rastro cuenta desde cuando y hasta
+	 * cuando alguien tuvo ese papel, que es lo que hace falta para saber quien
+	 * podia hacer que en cada momento.</p>
+	 */
+	@Transactional
+	public MemberView cambiarRol(String readableId, String username, ProjectRole nuevo,
+			UUID solicitante) {
+
+		Project proyecto = exigirRol(readableId, solicitante, ProjectRole.PROJECT_FACILITATOR);
+		User persona = buscarPersona(username);
+		Instant momento = Instant.now(clock);
+
+		List<ProjectMembership> actuales = memberships.findByProjectIdAndUserIdAndStatus(
+				proyecto.getId(), persona.getId(), MembershipStatus.ACTIVE);
+
+		if (actuales.isEmpty()) {
+			throw new ProjectAccessException(persona.getUsername() + " no participa en este proyecto");
+		}
+
+		// Nadie puede quedarse sin facilitador: si se cambia el rol del ultimo, el
+		// proyecto se queda sin quien planifique ni pueda incorporar a nadie mas.
+		if (nuevo != ProjectRole.PROJECT_FACILITATOR
+				&& tieneRol(actuales, ProjectRole.PROJECT_FACILITATOR)
+				&& contarConRol(proyecto.getId(), ProjectRole.PROJECT_FACILITATOR) <= 1) {
+
+			throw new ProjectAccessException(
+					"Es el unico facilitador del proyecto. Incorpore antes a otro: sin facilitador "
+							+ "nadie podria planificar ni incorporar a nadie mas");
+		}
+
+		actuales.forEach(m -> {
+			m.retirar();
+			memberships.save(m);
+		});
+
+		incorporarCon(proyecto.getId(), persona.getId(), nuevo, momento);
+
+		registrar("MEMBERSHIP_ROLE_CHANGED", proyecto.getId(), solicitante,
+				persona.getUsername() + " pasa a " + nuevo.name(), momento);
+
+		return new MemberView(persona.getUsername(), persona.getFullName(), persona.getEmail(),
+				nuevo.name(), nuevo.getEtiqueta(), MembershipStatus.ACTIVE.name());
+	}
+
+	/**
+	 * Retira a alguien del equipo.
+	 *
+	 * <p>La membresia se marca retirada y no se borra: lo que esa persona hizo
+	 * mientras participaba sigue constando a su nombre, y borrar su pertenencia
+	 * dejaria actos sin autor reconocible.</p>
+	 */
+	@Transactional
+	public void retirarDelEquipo(String readableId, String username, UUID solicitante) {
+		Project proyecto = exigirRol(readableId, solicitante, ProjectRole.PROJECT_FACILITATOR);
+		User persona = buscarPersona(username);
+		Instant momento = Instant.now(clock);
+
+		List<ProjectMembership> actuales = memberships.findByProjectIdAndUserIdAndStatus(
+				proyecto.getId(), persona.getId(), MembershipStatus.ACTIVE);
+
+		if (actuales.isEmpty()) {
+			throw new ProjectAccessException(persona.getUsername() + " no participa en este proyecto");
+		}
+
+		if (tieneRol(actuales, ProjectRole.PROJECT_FACILITATOR)
+				&& contarConRol(proyecto.getId(), ProjectRole.PROJECT_FACILITATOR) <= 1) {
+
+			throw new ProjectAccessException(
+					"Es el unico facilitador del proyecto y no puede retirarse. Incorpore antes a otro");
+		}
+
+		actuales.forEach(m -> {
+			m.retirar();
+			memberships.save(m);
+		});
+
+		registrar("MEMBERSHIP_REVOKED", proyecto.getId(), solicitante, persona.getUsername(), momento);
+	}
+
+	private boolean tieneRol(List<ProjectMembership> membresias, ProjectRole rol) {
+		return membresias.stream().anyMatch(m -> m.getProjectRole() == rol);
+	}
+
+	private long contarConRol(UUID projectId, ProjectRole rol) {
+		return memberships.findByProjectIdAndStatus(projectId, MembershipStatus.ACTIVE).stream()
+				.filter(m -> m.getProjectRole() == rol)
+				.count();
+	}
+
+	private User buscarPersona(String username) {
+		return users.findByUsernameIgnoreCase(username)
+				.orElseThrow(() -> new ProjectAccessException(
+						"No existe ninguna cuenta con ese identificador"));
 	}
 
 	/** Roles de la persona en el proyecto. Vacio si no participa. */

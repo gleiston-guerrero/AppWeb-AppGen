@@ -4,6 +4,9 @@ import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
 import org.slcp.service.requirements.RequirementContracts.ImportRequest;
+import org.slcp.service.requirements.RequirementContracts.AcceptHeldRequest;
+import org.slcp.service.requirements.RequirementContracts.CheckRequest;
+import org.slcp.service.requirements.RequirementContracts.CheckResult;
 import org.slcp.service.requirements.RequirementContracts.ImportResult;
 import org.slcp.service.requirements.RequirementContracts.RequirementRequest;
 import org.slcp.service.requirements.RequirementContracts.RequirementSummary;
@@ -68,6 +71,31 @@ public class RequirementController {
 	 * lee en el navegador y lo envia, lo que evita la codificacion en varias
 	 * partes sin perder nada.</p>
 	 */
+	/**
+	 * Comprueba un enunciado antes de darlo de alta.
+	 *
+	 * <p>Es POST y no GET porque el enunciado va en el cuerpo: llevarlo en la
+	 * direccion lo dejaria escrito en los registros del servidor y limitado en
+	 * longitud.</p>
+	 */
+	@PostMapping("/check")
+	public CheckResult comprobar(@PathVariable String projectId,
+			@RequestBody CheckRequest peticion, @AuthenticationPrincipal Jwt jwt) {
+		return service.comprobar(projectId, peticion.statement(), quien(jwt));
+	}
+
+	/**
+	 * Da de alta requisitos que quedaron retenidos por no parecer del proyecto.
+	 *
+	 * <p>Corresponde a quien produce: tanto al miembro del equipo como al
+	 * facilitador, que lo es tambien de sus proyectos.</p>
+	 */
+	@PostMapping("/held")
+	public ImportResult aceptarRetenidos(@PathVariable String projectId,
+			@RequestBody AcceptHeldRequest peticion, @AuthenticationPrincipal Jwt jwt) {
+		return service.aceptarRetenidos(projectId, peticion, quien(jwt));
+	}
+
 	@PostMapping("/import")
 	public ImportResult importar(@PathVariable String projectId,
 			@Valid @RequestBody ImportRequest peticion, @AuthenticationPrincipal Jwt jwt) {

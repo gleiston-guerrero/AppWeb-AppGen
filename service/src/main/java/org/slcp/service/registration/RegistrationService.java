@@ -65,7 +65,9 @@ public class RegistrationService {
 		}
 
 		Instant momento = Instant.now(clock);
-		long secuencia = users.count() + 1;
+		// Por el mayor usado, no por la cuenta: contar devuelve un numero ya tomado
+		// en cuanto se elimina una cuenta.
+		long secuencia = users.mayorNumero() + 1;
 
 		// La contrasena se deriva aqui y en claro no llega mas alla de este punto.
 		String verificador = passwordEncoder.encode(peticion.password());

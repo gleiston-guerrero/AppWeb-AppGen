@@ -375,3 +375,25 @@ input:focus, select:focus, textarea:focus { background: var(--surface); border-c
 
 .detalle__texto { font-size: var(--step--1); color: var(--ink-soft); max-width: 74ch; }
 .detalle__nota { font-size: var(--step--1); color: var(--ink-faint); margin-top: 0.6rem; max-width: 70ch; }
+
+/* El identificador del documento va delante: es el que la gente reconoce. */
+.origen {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--blue);
+  min-width: 4.5rem;
+}
+
+/* El de la plataforma queda como dato secundario. */
+.interno {
+  font-size: 0.68rem;
+  color: var(--ink-faint);
+  margin-left: auto;
+}
+
+.tipo {
+  font-size: 0.68rem;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}

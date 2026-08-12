@@ -204,7 +204,7 @@ public class InvitationService {
 		// proyecto que la origino, no la plataforma.
 		User persona = User.solicitar(peticion.username(), invitacion.getEmail(),
 				peticion.fullName(), passwordEncoder.encode(peticion.password()),
-				users.count() + 1, momento);
+				users.mayorNumero() + 1, momento);
 		persona.aprobar();
 		users.save(persona);
 

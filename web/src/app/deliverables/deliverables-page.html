@@ -27,7 +27,7 @@
       </h2>
 
       <div class="panel__campos">
-        <input type="text" [(ngModel)]="nombre" name="nombre"
+        <input type="text" id="nombre-entregable" [(ngModel)]="nombre" name="nombre"
           placeholder="Nombre del entregable" aria-label="Nombre" />
         <textarea rows="2" [(ngModel)]="descripcion" name="descripcion"
           placeholder="Qué es y qué incluye (opcional)" aria-label="Descripción"></textarea>
@@ -38,8 +38,17 @@
       <h3 class="eyebrow eyebrow--sep">Requisitos que realiza</h3>
       @if (enlazables().length === 0) {
         <p class="panel__nota">
-          No hay requisitos aprobados en este proyecto. Solo se enlaza trabajo a requisitos
-          aprobados: enlazarlo a uno que aún puede cambiar daría por decidido lo que no lo está.
+          @if (resumenRequisitos(); as r) {
+            @if (r.total === 0) {
+              Este proyecto no tiene requisitos todavía.
+            } @else {
+              Hay {{ r.total }} requisitos y ninguno está aprobado. Solo se enlaza trabajo a
+              requisitos aprobados: enlazarlo a uno que aún puede cambiar daría por decidido lo que
+              no lo está. Revíselos como facilitador y apruébelos con la cuenta del propietario.
+            }
+          } @else {
+            No hay requisitos aprobados en este proyecto.
+          }
           <a routerLink="/proyecto/{{ projectId }}/requisitos">Ir a requisitos</a>.
         </p>
       } @else {
@@ -48,8 +57,12 @@
             <li class="requisito" [class.requisito--elegido]="estaSeleccionado(r.readableId)"
                 (click)="alternarRequisito(r.readableId)">
               <span class="requisito__marca">{{ estaSeleccionado(r.readableId) ? '✓' : '' }}</span>
-              <span class="mono">{{ r.readableId }}</span>
+              <span class="origen">{{ r.sourceId || r.readableId }}</span>
+              <span class="tipo">{{ r.kindLabel }}</span>
               <span class="requisito__texto">{{ r.name || r.statement }}</span>
+              @if (r.sourceId) {
+                <span class="interno mono" title="Identificador en la plataforma">{{ r.readableId }}</span>
+              }
             </li>
           }
         </ul>
@@ -88,7 +101,7 @@
   } @else {
     <ul class="lista">
       @for (d of entregables(); track d.readableId) {
-        <li class="entregable">
+        <li class="entregable" [id]="'ent-' + d.readableId">
           <div class="entregable__fila" (click)="alternarDetalle(d)">
             <div>
               <p class="entregable__ids">
@@ -117,9 +130,10 @@
               <ul class="enlazados">
                 @for (r of d.requirements; track r.readableId) {
                   <li>
-                    <span class="mono">{{ r.readableId }}</span>
+                    <span class="origen">{{ r.sourceId || r.readableId }}</span>
+                    <span class="tipo">{{ r.kindLabel }}</span>
                     @if (r.closed) { <span class="cerrado">cerrado</span> }
-                    <span class="enlazados__texto">{{ r.statement }}</span>
+                    <span class="enlazados__texto">{{ r.name || r.statement }}</span>
                   </li>
                 }
               </ul>
@@ -139,6 +153,12 @@
               }
 
               <div class="detalle__acciones">
+                @if (esFacilitador()) {
+                  <button type="button" class="btn btn--plano" (click)="nuevo()">
+                    Nuevo
+                  </button>
+                }
+
                 @if (esFacilitador() && d.status !== 'ACCEPTED') {
                   <button type="button" class="btn btn--plano" (click)="modificar(d)">
                     Modificar

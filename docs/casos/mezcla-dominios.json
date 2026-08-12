@@ -1,0 +1,346 @@
+{
+  "project": "Mezcla de dominios, transversales y repetidos",
+  "requirements": [
+    {
+      "id": "RF-01",
+      "name": "Registrar el mapa de la parcela",
+      "description": "El sistema debera registrar el contorno de cada parcela de cultivo con sus coordenadas, su superficie en hectareas y el tipo de suelo predominante.",
+      "priority": "Must",
+      "verification": "Registrar una parcela con cuatro vertices y comprobar que la superficie calculada coincide con la declarada.",
+      "actor": "Responsable de la explotacion"
+    },
+    {
+      "id": "RF-02",
+      "name": "Calibrar un sensor de humedad",
+      "description": "El sistema debera registrar la calibracion de un sensor de humedad del suelo instalado en una parcela, con su fecha y su desviacion medida.",
+      "priority": "Must",
+      "verification": "Calibrar un sensor y comprobar que sus lecturas posteriores incorporan la desviacion registrada.",
+      "actor": "Operario de campo"
+    },
+    {
+      "id": "RF-03",
+      "name": "Programar el riego nocturno",
+      "description": "El sistema debera permitir programar el riego de una parcela en una franja horaria, respetando el umbral de humedad de su cultivo.",
+      "priority": "Must",
+      "verification": "Programar el riego entre las dos y las cinco y comprobar que no se abre la valvula fuera de esa franja.",
+      "actor": "Responsable de la explotacion"
+    },
+    {
+      "id": "RF-04",
+      "name": "Consultar el balance hidrico de la parcela",
+      "description": "El sistema debera mostrar el balance entre el agua aportada por riego, la lluvia registrada y la evapotranspiracion estimada de cada parcela.",
+      "priority": "Must",
+      "verification": "Con riegos y lluvia conocidos, consultar el balance y comprobar que el resultado coincide con la diferencia esperada.",
+      "actor": "Responsable de la explotacion"
+    },
+    {
+      "id": "RNF-01",
+      "name": "Autonomia del sensor de campo",
+      "description": "El sistema debera operar los sensores de humedad del suelo sin sustitucion de bateria durante la campana de cultivo.",
+      "priority": "Must",
+      "verification": "Someter un sensor a muestreo cada quince minutos y comprobar que supera los ciento ochenta dias."
+    },
+    {
+      "id": "RF-10",
+      "name": "Registrar la asistencia del estudiante",
+      "description": "El sistema debera registrar la asistencia de cada estudiante a la clase, con la fecha, la asignatura y el docente que la imparte.",
+      "priority": "Must",
+      "verification": "Marcar la asistencia de un grupo y comprobar que queda registrada con su fecha y su asignatura.",
+      "actor": "Docente"
+    },
+    {
+      "id": "RF-11",
+      "name": "Calificar cuestionarios automaticamente",
+      "description": "El sistema debera calificar los cuestionarios de opcion multiple resueltos por el estudiante y publicar la nota obtenida.",
+      "priority": "Must",
+      "verification": "Resolver un cuestionario de diez preguntas con seis aciertos y comprobar que la calificacion es seis sobre diez.",
+      "actor": "Sistema"
+    },
+    {
+      "id": "RF-12",
+      "name": "Entregar un trabajo antes del plazo",
+      "description": "El estudiante debera entregar sus trabajos antes de la fecha limite que establezca el docente para cada unidad del curso.",
+      "priority": "Must",
+      "verification": "Entregar un trabajo antes del limite y comprobar que consta como entregado en plazo.",
+      "actor": "Estudiante"
+    },
+    {
+      "id": "RF-20",
+      "name": "Registrar la consulta medica",
+      "description": "El sistema debera registrar cada consulta medica con el diagnostico, el tratamiento prescrito y la fecha de la proxima cita del paciente.",
+      "priority": "Must",
+      "verification": "Registrar una consulta y comprobar que aparece en la historia clinica del paciente con su diagnostico.",
+      "actor": "Medico"
+    },
+    {
+      "id": "RF-21",
+      "name": "Emitir receta electronica",
+      "description": "El sistema debera emitir la receta electronica del tratamiento prescrito, con la posologia y la duracion indicadas por el medico.",
+      "priority": "Must",
+      "verification": "Prescribir un tratamiento y comprobar que la receta emitida recoge la posologia completa.",
+      "actor": "Medico"
+    },
+    {
+      "id": "RF-22",
+      "name": "Consultar alergias del paciente",
+      "description": "El sistema debera advertir al medico de las alergias registradas del paciente antes de confirmar una prescripcion.",
+      "priority": "Must",
+      "verification": "Prescribir un farmaco al que el paciente es alergico y comprobar que se muestra la advertencia.",
+      "actor": "Sistema"
+    },
+    {
+      "id": "RF-30",
+      "name": "Registrar la transferencia entre cuentas",
+      "description": "El sistema debera registrar cada transferencia entre cuentas con su importe, su divisa, su ordenante y su beneficiario.",
+      "priority": "Must",
+      "verification": "Ordenar una transferencia y comprobar que el saldo de ambas cuentas varia en el importe indicado.",
+      "actor": "Titular"
+    },
+    {
+      "id": "RF-31",
+      "name": "Bloquear una tarjeta por sospecha de fraude",
+      "description": "El sistema debera bloquear la tarjeta cuando detecte un patron de gasto incompatible con el historial del titular.",
+      "priority": "Must",
+      "verification": "Simular tres cargos en paises distintos en una hora y comprobar que la tarjeta queda bloqueada.",
+      "actor": "Sistema"
+    },
+    {
+      "id": "RF-32",
+      "name": "Consultar el extracto mensual",
+      "description": "El sistema debera mostrar el extracto de movimientos de una cuenta en el mes que indique el titular, con su saldo inicial y final.",
+      "priority": "Must",
+      "verification": "Consultar un mes con cinco movimientos y comprobar que el saldo final cuadra con el inicial mas los movimientos.",
+      "actor": "Titular"
+    },
+    {
+      "id": "RF-40",
+      "name": "Anadir un articulo al carrito",
+      "description": "El sistema debera anadir el articulo elegido al carrito de la compra conservando su cantidad y su precio vigente.",
+      "priority": "Must",
+      "verification": "Anadir dos unidades de un articulo y comprobar que el carrito refleja la cantidad y el importe.",
+      "actor": "Comprador"
+    },
+    {
+      "id": "RF-41",
+      "name": "Aplicar un cupon de descuento",
+      "description": "El sistema debera aplicar el cupon de descuento vigente al importe del pedido antes de calcular los gastos de envio.",
+      "priority": "Must",
+      "verification": "Aplicar un cupon del diez por ciento y comprobar que el descuento se calcula sobre el importe de los articulos.",
+      "actor": "Comprador"
+    },
+    {
+      "id": "RF-42",
+      "name": "Seguir el envio del pedido",
+      "description": "El sistema debera mostrar al comprador el estado del envio de su pedido y la fecha estimada de entrega.",
+      "priority": "Must",
+      "verification": "Consultar un pedido despachado y comprobar que se muestra su transportista y su fecha estimada.",
+      "actor": "Comprador"
+    },
+    {
+      "id": "RF-50",
+      "name": "Planificar la ruta del autobus",
+      "description": "El sistema debera planificar la ruta de cada autobus indicando sus paradas, su orden y el horario previsto de paso.",
+      "priority": "Must",
+      "verification": "Planificar una ruta de ocho paradas y comprobar que los horarios de paso son crecientes.",
+      "actor": "Planificador"
+    },
+    {
+      "id": "RF-51",
+      "name": "Informar del retraso de la linea",
+      "description": "El sistema debera informar al viajero del retraso acumulado de la linea respecto al horario previsto de paso.",
+      "priority": "Must",
+      "verification": "Retrasar un autobus diez minutos y comprobar que el retraso aparece en la parada siguiente.",
+      "actor": "Sistema"
+    },
+    {
+      "id": "RF-52",
+      "name": "Validar el billete del viajero",
+      "description": "El sistema debera validar el billete del viajero al subir al autobus y descontar el viaje de su saldo.",
+      "priority": "Must",
+      "verification": "Validar un billete con saldo suficiente y comprobar que el viaje queda descontado.",
+      "actor": "Viajero"
+    },
+    {
+      "id": "RF-60",
+      "name": "Reservar una mesa del restaurante",
+      "description": "El sistema debera reservar una mesa del restaurante para la fecha, la hora y el numero de comensales que indique el cliente.",
+      "priority": "Must",
+      "verification": "Reservar una mesa para cuatro comensales y comprobar que deja de ofrecerse en esa franja.",
+      "actor": "Cliente"
+    },
+    {
+      "id": "RF-61",
+      "name": "Tomar la comanda desde la mesa",
+      "description": "El camarero debera registrar la comanda de la mesa indicando los platos pedidos y sus modificaciones.",
+      "priority": "Must",
+      "verification": "Tomar una comanda de tres platos y comprobar que llega completa a la cocina.",
+      "actor": "Camarero"
+    },
+    {
+      "id": "RF-62",
+      "name": "Dividir la cuenta entre comensales",
+      "description": "El sistema debera dividir el importe de la cuenta entre los comensales que indique el camarero.",
+      "priority": "Must",
+      "verification": "Dividir una cuenta de sesenta euros entre cuatro comensales y comprobar que cada parte es de quince.",
+      "actor": "Camarero"
+    },
+    {
+      "id": "RF-70",
+      "name": "Registrar la solicitud de vacaciones",
+      "description": "El sistema debera registrar la solicitud de vacaciones del empleado con sus fechas y el saldo de dias que le resta.",
+      "priority": "Must",
+      "verification": "Solicitar cinco dias y comprobar que el saldo disponible del empleado disminuye en cinco.",
+      "actor": "Empleado"
+    },
+    {
+      "id": "RF-71",
+      "name": "Aprobar la solicitud del empleado",
+      "description": "El responsable debera aprobar o denegar la solicitud de vacaciones de los empleados a su cargo, dejando constancia del motivo.",
+      "priority": "Must",
+      "verification": "Denegar una solicitud sin motivo y comprobar que la denegacion se rechaza.",
+      "actor": "Responsable"
+    },
+    {
+      "id": "RF-72",
+      "name": "Consultar la nomina del mes",
+      "description": "El sistema debera mostrar al empleado su nomina del mes con sus retribuciones, sus retenciones y su liquido a percibir.",
+      "priority": "Must",
+      "verification": "Consultar una nomina y comprobar que el liquido coincide con las retribuciones menos las retenciones.",
+      "actor": "Empleado"
+    },
+    {
+      "id": "RF-80",
+      "name": "Prestar un ejemplar al socio",
+      "description": "El sistema debera registrar el prestamo de un ejemplar al socio con su fecha de devolucion prevista.",
+      "priority": "Must",
+      "verification": "Prestar un ejemplar y comprobar que deja de estar disponible y consta su fecha de devolucion.",
+      "actor": "Bibliotecario"
+    },
+    {
+      "id": "RF-81",
+      "name": "Reservar un titulo prestado",
+      "description": "El sistema debera permitir al socio reservar un titulo cuyos ejemplares esten todos prestados, avisandole al quedar libre uno.",
+      "priority": "Must",
+      "verification": "Reservar un titulo sin ejemplares libres y comprobar que el socio recibe el aviso al devolverse uno.",
+      "actor": "Socio"
+    },
+    {
+      "id": "RF-82",
+      "name": "Calcular la sancion por demora",
+      "description": "El sistema debera calcular la sancion del socio que devuelva un ejemplar despues de su fecha prevista.",
+      "priority": "Must",
+      "verification": "Devolver un ejemplar con tres dias de demora y comprobar que la sancion corresponde a esos tres dias.",
+      "actor": "Sistema"
+    },
+    {
+      "id": "RF-90",
+      "name": "Abrir la orden de reparacion",
+      "description": "El sistema debera abrir una orden de reparacion del vehiculo con su matricula, su kilometraje y la averia declarada por el cliente.",
+      "priority": "Must",
+      "verification": "Abrir una orden y comprobar que recoge la matricula y el kilometraje del vehiculo.",
+      "actor": "Recepcionista"
+    },
+    {
+      "id": "RF-91",
+      "name": "Presupuestar la reparacion",
+      "description": "El sistema debera calcular el presupuesto de la reparacion sumando las piezas necesarias y las horas de mano de obra estimadas.",
+      "priority": "Must",
+      "verification": "Presupuestar una reparacion de dos piezas y tres horas y comprobar que el total suma ambas partidas.",
+      "actor": "Mecanico"
+    },
+    {
+      "id": "RF-92",
+      "name": "Avisar de la revision periodica",
+      "description": "El sistema debera avisar al cliente cuando su vehiculo alcance el kilometraje de la proxima revision periodica.",
+      "priority": "Must",
+      "verification": "Registrar un kilometraje que supere el previsto y comprobar que se emite el aviso al cliente.",
+      "actor": "Sistema"
+    },
+    {
+      "id": "RF-T1",
+      "name": "Iniciar sesion con verificacion en dos pasos",
+      "description": "El sistema debera exigir un segundo factor de verificacion al iniciar sesion cuando el usuario acceda desde un dispositivo no reconocido.",
+      "priority": "Must",
+      "verification": "Iniciar sesion desde un dispositivo nuevo y comprobar que se solicita el segundo factor.",
+      "actor": "Usuario"
+    },
+    {
+      "id": "RF-T2",
+      "name": "Registrar la traza de auditoria",
+      "description": "El sistema debera registrar en una traza de auditoria toda operacion que modifique datos, con su autor, su fecha y la operacion realizada.",
+      "priority": "Must",
+      "verification": "Modificar un dato y comprobar que la traza recoge el autor, la fecha y la operacion.",
+      "actor": "Sistema"
+    },
+    {
+      "id": "RF-T3",
+      "name": "Realizar copia de seguridad diaria",
+      "description": "El sistema debera realizar una copia de seguridad completa de sus datos cada dia y conservar las copias durante treinta dias.",
+      "priority": "Must",
+      "verification": "Comprobar que existen las copias de los ultimos treinta dias y restaurar una de ellas correctamente.",
+      "actor": "Sistema"
+    },
+    {
+      "id": "RNF-T4",
+      "name": "Disponibilidad del servicio",
+      "description": "El sistema debera mantenerse disponible durante el horario de operacion establecido.",
+      "priority": "Must",
+      "verification": "Medir la disponibilidad durante un mes y comprobar que supera el noventa y nueve coma cinco por ciento."
+    },
+    {
+      "id": "RNF-T5",
+      "name": "Accesibilidad de la interfaz",
+      "description": "El sistema debera permitir el manejo completo de sus pantallas mediante teclado y lector de pantalla.",
+      "priority": "Must",
+      "verification": "Recorrer una pantalla completa solo con teclado y comprobar que toda accion es alcanzable."
+    },
+    {
+      "id": "RF-T6",
+      "name": "Exportar los datos del usuario",
+      "description": "El sistema debera exportar los datos personales del usuario que lo solicite en un formato legible por maquina.",
+      "priority": "Must",
+      "verification": "Solicitar la exportacion y comprobar que el archivo entregado contiene los datos del usuario.",
+      "actor": "Usuario"
+    },
+    {
+      "id": "RF-D1",
+      "name": "Alta de parcela",
+      "description": "La plataforma registrara cada parcela de cultivo indicando su identificador, la superficie en hectareas, la clase de suelo, el cultivo sembrado y las coordenadas de sus vertices.",
+      "priority": "Must",
+      "verification": "Dar de alta una parcela valida y verificar que figura en el listado con su superficie y su cultivo.",
+      "actor": "Responsable de la explotacion"
+    },
+    {
+      "id": "RF-D2",
+      "name": "Incorporacion de sensores",
+      "description": "La plataforma dara de alta un sensor vinculandolo a una parcela, con su tipo de medida, su periodo de muestreo y su ubicacion dentro de la parcela.",
+      "priority": "Must",
+      "verification": "Incorporar un sensor y verificar que queda vinculado a su parcela con su periodo de muestreo.",
+      "actor": "Responsable de la explotacion"
+    },
+    {
+      "id": "RF-D3",
+      "name": "Almacenamiento de mediciones",
+      "description": "La plataforma guardara toda medicion que llegue de un sensor, junto con el identificador del sensor, el tipo de medida, el valor, la unidad y la marca de tiempo.",
+      "priority": "Must",
+      "verification": "Enviar una medicion y verificar que se guarda con todos sus datos.",
+      "actor": "Sensor de campo"
+    },
+    {
+      "id": "RF-D4",
+      "name": "Apertura del riego por sequedad",
+      "description": "Cuando la humedad promedio de una parcela quede por debajo del umbral fijado para su cultivo, la plataforma abrira la valvula de riego de esa parcela.",
+      "priority": "Must",
+      "verification": "Con umbral del treinta por ciento, enviar mediciones que promedien veinticinco y verificar que se ordena la apertura.",
+      "actor": "Sistema"
+    },
+    {
+      "id": "RF-D5",
+      "name": "Salida del historico de riegos",
+      "description": "La plataforma exportara el historico de riegos de una explotacion en un archivo de valores separados por comas.",
+      "priority": "Must",
+      "verification": "Exportar el historico y verificar que el archivo trae una fila por riego.",
+      "actor": "Responsable de la explotacion"
+    }
+  ]
+}

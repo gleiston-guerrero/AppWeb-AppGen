@@ -110,9 +110,9 @@ public class Requirement {
 		r.sourceId = (sourceId == null || sourceId.isBlank()) ? null : sourceId.trim();
 		r.sourceLine = sourceLine;
 		r.kind = kind;
-		r.name = limpiar(name);
+		r.name = TextNormalizer.nombre(name);
 		r.statement = statement == null ? "" : statement.trim();
-		r.verification = limpiar(verification);
+		r.verification = TextNormalizer.enunciado(verification);
 		r.status = RequirementStatus.DRAFT;
 		r.version = 1;
 		r.statementOrigin = TextOrigin.HUMAN;
@@ -130,28 +130,37 @@ public class Requirement {
 	 * a revision, porque lo que se aprobo fue un texto concreto. La base de datos
 	 * impone la misma regla, para que ninguna via la sortee.</p>
 	 */
-	public void editar(String name, String statement, String verification,
+	public void editar(RequirementKind kind, String name, String statement, String verification,
 			TextOrigin origenEnunciado, TextOrigin origenCriterio, Instant momento) {
 
-		if (!status.admiteEdicion()) {
+		if (status == RequirementStatus.SUPERSEDED || status == RequirementStatus.ANNULLED) {
 			throw new IllegalStateException(
-					"Un requisito en estado " + status + " no admite edicion directa. "
-							+ "Devuelvalo a revision o formule una peticion de cambio");
+					"Un requisito " + (status == RequirementStatus.SUPERSEDED ? "sustituido" : "anulado")
+							+ " no se modifica. Formule una peticion de cambio o de alta a uno nuevo");
 		}
 
-		// Editar el texto invalida la revision anterior: lo revisado fue otro texto.
+		// Modificar devuelve el requisito a su estado inicial: lo revisado o
+		// aprobado era otro texto, y darlo por vigente sobre el nuevo seria
+		// atribuir a quien decidio algo que no leyo.
+		this.status = RequirementStatus.DRAFT;
 		this.reviewedBy = null;
 
+		// La clase puede cambiar al modificar. Su identificador de origen lo ajusta
+		// el servicio, que es quien conoce los que ya estan tomados en el proyecto.
+		if (kind != null) {
+			this.kind = kind;
+		}
+
 		if (statement != null && !statement.isBlank()) {
-			this.statement = statement.trim();
+			this.statement = TextNormalizer.enunciado(statement);
 			this.statementOrigin = origenEnunciado;
 		}
 		if (verification != null) {
-			this.verification = limpiar(verification);
+			this.verification = TextNormalizer.enunciado(verification);
 			this.verificationOrigin = origenCriterio;
 		}
 		if (name != null) {
-			this.name = limpiar(name);
+			this.name = TextNormalizer.nombre(name);
 		}
 		this.version++;
 		this.updatedAt = momento;
@@ -164,6 +173,34 @@ public class Requirement {
 
 	public UUID getReviewedBy() {
 		return reviewedBy;
+	}
+
+	/**
+	 * Sustituye el identificador de origen.
+	 *
+	 * <p>Se emplea al cambiar de clase un requisito: el prefijo de ese
+	 * identificador dice si es funcional o no, y conservar el antiguo dejaria un
+	 * RF-03 que ya no es funcional. Quien lea la lista creeria lo que dice la
+	 * etiqueta, no lo que dice el requisito.</p>
+	 */
+	/**
+	 * Lleva el identificador legible a la version siguiente.
+	 *
+	 * <p>De REQ-0007-v1 a REQ-0007-v2. Se llama antes de modificar, porque el
+	 * numero de version que va en el identificador ha de ser el que tendra el
+	 * requisito una vez modificado.</p>
+	 */
+	public void renumerarVersion() {
+		java.util.regex.Matcher m = java.util.regex.Pattern
+				.compile("^(.*)-v(\\d+)$").matcher(readableId);
+
+		if (m.matches()) {
+			this.readableId = m.group(1) + "-v" + (Integer.parseInt(m.group(2)) + 1);
+		}
+	}
+
+	public void renombrarOrigen(String sourceId) {
+		this.sourceId = sourceId;
 	}
 
 	public void transitarA(RequirementStatus destino, Instant momento) {

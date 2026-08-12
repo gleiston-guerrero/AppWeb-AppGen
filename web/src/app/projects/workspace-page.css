@@ -428,3 +428,16 @@ select:focus {
   padding: 0.2rem 0.6rem;
   border-radius: 2px;
 }
+
+/* Acciones sobre un miembro del equipo. */
+.miembro__cambio {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 0.4rem;
+}
+
+.miembro__aviso { font-size: var(--step--1); color: #a3261f; }
+
+.acciones-miembro { display: flex; gap: 0.35rem; flex-wrap: wrap; align-items: center; }

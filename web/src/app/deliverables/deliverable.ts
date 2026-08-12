@@ -1,6 +1,16 @@
-/** Requisito enlazado a un entregable. */
+/**
+ * Requisito enlazado a un entregable.
+ *
+ * Trae los dos identificadores: el del documento de origen —RF-01, RNF-02—, que
+ * es el que la gente del proyecto reconoce, y el de la plataforma, que no cambia
+ * aunque el documento se renumere.
+ */
 export interface LinkedRequirement {
   readableId: string;
+  sourceId: string | null;
+  kind: string;
+  kindLabel: string;
+  name: string | null;
   statement: string;
   /** Calculado: todos sus entregables aceptados (RQM-14). */
   closed: boolean;
@@ -25,6 +35,9 @@ export interface Deliverable {
 /** Requisito aprobado que puede enlazarse. */
 export interface LinkableRequirement {
   readableId: string;
+  sourceId: string | null;
+  kind: string;
+  kindLabel: string;
   name: string | null;
   statement: string;
   alreadyLinked: boolean;

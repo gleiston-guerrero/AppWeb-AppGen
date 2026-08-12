@@ -11,6 +11,7 @@ import org.slcp.service.requirements.RequirementContracts.RequirementView;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -84,6 +85,13 @@ public class RequirementController {
 			@RequestParam(defaultValue = "false") boolean fromSuggestion,
 			@Valid @RequestBody RequirementRequest peticion, @AuthenticationPrincipal Jwt jwt) {
 		return service.editar(projectId, readableId, peticion, fromSuggestion, quien(jwt));
+	}
+
+	@DeleteMapping("/{readableId}")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void eliminar(@PathVariable String projectId, @PathVariable String readableId,
+			@AuthenticationPrincipal Jwt jwt) {
+		service.eliminar(projectId, readableId, quien(jwt));
 	}
 
 	@PutMapping("/{readableId}/status")

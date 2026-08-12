@@ -57,13 +57,16 @@ public class InvitationService {
 	private final LoginIdentifierRepository identifiers;
 	private final EventRecordRepository events;
 	private final PasswordEncoder passwordEncoder;
+	private final org.slcp.service.projects.ProjectService gestionDeProyectos;
 	private final InvitationMailer mailer;
 	private final Clock clock;
 
 	public InvitationService(InvitationRepository invitations, ProjectRepository projects,
 			ProjectMembershipRepository memberships, UserRepository users,
 			LoginIdentifierRepository identifiers, EventRecordRepository events,
-			PasswordEncoder passwordEncoder, InvitationMailer mailer, Clock clock) {
+			PasswordEncoder passwordEncoder,
+			org.slcp.service.projects.ProjectService gestionDeProyectos,
+			InvitationMailer mailer, Clock clock) {
 		this.invitations = invitations;
 		this.projects = projects;
 		this.memberships = memberships;
@@ -71,6 +74,7 @@ public class InvitationService {
 		this.identifiers = identifiers;
 		this.events = events;
 		this.passwordEncoder = passwordEncoder;
+		this.gestionDeProyectos = gestionDeProyectos;
 		this.mailer = mailer;
 		this.clock = clock;
 	}
@@ -204,8 +208,8 @@ public class InvitationService {
 		persona.aprobar();
 		users.save(persona);
 
-		memberships.save(ProjectMembership.activa(proyecto.getId(), persona.getId(),
-				invitacion.getProjectRole(), momento));
+		gestionDeProyectos.incorporarCon(proyecto.getId(), persona.getId(),
+				invitacion.getProjectRole(), momento);
 
 		invitacion.consumir(momento);
 
@@ -253,8 +257,8 @@ public class InvitationService {
 
 		comprobarSegregacion(proyecto.getId(), persona, invitacion.getProjectRole());
 
-		memberships.save(ProjectMembership.activa(proyecto.getId(), persona.getId(),
-				invitacion.getProjectRole(), momento));
+		gestionDeProyectos.incorporarCon(proyecto.getId(), persona.getId(),
+				invitacion.getProjectRole(), momento);
 		invitacion.consumir(momento);
 
 		registrar("INVITATION_ACCEPTED", proyecto.getId(), persona.getId(),
@@ -357,8 +361,9 @@ public class InvitationService {
 				.filter(m -> m.getProjectRole().incompatibleCon(rol))
 				.findFirst()
 				.ifPresent(m -> {
-					throw new InvitationException("ROL-06: quien produce no puede aprobar en el mismo "
-							+ "proyecto. " + persona.getUsername() + " ya es " + m.getProjectRole().getEtiqueta());
+					throw new InvitationException(m.getProjectRole().motivoDeIncompatibilidad(rol)
+							+ ". " + persona.getUsername() + " ya es "
+							+ m.getProjectRole().getEtiqueta() + " en este proyecto");
 				});
 	}
 

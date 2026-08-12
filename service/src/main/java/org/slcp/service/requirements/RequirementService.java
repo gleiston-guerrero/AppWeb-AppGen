@@ -153,27 +153,65 @@ public class RequirementService {
 	/**
 	 * Cambia el estado.
 	 *
-	 * <p>La aprobacion corresponde al propietario del producto (RQM-05); las
-	 * demas transiciones, a quien produce.</p>
+	 * <p>La aprobacion de un requisito ocurre en dos etapas y las hacen roles
+	 * distintos: el facilitador revisa y el propietario del producto aprueba
+	 * (RQM-05). Concentrar ambas en una persona dejaria la aprobacion sin
+	 * contraste, que es justamente lo que la doble etapa evita.</p>
 	 */
 	@Transactional
 	public RequirementView transitar(String projectReadableId, String readableId,
 			String destino, UUID autor) {
 
 		RequirementStatus estado = RequirementStatus.valueOf(destino);
-		ProjectRole exigido = estado == RequirementStatus.APPROVED
-				? ProjectRole.PRODUCT_OWNER
-				: ProjectRole.TEAM_MEMBER;
+		ProjectRole exigido = rolQueDecide(estado);
 
 		Project proyecto = exigirRol(projectReadableId, autor, exigido);
 		Requirement requisito = buscar(proyecto.getId(), readableId);
 		Instant momento = Instant.now(clock);
+
+		// RQM-05: quien reviso no puede ser quien aprueba. Se comprueba sobre la
+		// misma persona y el mismo requisito, no sobre el rol: en un equipo pequeno
+		// una persona puede tener ambos roles, y precisamente por eso hace falta
+		// impedir que recorra sola las dos etapas.
+		if (estado == RequirementStatus.APPROVED
+				&& autor.equals(requisito.getReviewedBy())) {
+			throw new RequirementException(
+					"Usted reviso este requisito, de modo que no puede aprobarlo. La revision y la "
+							+ "aprobacion son dos etapas y las hacen dos personas distintas");
+		}
+
+		if (estado == RequirementStatus.REVIEWED) {
+			requisito.registrarRevision(autor);
+		}
 
 		requisito.transitarA(estado, momento);
 		registrar("REQUIREMENT_" + estado.name(), proyecto.getId(), autor,
 				requisito.getReadableId(), momento);
 
 		return vista(requisito, cargarLinter());
+	}
+
+	/**
+	 * Elimina un requisito.
+	 *
+	 * <p>Solo mientras nada se haya decidido sobre el. Uno revisado o aprobado se
+	 * anula, no se borra: la anulacion lo retira de lo exigible y conserva su
+	 * historia, y borrarlo destruiria la constancia de quien decidio que.</p>
+	 */
+	@Transactional
+	public void eliminar(String projectReadableId, String readableId, UUID autor) {
+		Project proyecto = exigirRol(projectReadableId, autor, ProjectRole.TEAM_MEMBER);
+		Requirement requisito = buscar(proyecto.getId(), readableId);
+		Instant momento = Instant.now(clock);
+
+		if (!requisito.puedeEliminarse()) {
+			throw new RequirementException(
+					"Este requisito fue revisado o aprobado y no puede eliminarse. Anulelo si deja "
+							+ "de exigirse: la anulacion lo retira conservando su historia");
+		}
+
+		registrar("REQUIREMENT_DELETED", proyecto.getId(), autor, requisito.getReadableId(), momento);
+		requirements.delete(requisito);
 	}
 
 	// =================================================================
@@ -290,8 +328,9 @@ public class RequirementService {
 		return new RequirementView(r.getReadableId(), r.getSourceId(), r.getSourceLine(),
 				r.getKind().name(), r.getKind().getEtiqueta(), r.getName(), r.getStatement(),
 				r.getVerification(), r.getStatus().name(), r.getVersion(),
+				r.getReviewedBy() == null ? null : r.getReviewedBy().toString(),
 				r.getStatementOrigin().name(), r.getVerificationOrigin().name(),
-				conforme, hallazgos, redacciones, propuestas, r.getUpdatedAt());
+				conforme, r.puedeEliminarse(), hallazgos, redacciones, propuestas, r.getUpdatedAt());
 	}
 
 	private RequirementLinter cargarLinter() {
@@ -328,6 +367,20 @@ public class RequirementService {
 			}
 		}
 		return RequirementKind.conjeturar(sourceId);
+	}
+
+	/**
+	 * Rol que puede llevar un requisito al estado indicado.
+	 *
+	 * <p>Revisar corresponde al facilitador, aprobar al propietario, y devolver a
+	 * borrador o rechazar a quien produce, que es quien ha de corregirlo.</p>
+	 */
+	private ProjectRole rolQueDecide(RequirementStatus estado) {
+		return switch (estado) {
+			case REVIEWED -> ProjectRole.PROJECT_FACILITATOR;
+			case APPROVED -> ProjectRole.PRODUCT_OWNER;
+			default -> ProjectRole.TEAM_MEMBER;
+		};
 	}
 
 	private Requirement buscar(UUID projectId, String readableId) {

@@ -1,7 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 
 import { SessionService } from '../auth/session-service';
 import { ApiError } from '../registration/registration';
@@ -16,7 +16,7 @@ import { AdministrationService } from './administration-service';
  */
 @Component({
   selector: 'slcp-administration-page',
-  imports: [FormsModule],
+  imports: [FormsModule, RouterLink],
   templateUrl: './administration-page.html',
   styleUrl: './administration-page.css',
 })

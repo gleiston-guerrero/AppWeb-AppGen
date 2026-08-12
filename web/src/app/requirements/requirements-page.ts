@@ -47,6 +47,10 @@ export class RequirementsPage implements OnInit {
   /** Roles propios en este proyecto, para saber qué ofrecer. */
   protected readonly esEquipo = signal(false);
   protected readonly esPropietario = signal(false);
+  protected readonly esFacilitador = signal(false);
+
+  /** Identificador de quien está usando la aplicación, para la doble etapa. */
+  protected readonly yo = computed(() => this.sesion.sesion()?.userId ?? '');
 
   /** Filtro de la lista. */
   protected filtro: 'TODOS' | 'CON_HALLAZGOS' | 'SIN_CRITERIO' | 'APROBADOS' = 'TODOS';
@@ -149,10 +153,12 @@ export class RequirementsPage implements OnInit {
         const p = lista.find((x) => x.readableId === this.projectId);
         this.esEquipo.set(p?.myRoles.includes('TEAM_MEMBER') ?? false);
         this.esPropietario.set(p?.myRoles.includes('PRODUCT_OWNER') ?? false);
+        this.esFacilitador.set(p?.myRoles.includes('PROJECT_FACILITATOR') ?? false);
       },
       error: () => {
         this.esEquipo.set(false);
         this.esPropietario.set(false);
+        this.esFacilitador.set(false);
       },
     });
   }
@@ -373,6 +379,35 @@ export class RequirementsPage implements OnInit {
       },
       error: (fallo: HttpErrorResponse) => {
         this.guardando.set(null);
+        this.error.set(this.explicar(fallo));
+      },
+    });
+  }
+
+  /** Requisito cuya eliminación se está confirmando. */
+  protected readonly confirmando = signal<string | null>(null);
+
+  protected pedirConfirmacion(r: Requirement): void {
+    this.confirmando.set(r.readableId);
+    this.error.set(null);
+  }
+
+  protected cancelarEliminacion(): void {
+    this.confirmando.set(null);
+  }
+
+  protected eliminar(r: Requirement): void {
+    this.service.eliminar(this.projectId, r.readableId).subscribe({
+      next: () => {
+        this.confirmando.set(null);
+        this.aviso.set(`Requisito ${r.readableId} eliminado.`);
+        if (this.editando()?.readableId === r.readableId) {
+          this.cancelarCorreccion();
+        }
+        this.cargar();
+      },
+      error: (fallo: HttpErrorResponse) => {
+        this.confirmando.set(null);
         this.error.set(this.explicar(fallo));
       },
     });

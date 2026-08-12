@@ -94,3 +94,19 @@
   padding: 0.25rem 0.7rem;
   border-radius: 2px;
 }
+
+/* El nombre de quien está dentro lleva al cambio de contraseña. */
+.nav__quien {
+  text-decoration: none;
+}
+
+.nav__quien:hover {
+  color: var(--ink);
+}
+
+/* Cuando la cuenta usa aún su contraseña inicial, el aviso está a la vista. */
+.nav__quien--aviso {
+  background: #fdf8ef;
+  color: #b07d2b;
+  border: 1px solid #e8d3ab;
+}

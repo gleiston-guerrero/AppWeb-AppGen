@@ -69,6 +69,20 @@ public class Requirement {
 	@Column(name = "verification_origin", nullable = false, length = 20)
 	private TextOrigin verificationOrigin;
 
+	/**
+	 * Quien realizo la revision previa.
+	 *
+	 * <p>Se guarda para poder impedir que la misma persona apruebe lo que reviso.
+	 * Sin este dato, la doble etapa de RQM-05 se cumpliria de nombre y no de
+	 * hecho en cuanto alguien tuviera los dos roles.</p>
+	 */
+	@Column(name = "reviewed_by")
+	private UUID reviewedBy;
+
+	/** Marca de que el requisito llego alguna vez a revisarse o aprobarse. */
+	@Column(name = "ever_decided", nullable = false)
+	private boolean everDecided;
+
 	@Column(name = "created_by", nullable = false, updatable = false)
 	private UUID createdBy;
 
@@ -125,6 +139,9 @@ public class Requirement {
 							+ "Devuelvalo a revision o formule una peticion de cambio");
 		}
 
+		// Editar el texto invalida la revision anterior: lo revisado fue otro texto.
+		this.reviewedBy = null;
+
 		if (statement != null && !statement.isBlank()) {
 			this.statement = statement.trim();
 			this.statementOrigin = origenEnunciado;
@@ -140,12 +157,39 @@ public class Requirement {
 		this.updatedAt = momento;
 	}
 
+	/** Deja constancia de quien realiza la revision previa. */
+	public void registrarRevision(UUID revisor) {
+		this.reviewedBy = revisor;
+	}
+
+	public UUID getReviewedBy() {
+		return reviewedBy;
+	}
+
 	public void transitarA(RequirementStatus destino, Instant momento) {
 		if (!status.puedeTransitarA(destino)) {
 			throw new IllegalStateException("Transicion no admitida de " + status + " a " + destino);
 		}
 		this.status = destino;
+		if (destino == RequirementStatus.REVIEWED || destino == RequirementStatus.APPROVED) {
+			this.everDecided = true;
+		}
 		this.updatedAt = momento;
+	}
+
+	/**
+	 * Indica si el requisito puede eliminarse.
+	 *
+	 * <p>Solo mientras nada se haya decidido sobre el. Eliminar uno revisado o
+	 * aprobado borraria la constancia de esa decision; para eso esta la anulacion,
+	 * que lo retira conservando su historia (ADM-01).</p>
+	 */
+	public boolean puedeEliminarse() {
+		return !everDecided;
+	}
+
+	public boolean isEverDecided() {
+		return everDecided;
 	}
 
 	public boolean tieneCriterio() {

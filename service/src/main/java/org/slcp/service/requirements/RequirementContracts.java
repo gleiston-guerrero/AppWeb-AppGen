@@ -61,9 +61,13 @@ public final class RequirementContracts {
 			String verification,
 			String status,
 			int version,
+			/** Quien realizo la revision previa, para impedir que apruebe lo que reviso. */
+			String reviewedBy,
 			String statementOrigin,
 			String verificationOrigin,
 			boolean conforming,
+			/** Si nada se ha decidido sobre el y por tanto puede eliminarse. */
+			boolean deletable,
 			List<FindingView> findings,
 			/** Propuestas de redaccion del enunciado (ANA-14). */
 			List<SuggestionView> statementSuggestions,

@@ -49,6 +49,14 @@ export class WorkspacePage implements OnInit {
   protected nombre = '';
   protected proposito = '';
 
+  /** Proyecto en edición, y sus datos mientras se corrigen. */
+  protected readonly editando = signal<string | null>(null);
+  protected edicionNombre = '';
+  protected edicionProposito = '';
+
+  /** Proyecto cuya eliminación se está confirmando. */
+  protected readonly confirmando = signal<string | null>(null);
+
   /** Proyecto cuyo equipo se está consultando. */
   protected readonly abierto = signal<string | null>(null);
   protected readonly equipo = signal<Member[]>([]);
@@ -160,6 +168,70 @@ export class WorkspacePage implements OnInit {
       },
       error: (fallo: HttpErrorResponse) => {
         this.creando.set(false);
+        this.error.set(this.explicar(fallo));
+      },
+    });
+  }
+
+  protected editarProyecto(p: Project): void {
+    this.editando.set(p.readableId);
+    this.edicionNombre = p.name;
+    this.edicionProposito = p.purpose ?? '';
+    this.error.set(null);
+  }
+
+  protected cancelarEdicion(): void {
+    this.editando.set(null);
+  }
+
+  protected guardarProyecto(p: Project): void {
+    if (this.edicionNombre.trim().length === 0) {
+      this.error.set('El nombre del proyecto es obligatorio.');
+      return;
+    }
+    this.service.editar(p.readableId, this.edicionNombre.trim(), this.edicionProposito.trim())
+      .subscribe({
+        next: () => {
+          this.editando.set(null);
+          this.aviso.set(`Proyecto ${p.readableId} actualizado.`);
+          this.cargar();
+        },
+        error: (fallo: HttpErrorResponse) => this.error.set(this.explicar(fallo)),
+      });
+  }
+
+  /** Retira el proyecto del servicio, o lo devuelve. El contenido permanece. */
+  protected alternarServicio(p: Project): void {
+    const activo = p.status !== 'ACTIVE';
+    this.service.cambiarEstado(p.readableId, activo).subscribe({
+      next: () => {
+        this.aviso.set(activo
+          ? `Proyecto ${p.readableId} devuelto al servicio.`
+          : `Proyecto ${p.readableId} retirado del servicio. Su contenido permanece.`);
+        this.cargar();
+      },
+      error: (fallo: HttpErrorResponse) => this.error.set(this.explicar(fallo)),
+    });
+  }
+
+  protected pedirConfirmacion(p: Project): void {
+    this.confirmando.set(p.readableId);
+    this.error.set(null);
+  }
+
+  protected cancelarEliminacion(): void {
+    this.confirmando.set(null);
+  }
+
+  protected eliminarProyecto(p: Project): void {
+    this.service.eliminar(p.readableId).subscribe({
+      next: () => {
+        this.confirmando.set(null);
+        this.aviso.set(`Proyecto ${p.readableId} eliminado.`);
+        this.cargar();
+      },
+      error: (fallo: HttpErrorResponse) => {
+        this.confirmando.set(null);
         this.error.set(this.explicar(fallo));
       },
     });

@@ -20,6 +20,23 @@ export class ProjectService {
     return this.http.post<Project>(ProjectService.URL, { name, purpose });
   }
 
+  editar(readableId: string, name: string, purpose: string): Observable<Project> {
+    return this.http.put<Project>(`${ProjectService.URL}/${readableId}`, { name, purpose });
+  }
+
+  /** Retira el proyecto del servicio o lo devuelve a él. El contenido permanece. */
+  cambiarEstado(readableId: string, active: boolean): Observable<Project> {
+    return this.http.put<Project>(
+      `${ProjectService.URL}/${readableId}/status?active=${active}`,
+      {},
+    );
+  }
+
+  /** Elimina el proyecto. Solo mientras esté vacío. */
+  eliminar(readableId: string): Observable<void> {
+    return this.http.delete<void>(`${ProjectService.URL}/${readableId}`);
+  }
+
   equipo(readableId: string): Observable<Member[]> {
     return this.http.get<Member[]>(`${ProjectService.URL}/${readableId}/team`);
   }

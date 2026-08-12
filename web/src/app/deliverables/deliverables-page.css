@@ -316,4 +316,62 @@ input:focus, select:focus, textarea:focus { background: var(--surface); border-c
   cursor: help;
 }
 
+/* --------------------------- Entregables --------------------------- */
 .cabecera__enlaces { display: flex; gap: 1rem; font-size: var(--step--1); }
+
+.eyebrow--sep { margin-top: var(--gap-s); display: block; }
+
+.panel--editando { border-left: 3px solid var(--blue); background: var(--paper); }
+
+.panel__acciones { display: flex; gap: 0.5rem; margin-top: var(--gap-s); flex-wrap: wrap; }
+
+.requisitos {
+  display: flex; flex-direction: column; gap: 1px;
+  margin-top: 0.5rem; background: var(--rule); border: 1px solid var(--rule);
+  max-height: 16rem; overflow-y: auto;
+}
+
+.requisito {
+  display: flex; align-items: baseline; gap: 0.6rem;
+  background: var(--surface); padding: 0.5rem 0.8rem;
+  font-size: var(--step--1); cursor: pointer;
+}
+
+.requisito:hover { background: var(--paper); }
+.requisito--elegido { background: var(--blue-soft); }
+
+.requisito__marca {
+  width: 1rem; color: var(--blue); font-weight: 600;
+}
+
+.requisito__texto { color: var(--ink-soft); flex: 1; }
+
+.entregable { background: var(--surface); }
+
+.entregable__fila { padding: 0.9rem 1.25rem; cursor: pointer; }
+.entregable__fila:hover { background: var(--paper); }
+
+.entregable__ids { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+.entregable__nombre { font-size: var(--step-1); margin-top: 0.3rem; }
+.entregable__acepto { font-size: var(--step--1); color: var(--verified); margin-top: 0.2rem; }
+
+.cuenta { font-size: 0.7rem; color: var(--ink-faint); }
+
+.estado--PLANNED { background: var(--blue-soft); color: var(--blue); }
+.estado--IN_PROGRESS { background: #fdf8ef; color: #b07d2b; }
+.estado--DELIVERED { background: #eef3f8; color: #2c5d8f; }
+.estado--ACCEPTED { background: var(--verified-bg); color: var(--verified); }
+.estado--REJECTED { background: #fdf2f1; color: #a3261f; }
+
+.enlazados { display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.5rem; }
+.enlazados li { font-size: var(--step--1); display: flex; gap: 0.5rem; align-items: baseline; flex-wrap: wrap; }
+.enlazados__texto { color: var(--ink-soft); flex: 1 1 24rem; }
+
+.cerrado {
+  font-family: var(--mono); font-size: 0.65rem;
+  background: var(--verified-bg); color: var(--verified);
+  padding: 0.12rem 0.5rem; border-radius: 2px;
+}
+
+.detalle__texto { font-size: var(--step--1); color: var(--ink-soft); max-width: 74ch; }
+.detalle__nota { font-size: var(--step--1); color: var(--ink-faint); margin-top: 0.6rem; max-width: 70ch; }

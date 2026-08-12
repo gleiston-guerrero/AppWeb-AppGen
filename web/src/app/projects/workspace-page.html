@@ -18,7 +18,8 @@
 
   @if (usuario()?.mustChangePassword) {
     <p class="urgente">
-      Esta cuenta usa aún la contraseña inicial. Cámbiela antes de seguir usándola.
+      Esta cuenta usa aún su contraseña inicial.
+      <a routerLink="/cuenta/contrasena">Cámbiela antes de seguir usándola</a>.
     </p>
   }
 
@@ -110,6 +111,40 @@
     <ul class="lista">
       @for (p of proyectos(); track p.readableId) {
         <li class="proyecto">
+          @if (editando() === p.readableId) {
+            <div class="proyecto__edicion">
+              <h3 class="eyebrow">Modificar {{ p.readableId }}</h3>
+              <input type="text" [(ngModel)]="edicionNombre" [name]="'nom-' + p.readableId"
+                placeholder="Nombre del proyecto" aria-label="Nombre" />
+              <input type="text" [(ngModel)]="edicionProposito" [name]="'pro-' + p.readableId"
+                placeholder="Qué debe resolver" aria-label="Propósito" />
+              <div class="proyecto__acciones">
+                <button type="button" class="btn btn--principal" (click)="guardarProyecto(p)">
+                  Actualizar proyecto
+                </button>
+                <button type="button" class="btn btn--plano" (click)="cancelarEdicion()">
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          } @else if (confirmando() === p.readableId) {
+            <div class="proyecto__edicion">
+              <p class="confirmacion">
+                ¿Eliminar <strong>{{ p.name }}</strong>? Se borra por completo y no puede
+                deshacerse. Si el proyecto tiene requisitos, la plataforma lo impedirá: en ese caso
+                retírelo del servicio, que conserva su contenido.
+              </p>
+              <div class="proyecto__acciones">
+                <button type="button" class="btn btn--eliminar" (click)="eliminarProyecto(p)">
+                  Sí, eliminar
+                </button>
+                <button type="button" class="btn btn--plano" (click)="cancelarEliminacion()">
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          }
+
           <div class="proyecto__fila">
             <div class="proyecto__datos">
               <p class="proyecto__id">{{ p.readableId }}</p>
@@ -126,12 +161,30 @@
 
             <div class="proyecto__acciones">
               <span class="equipo__tamano">{{ p.teamSize }} en el equipo</span>
+              @if (p.status !== 'ACTIVE') {
+                <span class="retirado">Retirado del servicio</span>
+              }
               <a class="btn btn--plano" [routerLink]="['/proyecto', p.readableId, 'requisitos']">
                 Requisitos
+              </a>
+              <a class="btn btn--plano" [routerLink]="['/proyecto', p.readableId, 'entregables']">
+                Entregables
               </a>
               <button type="button" class="btn btn--plano" (click)="alternarEquipo(p)">
                 {{ abierto() === p.readableId ? 'Ocultar equipo' : 'Ver equipo' }}
               </button>
+
+              @if (esFacilitadorDe(p)) {
+                <button type="button" class="btn btn--plano" (click)="editarProyecto(p)">
+                  Modificar
+                </button>
+                <button type="button" class="btn btn--plano" (click)="alternarServicio(p)">
+                  {{ p.status === 'ACTIVE' ? 'Retirar del servicio' : 'Devolver al servicio' }}
+                </button>
+                <button type="button" class="btn btn--plano" (click)="pedirConfirmacion(p)">
+                  Eliminar
+                </button>
+              }
             </div>
           </div>
 

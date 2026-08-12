@@ -49,6 +49,19 @@ export const routes: Routes = [
     title: 'Requisitos — SLCP',
   },
   {
+    path: 'cuenta/contrasena',
+    canActivate: [sesionGuard],
+    loadComponent: () => import('./account/password-page').then((m) => m.PasswordPage),
+    title: 'Cambiar la contraseña — SLCP',
+  },
+  {
+    path: 'proyecto/:projectId/entregables',
+    canActivate: [sesionGuard],
+    loadComponent: () =>
+      import('./deliverables/deliverables-page').then((m) => m.DeliverablesPage),
+    title: 'Entregables — SLCP',
+  },
+  {
     path: 'administracion',
     canActivate: [administratorGuard],
     loadComponent: () =>

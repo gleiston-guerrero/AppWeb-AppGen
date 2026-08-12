@@ -56,6 +56,11 @@ export class RequirementService {
     );
   }
 
+  /** Elimina un requisito. Solo si nada se ha decidido sobre él. */
+  eliminar(projectId: string, readableId: string): Observable<void> {
+    return this.http.delete<void>(`${this.url(projectId)}/${readableId}`);
+  }
+
   transitar(projectId: string, readableId: string, to: string): Observable<Requirement> {
     return this.http.put<Requirement>(
       `${this.url(projectId)}/${readableId}/status?to=${to}`,

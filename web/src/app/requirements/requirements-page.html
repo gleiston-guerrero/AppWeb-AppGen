@@ -4,7 +4,10 @@
       <p class="eyebrow">Requisitos</p>
       <h1 class="titulo">{{ projectId }}</h1>
     </div>
-    <a class="volver" routerLink="/trabajo">Volver a mi trabajo</a>
+    <div class="cabecera__enlaces">
+      <a routerLink="/proyecto/{{ projectId }}/entregables">Entregables</a>
+      <a routerLink="/trabajo">Mi trabajo</a>
+    </div>
   </header>
 
   @if (resumen(); as r) {
@@ -279,27 +282,75 @@
                   </ul>
                 }
 
+                @if (confirmando() === r.readableId) {
+                  <p class="confirmacion">
+                    ¿Eliminar <strong>{{ r.readableId }}</strong>? Se borra por completo y no puede
+                    deshacerse.
+                  </p>
+                  <div class="detalle__acciones">
+                    <button type="button" class="btn btn--eliminar" (click)="eliminar(r)">
+                      Sí, eliminar
+                    </button>
+                    <button type="button" class="btn btn--plano" (click)="cancelarEliminacion()">
+                      Cancelar
+                    </button>
+                  </div>
+                }
+
                 <div class="detalle__acciones">
                   <button type="button" class="btn btn--principal" (click)="corregir(r)">
                     Corregir en el formulario
                   </button>
-                  @if (r.status === 'DRAFT') {
-                    <button type="button" class="btn btn--plano"
+
+                  @if (r.deletable) {
+                    <button type="button" class="btn btn--plano" (click)="pedirConfirmacion(r)">
+                      Eliminar
+                    </button>
+                  } @else {
+                    <span class="no-eliminable"
+                      title="Fue revisado o aprobado: eliminarlo borraría la constancia de esa decisión">
+                      No eliminable
+                    </span>
+                  }
+
+                </div>
+              }
+
+              @if (esFacilitador() && r.status === 'DRAFT') {
+                <div class="aprobacion">
+                  <p class="aprobacion__nota">
+                    Primera etapa: revisar. Al marcarlo como revisado usted responde de que el
+                    requisito está bien planteado, y queda registrado que fue usted. La aprobación
+                    definitiva la dará el propietario del producto, y no podrá darla usted mismo.
+                  </p>
+                  <div class="detalle__acciones">
+                    <button type="button" class="btn btn--principal"
                       [disabled]="guardando() === r.readableId" (click)="transitar(r, 'REVIEWED')">
                       {{ guardando() === r.readableId ? 'Guardando…' : 'Marcar como revisado' }}
                     </button>
-                  }
+                    <button type="button" class="btn btn--plano" (click)="transitar(r, 'REJECTED')">
+                      Devolver al equipo
+                    </button>
+                  </div>
                 </div>
               }
 
               @if (esPropietario() && r.status === 'REVIEWED') {
                 <div class="aprobacion">
                   <p class="aprobacion__nota">
-                    Aprobar afirma que esto es lo que el sistema debe hacer. No afirma que ya lo haga:
-                    el requisito se cierra solo cuando sus entregables se aceptan.
+                    Segunda etapa: aprobar. Afirma que esto es lo que el sistema debe hacer. No
+                    afirma que ya lo haga: el requisito se cierra solo cuando sus entregables se
+                    aceptan.
                   </p>
+                  @if (r.reviewedBy === yo()) {
+                    <p class="aprobacion__veto">
+                      Usted revisó este requisito, de modo que no puede aprobarlo. La revisión y la
+                      aprobación son dos etapas distintas.
+                    </p>
+                  }
                   <div class="detalle__acciones">
-                    <button type="button" class="btn btn--aceptar" (click)="transitar(r, 'APPROVED')">
+                    <button type="button" class="btn btn--aceptar"
+                      [disabled]="r.reviewedBy === yo()" (click)="transitar(r, 'APPROVED')">
                       Aprobar
                     </button>
                     <button type="button" class="btn btn--plano" (click)="transitar(r, 'REJECTED')">

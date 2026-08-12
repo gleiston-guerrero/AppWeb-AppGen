@@ -9,6 +9,7 @@ import org.slcp.service.administration.RegistrationNotFoundException;
 import org.slcp.service.auth.AuthenticationFailedException;
 import org.slcp.service.auth.LoginFailure;
 import org.slcp.service.invitations.InvitationException;
+import org.slcp.service.deliverables.DeliverableException;
 import org.slcp.service.projects.ProjectAccessException;
 import org.slcp.service.recovery.RecoveryException;
 import org.slcp.service.requirements.RequirementException;
@@ -70,6 +71,14 @@ public class ApiExceptionHandler {
 			HttpServletRequest peticion) {
 		return ResponseEntity.unprocessableContent().body(new ApiError(Instant.now(),
 				HttpStatus.UNPROCESSABLE_CONTENT.value(), "PASSWORD_RECOVERY", fallo.getMessage(),
+				peticion.getRequestURI(), Map.of()));
+	}
+
+	@ExceptionHandler(DeliverableException.class)
+	public ResponseEntity<ApiError> entregable(DeliverableException fallo,
+			HttpServletRequest peticion) {
+		return ResponseEntity.unprocessableContent().body(new ApiError(Instant.now(),
+				HttpStatus.UNPROCESSABLE_CONTENT.value(), "DELIVERABLE", fallo.getMessage(),
 				peticion.getRequestURI(), Map.of()));
 	}
 

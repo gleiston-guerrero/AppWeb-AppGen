@@ -36,9 +36,13 @@ export interface Requirement {
   verification: string | null;
   status: string;
   version: number;
+  /** Quién realizó la revisión previa. Nulo si aún no se revisó. */
+  reviewedBy: string | null;
   statementOrigin: 'HUMAN' | 'SUGGESTED';
   verificationOrigin: 'HUMAN' | 'SUGGESTED';
   conforming: boolean;
+  /** Si nada se ha decidido sobre él y por tanto puede eliminarse. */
+  deletable: boolean;
   findings: Finding[];
   /** Redacciones alternativas del enunciado. */
   statementSuggestions: Suggestion[];

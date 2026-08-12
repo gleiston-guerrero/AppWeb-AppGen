@@ -57,12 +57,17 @@ public class ProjectService {
 		Project proyecto = Project.crear(peticion.name(), peticion.purpose(), creador, secuencia, momento);
 		projects.save(proyecto);
 
+		// El facilitador recibe ademas el rol de miembro del equipo: organiza y
+		// tambien ejecuta. Se le asignan los dos de forma expresa en lugar de hacer
+		// que uno implique al otro, porque los informes de trabajo enumeran a quien
+		// ejecuta, y un rol implicito dejaria fuera de esa lista a quien si esta
+		// haciendo el trabajo.
 		memberships.save(ProjectMembership.activa(proyecto.getId(), creador,
 				ProjectRole.PROJECT_FACILITATOR, momento));
+		memberships.save(ProjectMembership.activa(proyecto.getId(), creador,
+				ProjectRole.TEAM_MEMBER, momento));
 
-		String quien = users.findById(creador).map(User::getUsername).orElse("desconocido");
-		events.save(EventRecord.de("PROJECT_CREATED", "Project", proyecto.getId(),
-				creador, quien, proyecto.getName(), momento));
+		registrar("PROJECT_CREATED", proyecto.getId(), creador, proyecto.getName(), momento);
 
 		return vista(proyecto, creador);
 	}
@@ -71,6 +76,66 @@ public class ProjectService {
 	@Transactional(readOnly = true)
 	public List<ProjectView> mios(UUID userId) {
 		return projects.deLaPersona(userId).stream().map(p -> vista(p, userId)).toList();
+	}
+
+	/**
+	 * Modifica los datos del proyecto. Corresponde a su facilitador.
+	 */
+	@Transactional
+	public ProjectView editar(String readableId, ProjectRequest peticion, UUID solicitante) {
+		Project proyecto = exigirRol(readableId, solicitante, ProjectRole.PROJECT_FACILITATOR);
+		Instant momento = Instant.now(clock);
+
+		proyecto.editar(peticion.name(), peticion.purpose());
+		registrar("PROJECT_EDITED", proyecto.getId(), solicitante, proyecto.getName(), momento);
+
+		return vista(proyecto, solicitante);
+	}
+
+	/**
+	 * Retira el proyecto del servicio, o lo devuelve a el.
+	 *
+	 * <p>Conforme a ADM-01 el contenido permanece. Un proyecto retirado deja de
+	 * admitir trabajo y sigue siendo consultable, que es lo que distingue retirar
+	 * de eliminar.</p>
+	 */
+	@Transactional
+	public ProjectView cambiarEstado(String readableId, boolean activo, UUID solicitante) {
+		Project proyecto = exigirRol(readableId, solicitante, ProjectRole.PROJECT_FACILITATOR);
+		Instant momento = Instant.now(clock);
+
+		if (activo) {
+			proyecto.reincorporar();
+		} else {
+			proyecto.retirar();
+		}
+		registrar(activo ? "PROJECT_REINSTATED" : "PROJECT_DECOMMISSIONED",
+				proyecto.getId(), solicitante, proyecto.getName(), momento);
+
+		return vista(proyecto, solicitante);
+	}
+
+	/**
+	 * Elimina el proyecto.
+	 *
+	 * <p>Solo mientras este vacio. Un proyecto con requisitos guarda decisiones
+	 * que alguien tomo, y borrarlas no es una operacion de mantenimiento sino una
+	 * perdida: para eso esta la retirada del servicio.</p>
+	 */
+	@Transactional
+	public void eliminar(String readableId, UUID solicitante) {
+		Project proyecto = exigirRol(readableId, solicitante, ProjectRole.PROJECT_FACILITATOR);
+		Instant momento = Instant.now(clock);
+		String nombre = proyecto.getName();
+
+		// El rastro se deja antes de borrar: despues no habria proyecto al que
+		// referirlo, y un borrado sin constancia es indistinguible de que el
+		// proyecto no hubiera existido nunca.
+		registrar("PROJECT_DELETED", proyecto.getId(), solicitante, nombre, momento);
+
+		memberships.findByProjectIdAndStatus(proyecto.getId(), MembershipStatus.ACTIVE)
+				.forEach(memberships::delete);
+		projects.delete(proyecto);
 	}
 
 	/** Equipo del proyecto. Exige membresia activa en el. */
@@ -115,22 +180,44 @@ public class ProjectService {
 			}
 			if (m.getProjectRole().incompatibleCon(peticion.role())) {
 				throw new ProjectAccessException(
-						"ROL-06: quien produce no puede aprobar en el mismo proyecto. "
-								+ persona.getUsername() + " ya es " + m.getProjectRole().getEtiqueta());
+						m.getProjectRole().motivoDeIncompatibilidad(peticion.role()) + ". "
+								+ persona.getUsername() + " ya es "
+								+ m.getProjectRole().getEtiqueta() + " en este proyecto");
 			}
 		}
 
 		Instant momento = Instant.now(clock);
-		memberships.save(ProjectMembership.activa(proyecto.getId(), persona.getId(),
-				peticion.role(), momento));
+		incorporarCon(proyecto.getId(), persona.getId(), peticion.role(), momento);
 
-		String quien = users.findById(solicitante).map(User::getUsername).orElse("desconocido");
-		events.save(EventRecord.de("MEMBERSHIP_GRANTED", "Project", proyecto.getId(),
-				solicitante, quien,
-				persona.getUsername() + " como " + peticion.role().name(), momento));
+		registrar("MEMBERSHIP_GRANTED", proyecto.getId(), solicitante,
+				persona.getUsername() + " como " + peticion.role().name(), momento);
 
 		return new MemberView(persona.getUsername(), persona.getFullName(), persona.getEmail(),
 				peticion.role().name(), peticion.role().getEtiqueta(), MembershipStatus.ACTIVE.name());
+	}
+
+	/**
+	 * Da de alta la membresia, con el rol acompanante que corresponda.
+	 *
+	 * <p>Quien recibe el papel de facilitador recibe tambien el de miembro del
+	 * equipo: en esta plataforma el facilitador organiza y ademas ejecuta. Se
+	 * expone para que la incorporacion por invitacion siga el mismo criterio y no
+	 * cada via el suyo.</p>
+	 */
+	@Transactional
+	public void incorporarCon(UUID projectId, UUID userId, ProjectRole rol, Instant momento) {
+		memberships.save(ProjectMembership.activa(projectId, userId, rol, momento));
+
+		if (rol == ProjectRole.PROJECT_FACILITATOR) {
+			boolean yaEsEquipo = memberships
+					.findByProjectIdAndUserIdAndStatus(projectId, userId, MembershipStatus.ACTIVE)
+					.stream().anyMatch(m -> m.getProjectRole() == ProjectRole.TEAM_MEMBER);
+
+			if (!yaEsEquipo) {
+				memberships.save(ProjectMembership.activa(projectId, userId,
+						ProjectRole.TEAM_MEMBER, momento));
+			}
+		}
 	}
 
 	/** Roles de la persona en el proyecto. Vacio si no participa. */
@@ -171,6 +258,18 @@ public class ProjectService {
 					"Esta operacion corresponde al " + exigido.getEtiqueta().toLowerCase());
 		}
 		return proyecto;
+	}
+
+	/**
+	 * Deja constancia de un acto sobre el proyecto.
+	 *
+	 * <p>Se recoge en un metodo porque la llamada es larga y se repite: escrita a
+	 * mano en cada sitio, basta olvidar un argumento para que un acto quede sin
+	 * rastro, y la falta no se nota hasta que alguien pregunta quien hizo que.</p>
+	 */
+	private void registrar(String tipo, UUID projectId, UUID actorId, String detalle, Instant momento) {
+		String quien = users.findById(actorId).map(User::getUsername).orElse("desconocido");
+		events.save(EventRecord.de(tipo, "Project", projectId, actorId, quien, detalle, momento));
 	}
 
 	private ProjectView vista(Project p, UUID userId) {

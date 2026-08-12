@@ -395,3 +395,36 @@ select:focus {
   margin-top: 0.6rem;
   max-width: 62ch;
 }
+
+/* --------------------------- Edición y eliminación --------------------------- */
+.proyecto__edicion {
+  padding: 1rem 1.25rem;
+  background: var(--paper);
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.confirmacion {
+  font-size: var(--step--1);
+  color: var(--ink);
+  background: #fdf2f1;
+  border-left: 3px solid #a3261f;
+  padding: 0.75rem 1rem;
+  max-width: 70ch;
+}
+
+.btn--eliminar {
+  background: #a3261f;
+  color: #fff;
+}
+
+.retirado {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  background: #f0efec;
+  color: var(--ink-faint);
+  padding: 0.2rem 0.6rem;
+  border-radius: 2px;
+}

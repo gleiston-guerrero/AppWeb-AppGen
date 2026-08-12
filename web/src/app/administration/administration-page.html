@@ -14,8 +14,8 @@
 
   @if (usuario()?.mustChangePassword) {
     <p class="urgente">
-      Esta cuenta usa la contraseña inicial, que figura en el repositorio y por tanto conoce
-      cualquiera. Cámbiela antes de seguir usándola.
+      Esta cuenta usa aún su contraseña inicial, que conoce quien la creó.
+      <a routerLink="/cuenta/contrasena">Cámbiela antes de seguir usándola</a>.
     </p>
   }
 

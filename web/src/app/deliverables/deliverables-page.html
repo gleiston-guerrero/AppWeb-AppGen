@@ -1,0 +1,189 @@
+<main class="pagina contenedor">
+  <header class="cabecera">
+    <div>
+      <p class="eyebrow">Entregables</p>
+      <h1 class="titulo">{{ projectId }}</h1>
+    </div>
+    <div class="cabecera__enlaces">
+      <a routerLink="/proyecto/{{ projectId }}/requisitos">Requisitos</a>
+      <a routerLink="/trabajo">Mi trabajo</a>
+    </div>
+  </header>
+
+  @if (entregables().length > 0) {
+    <ul class="resumen">
+      <li><span class="resumen__cifra">{{ entregables().length }}</span> entregables</li>
+      <li><span class="resumen__cifra resumen__cifra--bien">{{ cerrados() }}</span> requisitos cerrados</li>
+    </ul>
+  }
+
+  @if (aviso(); as m) { <p class="aviso" role="status">{{ m }}</p> }
+  @if (error(); as m) { <p class="error" role="alert">{{ m }}</p> }
+
+  @if (esFacilitador()) {
+    <section class="panel" id="formulario-entregable" [class.panel--editando]="editando()">
+      <h2 class="eyebrow">
+        {{ editando() ? 'Modificar ' + editando() : 'Planificar un entregable' }}
+      </h2>
+
+      <div class="panel__campos">
+        <input type="text" [(ngModel)]="nombre" name="nombre"
+          placeholder="Nombre del entregable" aria-label="Nombre" />
+        <textarea rows="2" [(ngModel)]="descripcion" name="descripcion"
+          placeholder="Qué es y qué incluye (opcional)" aria-label="Descripción"></textarea>
+        <textarea rows="2" [(ngModel)]="aceptacion" name="aceptacion"
+          placeholder="Qué debe comprobar quien lo recibe para darlo por bueno" aria-label="Criterio de aceptación"></textarea>
+      </div>
+
+      <h3 class="eyebrow eyebrow--sep">Requisitos que realiza</h3>
+      @if (enlazables().length === 0) {
+        <p class="panel__nota">
+          No hay requisitos aprobados en este proyecto. Solo se enlaza trabajo a requisitos
+          aprobados: enlazarlo a uno que aún puede cambiar daría por decidido lo que no lo está.
+          <a routerLink="/proyecto/{{ projectId }}/requisitos">Ir a requisitos</a>.
+        </p>
+      } @else {
+        <ul class="requisitos">
+          @for (r of enlazables(); track r.readableId) {
+            <li class="requisito" [class.requisito--elegido]="estaSeleccionado(r.readableId)"
+                (click)="alternarRequisito(r.readableId)">
+              <span class="requisito__marca">{{ estaSeleccionado(r.readableId) ? '✓' : '' }}</span>
+              <span class="mono">{{ r.readableId }}</span>
+              <span class="requisito__texto">{{ r.name || r.statement }}</span>
+            </li>
+          }
+        </ul>
+      }
+
+      <div class="panel__acciones">
+        <button type="button" class="btn btn--principal" [disabled]="guardando()" (click)="guardar()">
+          @if (guardando()) { Guardando… }
+          @else if (editando()) { Actualizar entregable }
+          @else { Crear entregable }
+        </button>
+        @if (editando()) {
+          <button type="button" class="btn btn--plano" (click)="cancelar()">Cancelar</button>
+        }
+      </div>
+
+      @if (editando()) {
+        <p class="panel__nota">
+          Modificar devuelve el entregable a planificado: lo entregado o aceptado lo fue sobre otra
+          definición.
+        </p>
+      }
+    </section>
+  }
+
+  @if (cargando()) {
+    <p class="vacio">Consultando los entregables…</p>
+  } @else if (entregables().length === 0) {
+    <p class="vacio">
+      @if (esFacilitador()) {
+        Todavía no hay entregables. Planifique el primero sobre los requisitos aprobados.
+      } @else {
+        Todavía no hay entregables en este proyecto.
+      }
+    </p>
+  } @else {
+    <ul class="lista">
+      @for (d of entregables(); track d.readableId) {
+        <li class="entregable">
+          <div class="entregable__fila" (click)="alternarDetalle(d)">
+            <div>
+              <p class="entregable__ids">
+                <span class="mono">{{ d.readableId }}</span>
+                <span class="estado estado--{{ d.status }}">{{ d.statusLabel }}</span>
+                <span class="cuenta">{{ d.requirements.length }} requisitos</span>
+              </p>
+              <p class="entregable__nombre">{{ d.name }}</p>
+              @if (d.acceptedBy) {
+                <p class="entregable__acepto">Aceptado por {{ d.acceptedBy }}</p>
+              }
+            </div>
+          </div>
+
+          @if (abierto() === d.readableId) {
+            <div class="detalle">
+              @if (d.description) {
+                <p class="detalle__texto">{{ d.description }}</p>
+              }
+              @if (d.acceptance) {
+                <h3 class="eyebrow">Criterio de aceptación</h3>
+                <p class="criterio">{{ d.acceptance }}</p>
+              }
+
+              <h3 class="eyebrow">Requisitos que realiza</h3>
+              <ul class="enlazados">
+                @for (r of d.requirements; track r.readableId) {
+                  <li>
+                    <span class="mono">{{ r.readableId }}</span>
+                    @if (r.closed) { <span class="cerrado">cerrado</span> }
+                    <span class="enlazados__texto">{{ r.statement }}</span>
+                  </li>
+                }
+              </ul>
+
+              @if (confirmando() === d.readableId) {
+                <p class="confirmacion">
+                  ¿Eliminar <strong>{{ d.readableId }}</strong>? Se borra por completo.
+                </p>
+                <div class="detalle__acciones">
+                  <button type="button" class="btn btn--eliminar" (click)="eliminar(d)">
+                    Sí, eliminar
+                  </button>
+                  <button type="button" class="btn btn--plano" (click)="cancelarEliminacion()">
+                    Cancelar
+                  </button>
+                </div>
+              }
+
+              <div class="detalle__acciones">
+                @if (esFacilitador() && d.status !== 'ACCEPTED') {
+                  <button type="button" class="btn btn--plano" (click)="modificar(d)">
+                    Modificar
+                  </button>
+                }
+
+                @if (esEquipo()) {
+                  @if (d.status === 'PLANNED') {
+                    <button type="button" class="btn btn--plano" (click)="transitar(d, 'IN_PROGRESS')">
+                      Empezar el trabajo
+                    </button>
+                  }
+                  @if (d.status === 'IN_PROGRESS' || d.status === 'REJECTED') {
+                    <button type="button" class="btn btn--principal" (click)="transitar(d, 'DELIVERED')">
+                      Dar por entregado
+                    </button>
+                  }
+                }
+
+                @if (esPropietario() && d.status === 'DELIVERED') {
+                  <button type="button" class="btn btn--aceptar" (click)="transitar(d, 'ACCEPTED')">
+                    Aceptar
+                  </button>
+                  <button type="button" class="btn btn--plano" (click)="transitar(d, 'REJECTED')">
+                    Devolver al equipo
+                  </button>
+                }
+
+                @if (esFacilitador() && d.deletable) {
+                  <button type="button" class="btn btn--plano" (click)="pedirConfirmacion(d)">
+                    Eliminar
+                  </button>
+                }
+              </div>
+
+              @if (esPropietario() && d.status === 'DELIVERED') {
+                <p class="detalle__nota">
+                  Aceptar cierra los requisitos que este entregable realiza, si no les queda ningún
+                  otro entregable pendiente. El cierre no se declara: se calcula.
+                </p>
+              }
+            </div>
+          }
+        </li>
+      }
+    </ul>
+  }
+</main>

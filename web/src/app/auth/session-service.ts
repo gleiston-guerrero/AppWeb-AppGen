@@ -43,6 +43,18 @@ export class SessionService {
   }
 
   /** Cierra la sesion. La revocacion la hace el servidor, no basta olvidarla aqui. */
+  /**
+   * Renueva la sesión y sustituye el token.
+   *
+   * El servidor emite uno nuevo y revoca el anterior, de modo que un token
+   * filtrado deja de servir en cuanto su dueño legítimo renueva.
+   */
+  renovar(): Observable<Session> {
+    return this.http
+      .put<Session>(SessionService.URL + '/current', {})
+      .pipe(tap((s) => this.aplicar(s)));
+  }
+
   salir(): Observable<void> {
     return this.http.delete<void>(SessionService.URL + '/current').pipe(
       tap(() => {

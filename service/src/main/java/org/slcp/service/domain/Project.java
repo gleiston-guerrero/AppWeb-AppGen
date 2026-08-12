@@ -63,6 +63,36 @@ public class Project {
 		return status == ProjectStatus.ACTIVE;
 	}
 
+	/** Modifica los datos del proyecto. */
+	public void editar(String name, String purpose) {
+		if (status != ProjectStatus.ACTIVE) {
+			throw new IllegalStateException(
+					"Un proyecto retirado del servicio no se modifica. Reincorporelo antes");
+		}
+		if (name != null && !name.isBlank()) {
+			this.name = name.trim();
+		}
+		if (purpose != null) {
+			this.purpose = purpose.trim();
+		}
+	}
+
+	/**
+	 * Retira el proyecto del servicio.
+	 *
+	 * <p>Conforme a ADM-01, el contenido permanece: un proyecto retirado deja de
+	 * admitir trabajo y sigue siendo consultable. Eliminarlo borraria el rastro de
+	 * cuanto se decidio en el.</p>
+	 */
+	public void retirar() {
+		this.status = ProjectStatus.DECOMMISSIONED;
+	}
+
+	/** Devuelve al servicio un proyecto retirado. */
+	public void reincorporar() {
+		this.status = ProjectStatus.ACTIVE;
+	}
+
 	public UUID getId() {
 		return id;
 	}

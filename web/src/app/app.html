@@ -25,7 +25,11 @@
       }
 
       @if (sesion(); as u) {
-        <span class="nav__quien">{{ u.username }}</span>
+        <a routerLink="/cuenta/contrasena" routerLinkActive="nav__enlace--activo"
+           class="nav__quien" [class.nav__quien--aviso]="u.mustChangePassword"
+           [title]="u.mustChangePassword ? 'Esta cuenta usa aún su contraseña inicial' : 'Cambiar la contraseña'">
+          {{ u.username }}
+        </a>
       } @else {
         <a routerLink="/solicitar-registro" routerLinkActive="nav__enlace--activo" class="nav__enlace">
           Solicitar registro

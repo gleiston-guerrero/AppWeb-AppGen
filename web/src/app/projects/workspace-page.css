@@ -206,6 +206,7 @@ select:focus {
 
 .proyecto__acciones {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.75rem;
 }
@@ -427,4 +428,39 @@ select:focus {
   color: var(--ink-faint);
   padding: 0.2rem 0.6rem;
   border-radius: 2px;
+}
+
+/* Acciones sobre un miembro del equipo. */
+.miembro__cambio {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 0.4rem;
+}
+
+.miembro__aviso { font-size: var(--step--1); color: #a3261f; }
+
+.acciones-miembro { display: flex; gap: 0.35rem; flex-wrap: wrap; align-items: center; }
+
+/* Navegación del proyecto: enlaces, no botones. Seis botones más cuatro
+   acciones daban una fila de diez que se salía de la página. */
+.proyecto__ir {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 1rem;
+  margin-top: 0.5rem;
+  font-size: var(--step--1);
+}
+
+.proyecto__ir a { color: var(--blue); text-decoration: none; }
+.proyecto__ir a:hover { text-decoration: underline; }
+
+.proyecto__estado {
+  display: flex;
+  gap: 0.8rem;
+  align-items: baseline;
+  flex-wrap: wrap;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
 }

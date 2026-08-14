@@ -47,14 +47,26 @@ public final class AssistedTestGenerator implements TestGenerator {
 	private final String credencial;
 	private final String modelo;
 
+	/**
+	 * La instruccion que se envia, propia de la funcion.
+	 *
+	 * <p>Se recibe en lugar de traerla dentro para que pueda editarse sin
+	 * recompilar, y para que todas las APIs de una funcion reciban exactamente la
+	 * misma: es la condicion que hace valida una comparacion.</p>
+	 */
+	private final String plantilla;
+
 	public AssistedTestGenerator(TestGenerator respaldo, AiProvider proveedor, String url,
-			String credencial, String modelo, Duration espera) {
+			String credencial, String modelo, String plantilla, Duration espera) {
 
 		this.respaldo = respaldo;
 		this.proveedor = proveedor;
 		this.url = url;
 		this.credencial = credencial;
 		this.modelo = modelo;
+		this.plantilla = plantilla == null || plantilla.isBlank()
+				? PromptCatalog.porDefecto(org.slcp.service.domain.AiFeature.GENERATE_TESTS)
+				: plantilla;
 		this.cliente = HttpClient.newBuilder().connectTimeout(espera).build();
 	}
 
@@ -135,71 +147,10 @@ public final class AssistedTestGenerator implements TestGenerator {
 	}
 
 	private String cuerpoDe(RequirementInput r, String clase) {
-		String instruccion = """
-				Eres un ingeniero de pruebas. Escribe un escenario en Gherkin, en castellano, \
-				para el requisito que se te da.
-
-				FORMA DEL ESCENARIO
-				  Caracteristica: <nombre corto de lo que se prueba>
-
-				    Escenario: <lo que ocurre en este caso concreto, no el nombre de la caracteristica>
-				      Dado <el estado del que se parte>
-				      Cuando <una sola accion, en presente>
-				      Entonces <lo que se observa>
-				      Y <cada afirmacion adicional, en su propia linea>
-
-				REGLAS QUE NO PUEDES INCUMPLIR
-
-				1. Reparte el criterio de verificacion en sus tres partes. Un criterio como
-				   "Con datos validos, registrar una parcela y comprobar que aparece en el listado"
-				   contiene las tres:
-				     Dado que se parte de datos validos
-				     Cuando se registra una parcela
-				     Entonces aparece en el listado
-				   NO pegues el criterio entero tras "Entonces": repetiria la accion y esconderia
-				   lo unico que se comprueba.
-
-				2. El "Entonces" afirma lo que se observa, no lo que hay que hacer. Nada de
-				   "comprobar que", "verificar que" ni "revisar que": eso son instrucciones al
-				   tester, no resultados.
-
-				3. Una afirmacion por linea, separadas con "Y". Si la prueba falla, ha de poder
-				   saberse cual fallo.
-
-				4. El "Cuando" es una sola accion en presente. Ni infinitivo ni varias acciones
-				   encadenadas: si hacen falta dos, el escenario son dos.
-
-				5. El "Dado" fija un estado concreto del mundo. No escribas "Dado que el sistema
-				   esta en las condiciones previstas para RF-01": eso no establece nada.
-
-				6. No inventes ninguna cifra, umbral, plazo ni cantidad que no aparezca en el
-				   requisito. Donde haga falta una y no la tengas, escribe exactamente: %s
-
-				7. No supongas comportamientos que el requisito no describa.
-
-				8. Escribe solo el Gherkin, sin explicaciones alrededor.
-
-				CLASE DE PRUEBA PEDIDA: %s
-				  ACCEPTANCE  - el camino que el requisito describe, con su resultado observable
-				  BOUNDARY    - el comportamiento justo por debajo, justo en, y justo por encima
-				                de cada magnitud declarada. Usa un Esquema del escenario con
-				                Ejemplos cuando haya mas de un valor que probar
-				  NEGATIVE    - que ocurre cuando NO se cumple la condicion del requisito. Casi
-				                ningun requisito lo dice: si no lo dice, deja el resultado como
-				                hueco en lugar de suponerlo
-				  PERFORMANCE - la medida de la magnitud exigida, con la carga y la repeticion
-				                necesarias para que la medida signifique algo
-
-				REQUISITO
-				  Identificador: %s (%s)
-				  Nombre: %s
-				  Enunciado: %s
-				  Criterio de verificacion: %s
-				  Interesado o fuente: %s
-				"""
-				.formatted(HUECO, clase, r.etiqueta(), r.kind(), nombreDe(r), r.statement(),
-						r.tieneCriterio() ? r.verification() : "no lo tiene",
-						r.actor() == null ? "no declarado" : r.actor());
+		String instruccion = plantilla
+				.replace(PromptCatalog.HUECO, HUECO)
+				.replace(PromptCatalog.CLASE, clase)
+				.replace(PromptCatalog.REQUISITO, descripcionDe(r));
 
 		String texto = escapar(instruccion);
 
@@ -213,6 +164,21 @@ public final class AssistedTestGenerator implements TestGenerator {
 			default -> "{\"model\":\"" + escapar(modelo) + "\",\"max_tokens\":1500,"
 					+ "\"messages\":[{\"role\":\"user\",\"content\":\"" + texto + "\"}]}";
 		};
+	}
+
+	/** El requisito, tal como se le presenta al modelo. */
+	private String descripcionDe(RequirementInput r) {
+		return """
+				REQUISITO
+				  Identificador: %s (%s)
+				  Nombre: %s
+				  Enunciado: %s
+				  Criterio de verificacion: %s
+				  Interesado o fuente: %s
+				"""
+				.formatted(r.etiqueta(), r.kind(), nombreDe(r), r.statement(),
+						r.tieneCriterio() ? r.verification() : "no lo tiene",
+						r.actor() == null ? "no declarado" : r.actor());
 	}
 
 	@SuppressWarnings("unchecked")

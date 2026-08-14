@@ -42,13 +42,19 @@ public final class AssistedSpecificationGenerator implements SpecificationGenera
 	private final String credencial;
 	private final String modelo;
 
+	/** La instruccion, propia de la funcion y comun a todas las APIs. */
+	private final String plantilla;
+
 	public AssistedSpecificationGenerator(AiProvider proveedor, String url, String credencial,
-			String modelo, Duration espera) {
+			String modelo, String plantilla, Duration espera) {
 
 		this.proveedor = proveedor;
 		this.url = url;
 		this.credencial = credencial;
 		this.modelo = modelo;
+		this.plantilla = plantilla == null || plantilla.isBlank()
+				? PromptCatalog.porDefecto(org.slcp.service.domain.AiFeature.GENERATE_SPECS)
+				: plantilla;
 		this.cliente = HttpClient.newBuilder().connectTimeout(espera).build();
 	}
 
@@ -84,95 +90,30 @@ public final class AssistedSpecificationGenerator implements SpecificationGenera
 	/**
 	 * Instruccion al modelo.
 	 *
-	 * <p>Se le dan los campos exactos que ha de producir y las reglas de forma:
-	 * sujeto en el sistema, sin decisiones de diseno, y con las excepciones
-	 * colgadas del paso del que se desvian. Sin decirselas, devuelve casos de uso
-	 * plausibles que no encajan con la especificacion del proyecto.</p>
+	 * <p>Sale de la plantilla de la funcion, con sus marcas sustituidas. La misma
+	 * para todas las APIs: con instrucciones distintas se compararian las
+	 * instrucciones y no los modelos.</p>
 	 */
 	private String instruccionDe(List<RequirementInput> requisitos, String kind) {
-		StringBuilder texto = new StringBuilder();
-
-		texto.append(CASO_DE_USO.equals(kind) ? INSTRUCCION_CASO : INSTRUCCION_HISTORIA);
-		texto.append("\n\nRequisitos de los que debe salir:\n");
+		StringBuilder descripcion = new StringBuilder("REQUISITOS DE LOS QUE HA DE SALIR\n");
 
 		for (RequirementInput r : requisitos) {
-			texto.append("- ").append(r.etiqueta()).append(" (").append(r.kind()).append("): ")
-					.append(r.statement()).append('\n');
+			descripcion.append("  ").append(r.etiqueta()).append(" (").append(r.kind())
+					.append("): ").append(r.statement()).append('\n');
 
 			if (r.tieneCriterio()) {
-				texto.append("  Criterio de verificacion: ").append(r.verification()).append('\n');
+				descripcion.append("    Criterio de verificacion: ").append(r.verification())
+						.append('\n');
 			}
 		}
-		return texto.toString();
+
+		return plantilla
+				.replace(PromptCatalog.HUECO, HUECO)
+				.replace(PromptCatalog.CLASE, kind)
+				.replace(PromptCatalog.REQUISITO, descripcion.toString());
 	}
 
-	private static final String INSTRUCCION_CASO = """
-			Eres un analista de requisitos. Redacta un caso de uso expandido en castellano, en la \
-			forma de Larman, a partir de los requisitos que se te dan.
 
-			Devuelve SOLO un objeto JSON con esta forma, sin texto alrededor:
-			{
-			  "nombre": "frase verbal breve",
-			  "actorPrincipal": "quien lo inicia; nunca 'el sistema'",
-			  "actoresSecundarios": ["..."],
-			  "objetivo": "que se consigue",
-			  "precondiciones": ["..."],
-			  "flujoPrincipal": [
-			    {"numero":1, "accionDelActor":"...", "respuestaDelSistema":"...", "referencia":""}
-			  ],
-			  "flujosAlternativos": [
-			    {"numero":"2.1", "condicion":"...", "respuesta":"...", "desdeElPaso":2}
-			  ],
-			  "flujosExcepcionales": [
-			    {"numero":"E1", "condicion":"... (paso 2)", "respuesta":"... El flujo retorna al paso 2.", "desdeElPaso":2}
-			  ],
-			  "postcondicionExito": "...",
-			  "postcondicionFracaso": "...",
-			  "relaciones": "", "requisitosEspeciales": "", "prioridad": "", "riesgos": ""
-			}
-
-			Reglas que no puedes incumplir:
-			1. El primer paso empieza por "Este caso de uso inicia cuando"; el ultimo, por "Este \
-			caso de uso termina cuando".
-			2. Un paso puede tener solo una de las dos columnas. Deja "" en la que no aplique: la \
-			persona actua una vez y el sistema hace varias cosas seguidas.
-			3. No menciones decisiones de diseno: nada de base de datos, tabla, API ni pantalla \
-			concreta. Di "el sistema registra al usuario", no "lo guarda en la base de datos".
-			4. Debe haber al menos un paso de comprobacion del que cuelguen las excepciones. Sin \
-			el, las excepciones no tienen de donde salir.
-			5. Cada excepcion indica entre parentesis el paso del que se desvia y termina diciendo \
-			a que paso retorna el flujo.
-			6. La postcondicion de fracaso dice que NO queda hecho, no solo que fallo.
-			7. No inventes cifras, plazos ni cantidades que no esten en los requisitos. Donde \
-			haga falta una y no la tengas, escribe exactamente: [por decidir]
-			8. El actor principal no puede ser el sistema: el sistema es la frontera, no un actor.
-			""";
-
-	private static final String INSTRUCCION_HISTORIA = """
-			Eres un analista de requisitos. Redacta una historia de usuario en castellano a partir \
-			del requisito que se te da.
-
-			Devuelve SOLO un objeto JSON con esta forma, sin texto alrededor:
-			{
-			  "descripcion": "Como <rol>, quiero <funcionalidad>, para <beneficio>.",
-			  "criteriosDeAceptacion": "Escenarios en Gherkin: uno de exito y uno por cada camino \
-			que no lo alcance",
-			  "actor": "el rol, extraido de la descripcion",
-			  "funcionalidad": "la accion, extraida de la descripcion",
-			  "beneficio": "el porque, extraido de la descripcion",
-			  "prioridad": "", "dependencias": "", "componentes": "", "valorDeNegocio": ""
-			}
-
-			Reglas que no puedes incumplir:
-			1. La descripcion es una narrativa en formato Connextra, no tres campos pegados.
-			2. El rol es una persona o un papel, nunca "el sistema" ni "el usuario" a secas si el \
-			requisito permite algo mas preciso.
-			3. Los criterios van en Gherkin, con Caracteristica, Escenario, Dado, Cuando, Entonces.
-			4. Escribe un escenario de exito y al menos uno de rechazo.
-			5. No inventes cifras, plazos ni cantidades que no esten en el requisito. Donde haga \
-			falta una y no la tengas, escribe exactamente: [por decidir]
-			6. El beneficio dice para que sirve, no repite la funcionalidad con otras palabras.
-			""";
 
 	private String pedir(String instruccion) throws Exception {
 		String cuerpo = switch (proveedor) {

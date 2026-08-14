@@ -1,4 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
+
+import { conservarPosicion } from '../shared/desplazamiento';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -56,6 +58,15 @@ export class WorkspacePage implements OnInit {
 
   /** Proyecto cuya eliminación se está confirmando. */
   protected readonly confirmando = signal<string | null>(null);
+
+  /** Miembro cuyo rol se está cambiando, y el rol elegido. */
+  protected readonly cambiandoRol = signal<string | null>(null);
+
+  /** Rol elegido al cambiar el de alguien. Es distinto del de invitar: son dos
+   * formularios abiertos a la vez, y compartir el campo haría que tocar uno
+   * cambiara el otro. */
+  protected rolDeCambio: ProjectRole = 'TEAM_MEMBER';
+  protected readonly retirando = signal<string | null>(null);
 
   /** Proyecto cuyo equipo se está consultando. */
   protected readonly abierto = signal<string | null>(null);
@@ -133,12 +144,20 @@ export class WorkspacePage implements OnInit {
     });
   }
 
+  /**
+   * Vuelve a pedir los proyectos.
+   *
+   * Conserva la posición: con varios proyectos, tras cambiar un rol o retirar a
+   * alguien la página volvía arriba.
+   */
   protected cargar(): void {
+    const volver = conservarPosicion();
     this.cargando.set(true);
     this.service.mios().subscribe({
       next: (lista) => {
         this.proyectos.set(lista);
         this.cargando.set(false);
+        volver();
       },
       error: (fallo: HttpErrorResponse) => {
         this.error.set(this.explicar(fallo));
@@ -237,6 +256,55 @@ export class WorkspacePage implements OnInit {
     });
   }
 
+  protected empezarCambioDeRol(m: Member): void {
+    this.cambiandoRol.set(m.username);
+    this.rolDeCambio = m.role;
+    this.error.set(null);
+  }
+
+  protected cancelarCambioDeRol(): void {
+    this.cambiandoRol.set(null);
+  }
+
+  protected guardarRol(p: Project, m: Member): void {
+    this.service.cambiarRol(p.readableId, m.username, this.rolDeCambio).subscribe({
+      next: (r) => {
+        this.cambiandoRol.set(null);
+        this.aviso.set(`${m.username} pasa a ${r.roleLabel}.`);
+        this.recargarEquipo(p);
+        this.cargar();
+      },
+      error: (fallo: HttpErrorResponse) => {
+        this.cambiandoRol.set(null);
+        this.error.set(this.explicar(fallo));
+      },
+    });
+  }
+
+  protected pedirRetirada(m: Member): void {
+    this.retirando.set(m.username);
+    this.error.set(null);
+  }
+
+  protected cancelarRetirada(): void {
+    this.retirando.set(null);
+  }
+
+  protected retirar(p: Project, m: Member): void {
+    this.service.retirarDelEquipo(p.readableId, m.username).subscribe({
+      next: () => {
+        this.retirando.set(null);
+        this.aviso.set(`${m.username} retirado del equipo. Su rastro se conserva.`);
+        this.recargarEquipo(p);
+        this.cargar();
+      },
+      error: (fallo: HttpErrorResponse) => {
+        this.retirando.set(null);
+        this.error.set(this.explicar(fallo));
+      },
+    });
+  }
+
   protected alternarEquipo(p: Project): void {
     if (this.abierto() === p.readableId) {
       this.abierto.set(null);
@@ -256,6 +324,12 @@ export class WorkspacePage implements OnInit {
       });
     }
 
+    this.recargarEquipo(p);
+  }
+
+  /** Vuelve a pedir el equipo del proyecto. */
+  private recargarEquipo(p: Project): void {
+    this.cargandoEquipo.set(true);
     this.service.equipo(p.readableId).subscribe({
       next: (lista) => {
         this.equipo.set(lista);

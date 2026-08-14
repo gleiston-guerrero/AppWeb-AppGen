@@ -113,3 +113,42 @@ a {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ===================================================================
+   Filas de acciones
+   ===================================================================
+   Toda fila de botones envuelve. Sin esto, en cuanto una pantalla suma
+   un botón más los últimos se salen de la página y dejan de poder
+   pulsarse: es lo que pasó al ir añadiendo funciones a los proyectos.
+
+   Se declara aquí y no en cada pantalla porque el problema reaparece
+   con cada botón nuevo, y una regla por pantalla se olvida.
+   =================================================================== */
+[class*='__acciones'],
+[class$='acciones'],
+.controles,
+.controles__acciones,
+.controles__filtros,
+.modo,
+.cabecera__enlaces,
+.grupo__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* Un botón no se parte por dentro ni se encoge hasta ser ilegible: prefiere
+   pasar a la línea siguiente. */
+.btn,
+[class*='__acciones'] button,
+[class*='__acciones'] a {
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+/* Y ninguna fila desborda su contenedor aunque un texto sea largo. */
+.contenedor,
+.pagina {
+  overflow-x: hidden;
+}

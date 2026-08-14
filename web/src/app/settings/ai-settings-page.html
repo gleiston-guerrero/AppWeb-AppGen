@@ -5,7 +5,7 @@
       <h1 class="titulo">Servicios de IA de {{ projectId }}</h1>
     </div>
     <div class="cabecera__enlaces">
-      <a routerLink="/proyecto/{{ projectId }}/requisitos">Requisitos</a>
+      <a routerLink="/proyecto/{{ projectId }}/ensayo-ia">Comparar proveedores</a>
       <a routerLink="/proyecto/{{ projectId }}/generacion">Pruebas y diagramas</a>
       <a routerLink="/trabajo">Mi trabajo</a>
     </div>
@@ -25,154 +25,262 @@
     <p class="vacio">Consultando…</p>
   } @else {
 
-    <section class="intro">
-      <p>
-        Cada función usa el proveedor que usted le asigne. No piden lo mismo: validar requisitos
-        son peticiones cortas y frecuentes, donde interesa un modelo barato; generar casos de uso
-        son pocas peticiones largas, donde interesa el mejor.
-      </p>
-      <p class="intro__cifra">
-        <strong>{{ activas() }}</strong> de {{ funciones().length }} funciones con asistencia
-        activa.
+    <!-- ============ 1. Credenciales ============ -->
+    <section class="bloque">
+      <h2 class="bloque__titulo">Credenciales</h2>
+      <p class="bloque__que">
+        Una por proveedor, y <strong>varias pueden convivir</strong>. Se guarda una sola vez
+        aunque la usen las cinco funciones, y guardar la de otro proveedor no borra las
+        anteriores: eso es lo que permite compararlos en un
+        <a routerLink="/proyecto/{{ projectId }}/ensayo-ia">ensayo</a>.
       </p>
 
-      @if (imprescindiblesSinConfigurar().length > 0) {
-        <p class="intro__aviso">
-          @for (f of imprescindiblesSinConfigurar(); track f.feature) {
-            <strong>{{ f.featureLabel }}</strong>
+      @if (credenciales().length === 0) {
+        <p class="vacio vacio--interior">Ninguna guardada todavía.</p>
+      }
+
+      @for (c of credenciales(); track c.provider) {
+        <article class="credencial">
+          <div class="credencial__fila">
+            <span class="credencial__nombre">{{ c.providerLabel }}</span>
+            <span class="mono">{{ c.model }}</span>
+            <span class="mono credencial__pista">{{ c.keyHint }}</span>
+            @if (c.updatedBy) { <span class="quien">{{ c.updatedBy }}</span> }
+          </div>
+
+          @if (resultado()[c.provider]; as r) {
+            <p class="credencial__prueba">{{ r }}</p>
           }
-          no puede funcionar sin un modelo: no tiene vía derivada. Las demás siguen sirviendo sin
-          configurar nada.
-        </p>
+
+          @if (esFacilitador() && editandoCredencial() !== c.provider) {
+            <div class="acciones">
+              <button type="button" class="btn btn--plano" (click)="editarCredencial(c.provider)">
+                Cambiar
+              </button>
+              <button type="button" class="btn btn--plano" [disabled]="probando() === c.provider"
+                (click)="probar(c)">
+                {{ probando() === c.provider ? 'Comprobando…' : 'Comprobar la conexión' }}
+              </button>
+              <button type="button" class="btn btn--plano" (click)="retirarCredencial(c)">
+                Retirar
+              </button>
+            </div>
+          }
+        </article>
+      }
+
+      @if (esFacilitador() && sinGuardar().length > 0 && !editandoCredencial()) {
+        <div class="anadir">
+          <span class="anadir__etiqueta">Añadir credencial de</span>
+          @for (p of sinGuardar(); track p.id) {
+            <button type="button" class="btn btn--plano" (click)="editarCredencial(p.id)">
+              {{ p.label }}
+            </button>
+          }
+        </div>
+      }
+
+      @if (editandoCredencial(); as prov) {
+        <div class="formulario">
+          <label class="campo">
+            <span class="campo__nombre">Proveedor</span>
+            <select [ngModel]="proveedorElegido" name="prov"
+              (ngModelChange)="cambiarProveedor($event)" aria-label="Proveedor">
+              @for (p of proveedores(); track p.id) {
+                <option [value]="p.id">{{ p.label }}</option>
+              }
+            </select>
+          </label>
+
+          <label class="campo">
+            <span class="campo__nombre">Modelo</span>
+            <input type="text" [(ngModel)]="modelo" name="mod" aria-label="Modelo" />
+          </label>
+
+          <label class="campo campo--ancho">
+            <span class="campo__nombre">Dirección del servicio</span>
+            <input type="text" [(ngModel)]="direccion" name="dir" aria-label="Dirección" />
+          </label>
+
+          <label class="campo campo--ancho">
+            <span class="campo__nombre">
+              Clave de acceso
+              <span class="campo__ayuda">— déjelo vacío para conservar la guardada</span>
+            </span>
+            <input type="password" [(ngModel)]="clave" name="key" autocomplete="off"
+              placeholder="Pegue aquí su clave" aria-label="Clave" />
+          </label>
+
+          @if (dondeLaClave()) {
+            <p class="campo--ancho campo__ayuda">
+              Su clave se consigue en
+              <a [href]="dondeLaClave()" target="_blank" rel="noopener">{{ dondeLaClave() }}</a>
+            </p>
+          }
+
+          <p class="ia__aviso campo--ancho">
+            Se guarda cifrada y no vuelve a mostrarse: solo se conservan sus cuatro últimos
+            caracteres. El gasto corre por cuenta de este proyecto.
+          </p>
+
+          <div class="campo--ancho acciones">
+            <button type="button" class="btn btn--principal" [disabled]="guardando()"
+              (click)="guardarCredencial()">
+              {{ guardando() ? 'Guardando…' : 'Guardar credencial' }}
+            </button>
+            <button type="button" class="btn btn--plano" (click)="editandoCredencial.set(null)">
+              Cancelar
+            </button>
+          </div>
+        </div>
       }
     </section>
 
-    @for (f of funciones(); track f.feature) {
-      <article class="funcion" [class.funcion--activa]="f.enabled">
-        <header class="funcion__cabecera">
-          <h2 class="funcion__nombre">{{ f.featureLabel }}</h2>
+    <!-- ============ 2. Instrucciones ============ -->
+    <section class="bloque">
+      <h2 class="bloque__titulo">Instrucciones</h2>
+      <p class="bloque__que">
+        Lo que se le envía al modelo en cada función. <strong>Es de la función, no del
+        proveedor</strong>: todas las APIs de una misma función reciben exactamente la misma, y
+        esa es la condición que hace válida una comparación — con instrucciones distintas se
+        compararían las instrucciones y no los modelos.
+      </p>
 
-          @if (f.enabled) {
-            <span class="estado estado--ACCEPTED">{{ f.providerLabel }}</span>
-          } @else if (f.hasKey) {
-            <span class="estado">Configurada, sin activar</span>
-          } @else if (f.essential) {
-            <span class="estado estado--falta">Sin configurar — no funciona sin ella</span>
-          } @else {
-            <span class="estado">Sin configurar — funciona sin IA</span>
-          }
-        </header>
+      @for (p of prompts(); track p.feature) {
+        <article class="prompt">
+          <div class="prompt__fila">
+            <span class="prompt__nombre">{{ p.featureLabel }}</span>
+            @if (p.edited) {
+              <span class="estado">Editada@if (p.updatedBy) { por {{ p.updatedBy }} }</span>
+            } @else {
+              <span class="estado">De fábrica</span>
+            }
 
-        <p class="funcion__que">{{ f.featureDescription }}</p>
+            @if (esFacilitador() && editandoPrompt() !== p.feature) {
+              <button type="button" class="btn btn--plano" (click)="editarPrompt(p)">
+                Ver y editar
+              </button>
+              @if (p.edited) {
+                <button type="button" class="btn btn--plano" (click)="restaurarPrompt(p)">
+                  Volver a la de fábrica
+                </button>
+              }
+            }
+          </div>
 
-        @if (f.hasKey && editando() !== f.feature) {
-          <p class="funcion__detalle">
-            Modelo <span class="mono">{{ f.model }}</span>, credencial
-            <span class="mono">{{ f.keyHint }}</span>
-            @if (f.updatedBy) { · configurada por {{ f.updatedBy }} }
-          </p>
-        }
+          @if (editandoPrompt() === p.feature) {
+            <div class="prompt__editor">
+              <p class="campo__nombre">
+                Marcas que se sustituyen antes de enviar:
+              </p>
+              <ul class="marcas">
+                @for (m of marcas(p); track m.marca) {
+                  <li>
+                    <span class="mono">{{ m.marca }}</span>
+                    <span class="marcas__que">{{ m.que }}</span>
+                  </li>
+                }
+              </ul>
 
-        @if (resultado()[f.feature]; as r) {
-          <p class="funcion__prueba">{{ r }}</p>
-        }
-
-        @if (esFacilitador()) {
-          @if (editando() === f.feature) {
-            <div class="formulario">
-              <label class="campo">
-                <span class="campo__nombre">Proveedor</span>
-                <select [ngModel]="proveedorElegido" [name]="'prov-' + f.feature"
-                  (ngModelChange)="cambiarProveedor($event)" aria-label="Proveedor">
-                  @for (p of proveedores(); track p.id) {
-                    <option [value]="p.id">{{ p.label }}</option>
-                  }
-                </select>
-              </label>
-
-              <label class="campo">
-                <span class="campo__nombre">Modelo</span>
-                <input type="text" [(ngModel)]="modelo" [name]="'mod-' + f.feature"
-                  placeholder="Nombre del modelo" aria-label="Modelo" />
-              </label>
-
-              <label class="campo campo--ancho">
-                <span class="campo__nombre">Dirección del servicio</span>
-                <input type="text" [(ngModel)]="direccion" [name]="'dir-' + f.feature"
-                  placeholder="https://…" aria-label="Dirección" />
-              </label>
-
-              <label class="campo campo--ancho">
-                <span class="campo__nombre">
-                  Clave de acceso
-                  @if (f.hasKey) {
-                    <span class="campo__ayuda">
-                      — ya hay una ({{ f.keyHint }}). Déjelo vacío para conservarla.
-                    </span>
-                  }
-                </span>
-                <input type="password" [(ngModel)]="clave" [name]="'key-' + f.feature"
-                  autocomplete="off" placeholder="Pegue aquí su clave" aria-label="Clave" />
-              </label>
-
-              @if (dondeLaClave()) {
-                <p class="campo--ancho campo__ayuda">
-                  Su clave se consigue en
-                  <a [href]="dondeLaClave()" target="_blank" rel="noopener">{{ dondeLaClave() }}</a>
+              @if (marcasPerdidas(p).length > 0) {
+                <p class="prompt__aviso">
+                  Faltan estas marcas:
+                  @for (m of marcasPerdidas(p); track m) { <span class="mono">{{ m }}</span> }
+                  El modelo recibirá menos contexto del previsto. No fallará, pero responderá
+                  peor.
                 </p>
               }
 
-              <label class="campo--ancho aplicar">
-                <input type="checkbox" [(ngModel)]="aplicarATodas"
-                  [name]="'todas-' + f.feature" />
-                Aplicar también a las funciones que aún no tienen credencial
-              </label>
+              <textarea rows="24" class="editor" [(ngModel)]="instruccion"
+                [name]="'p-' + p.feature" aria-label="Instrucción"></textarea>
 
-              <p class="ia__aviso campo--ancho">
-                La clave se guarda cifrada y no vuelve a mostrarse: solo se conservan sus cuatro
-                últimos caracteres. El gasto corre por cuenta de este proyecto.
-              </p>
-
-              <div class="campo--ancho acciones">
+              <div class="acciones">
                 <button type="button" class="btn btn--principal" [disabled]="guardando()"
-                  (click)="guardar(f)">
-                  {{ guardando() ? 'Guardando…' : 'Guardar' }}
+                  (click)="guardarPrompt(p)">
+                  {{ guardando() ? 'Guardando…' : 'Guardar instrucción' }}
                 </button>
-                <button type="button" class="btn btn--plano" (click)="editando.set(null)">
+                <button type="button" class="btn btn--plano" (click)="verFabrica(p)">
+                  Traer la de fábrica al editor
+                </button>
+                <button type="button" class="btn btn--plano" (click)="editandoPrompt.set(null)">
                   Cancelar
                 </button>
               </div>
             </div>
-          } @else {
+          }
+        </article>
+      }
+    </section>
+
+    <!-- ============ 3. Qué proveedor usa cada función ============ -->
+    <section class="bloque">
+      <h2 class="bloque__titulo">Qué proveedor usa cada función</h2>
+      <p class="bloque__que">
+        No piden lo mismo: validar requisitos son peticiones cortas y frecuentes, donde interesa
+        un modelo barato; generar casos de uso son pocas peticiones largas, donde interesa el
+        mejor. <strong>{{ activas() }}</strong> de {{ funciones().length }} con asistencia activa.
+      </p>
+
+      @if (imprescindiblesSinConfigurar().length > 0) {
+        <p class="bloque__aviso">
+          @for (f of imprescindiblesSinConfigurar(); track f.feature) {
+            <strong>{{ f.featureLabel }}</strong>
+          }
+          no puede funcionar sin modelo: no tiene vía derivada. Las demás siguen sirviendo.
+        </p>
+      }
+
+      @for (f of funciones(); track f.feature) {
+        <article class="funcion" [class.funcion--activa]="f.enabled">
+          <header class="funcion__cabecera">
+            <h3 class="funcion__nombre">{{ f.featureLabel }}</h3>
+            @if (f.enabled) {
+              <span class="estado estado--ACCEPTED">Activa con {{ f.providerLabel }}</span>
+            } @else if (f.essential) {
+              <span class="estado estado--falta">Sin activar — no funciona sin ella</span>
+            } @else {
+              <span class="estado">Sin activar — funciona sin IA</span>
+            }
+          </header>
+
+          <p class="funcion__que">{{ f.featureDescription }}</p>
+
+          @if (esFacilitador()) {
+            <div class="funcion__eleccion">
+              <span class="campo__nombre">Usar</span>
+              @for (c of credenciales(); track c.provider) {
+                <button type="button" class="btn btn--plano"
+                  [class.pestana--activa]="f.provider === c.provider"
+                  (click)="elegirProveedor(f, c.provider)">
+                  {{ c.providerLabel }}
+                </button>
+              }
+              @if (credenciales().length === 0) {
+                <span class="campo__ayuda">Guarde antes una credencial, arriba.</span>
+              }
+            </div>
+
             <div class="acciones">
-              <button type="button" class="btn btn--plano" (click)="editar(f)">
-                {{ f.hasKey ? 'Cambiar' : 'Configurar' }}
-              </button>
-
-              @if (f.hasKey) {
-                <button type="button" class="btn btn--plano" [disabled]="probando() === f.feature"
-                  (click)="probar(f)">
-                  {{ probando() === f.feature ? 'Comprobando…' : 'Comprobar la conexión' }}
+              @if (f.enabled) {
+                <button type="button" class="btn btn--plano" (click)="activar(f, false)">
+                  Desactivar
                 </button>
-
-                @if (f.enabled) {
-                  <button type="button" class="btn btn--plano" (click)="activar(f, false)">
-                    Desactivar
-                  </button>
-                } @else {
-                  <button type="button" class="btn btn--aceptar" (click)="activar(f, true)">
-                    Activar
-                  </button>
+              } @else {
+                <button type="button" class="btn btn--aceptar" [disabled]="!f.hasCredential"
+                  (click)="activar(f, true)">
+                  Activar
+                </button>
+                @if (!f.hasCredential) {
+                  <span class="campo__ayuda">
+                    {{ f.providerLabel }} no tiene credencial guardada: sin clave quedaría activa
+                    de nombre y fallaría en cada uso.
+                  </span>
                 }
-
-                <button type="button" class="btn btn--plano" (click)="retirar(f)">
-                  Retirar la credencial
-                </button>
               }
             </div>
           }
-        }
-      </article>
-    }
+        </article>
+      }
+    </section>
   }
 </main>

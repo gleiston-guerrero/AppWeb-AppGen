@@ -1,4 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
+
+import { conservarPosicion } from '../shared/desplazamiento';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -42,11 +44,13 @@ export class AdministrationPage implements OnInit {
   }
 
   protected cargar(): void {
+    const volver = conservarPosicion();
     this.cargando.set(true);
     this.service.pendientes().subscribe({
       next: (lista) => {
         this.pendientes.set(lista);
         this.cargando.set(false);
+        volver();
       },
       error: (fallo: HttpErrorResponse) => {
         this.error.set(this.explicar(fallo));

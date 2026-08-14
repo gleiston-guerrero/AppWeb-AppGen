@@ -1,0 +1,249 @@
+<main class="pagina contenedor">
+  <header class="cabecera">
+    <div>
+      <p class="eyebrow">Especificación</p>
+      <h1 class="titulo">Casos de uso e historias de {{ projectId }}</h1>
+    </div>
+    <div class="cabecera__enlaces">
+      <a routerLink="/proyecto/{{ projectId }}/requisitos">Requisitos</a>
+      <a routerLink="/proyecto/{{ projectId }}/generacion">Pruebas y diagramas</a>
+      <a routerLink="/proyecto/{{ projectId }}/servicios-ia">Servicios de IA</a>
+    </div>
+  </header>
+
+  @if (aviso(); as m) { <p class="aviso" role="status">{{ m }}</p> }
+  @if (error(); as m) { <p class="error" role="alert">{{ m }}</p> }
+
+  @if (cargando()) {
+    <p class="vacio">Consultando…</p>
+  } @else if (estado(); as e) {
+
+    <nav class="pestanas" aria-label="Qué se muestra">
+      <button type="button" [class.pestana--activa]="vista() === 'USE_CASE'"
+        (click)="vista.set('USE_CASE')">
+        Casos de uso expandidos ({{ e.useCases.length }})
+      </button>
+      <button type="button" [class.pestana--activa]="vista() === 'USER_STORY'"
+        (click)="vista.set('USER_STORY')">
+        Historias de usuario ({{ e.userStories.length }})
+      </button>
+    </nav>
+
+    <!-- ---------- Producir ---------- -->
+    @if (esEquipo()) {
+      <section class="panel">
+        <div class="producir">
+          <div class="producir__opcion">
+            <h3 class="eyebrow">Con IA</h3>
+            <p class="panel__nota">
+              El modelo redacta la propuesta a partir de los requisitos aprobados. Es la única vía:
+              la acción del actor —que abre la pantalla, que aporta los datos— no está en ningún
+              requisito, y derivarla sería inventar la interacción.
+            </p>
+
+            @if (e.assisted) {
+              <button type="button" class="btn btn--principal" [disabled]="generando()"
+                (click)="generar()">
+                {{ generando() ? 'Generando…' : 'Generar con IA' }}
+              </button>
+              <p class="panel__nota">
+                No se toca lo que ya es regla base: se genera solo para los requisitos que no la
+                tienen.
+              </p>
+            } @else {
+              <p class="producir__aviso">
+                <strong>No hay modelo activo para esta función.</strong>
+                <a routerLink="/proyecto/{{ projectId }}/servicios-ia">Configúrelo</a>
+                en Servicios de IA → Generar casos de uso e historias. Mientras tanto puede
+                escribirlas a mano, aquí al lado.
+              </p>
+            }
+          </div>
+
+          <div class="producir__opcion">
+            <h3 class="eyebrow">Sin IA</h3>
+            <p class="panel__nota">
+              Escríbala usted, con los campos de las tablas 8 y 9 del manuscrito. Se comprueba
+              igual que lo generado: lo escrito a mano no es más fiable, solo tiene otro autor.
+            </p>
+            <button type="button" class="btn btn--plano" (click)="empezarDeCero()">
+              Escribir desde cero
+            </button>
+          </div>
+        </div>
+      </section>
+    }
+
+    <!-- ---------- Formulario ---------- -->
+    @if (creando()) {
+      <section class="panel panel--editando">
+        <h3 class="eyebrow">
+          Nueva {{ vista() === 'USE_CASE' ? 'caso de uso expandido' : 'historia de usuario' }}
+        </h3>
+
+        <label class="campo">
+          <span class="campo__nombre">Nombre</span>
+          <input type="text" [(ngModel)]="nombre" name="nombre"
+            placeholder="Frase breve que lo identifique" aria-label="Nombre" />
+        </label>
+
+        <label class="campo">
+          <span class="campo__nombre">Requisitos que realiza</span>
+          <input type="text" [(ngModel)]="requisitos" name="requisitos"
+            placeholder="REQ-0001-v1, REQ-0004-v1" aria-label="Requisitos" />
+        </label>
+
+        <label class="campo">
+          <span class="campo__nombre">Campos</span>
+          <textarea rows="20" class="editor" [(ngModel)]="campos" name="campos"
+            aria-label="Campos"></textarea>
+        </label>
+
+        <div class="acciones">
+          <button type="button" class="btn btn--principal" [disabled]="guardando()"
+            (click)="guardar(null)">
+            {{ guardando() ? 'Guardando…' : 'Crear' }}
+          </button>
+          <button type="button" class="btn btn--plano" (click)="creando.set(false)">
+            Cancelar
+          </button>
+        </div>
+      </section>
+    }
+
+    <!-- ---------- Aviso de reglas base atrasadas ---------- -->
+    @if (atrasadas().length > 0) {
+      <p class="atrasadas">
+        {{ atrasadas().length }} reglas base se refieren a requisitos que han cambiado desde que
+        se aceptaron. Reviselas: lo que el equipo dio por bueno describía otro texto.
+      </p>
+    }
+
+    @if (reglasBase() > 0) {
+      <p class="panel__nota">
+        {{ reglasBase() }} son regla base: se conservan aunque se vuelva a generar.
+      </p>
+    }
+
+    @if (visibles().length === 0) {
+      <p class="vacio">Nada todavía.</p>
+    }
+
+    <!-- ---------- Lista ---------- -->
+    <ul class="lista">
+      @for (s of visibles(); track s.readableId) {
+        <li class="spec" [class.spec--base]="s.baseline" [class.spec--atrasada]="s.outdated">
+          <div class="spec__fila" (click)="alternar(s)">
+            <span class="mono">{{ s.readableId }}</span>
+            <span class="spec__nombre">{{ s.name }}</span>
+
+            @if (s.baseline) {
+              <span class="estado estado--ACCEPTED">Regla base</span>
+            } @else {
+              <span class="estado">
+                {{ s.status === 'PROPOSED' ? 'Propuesta' : s.status === 'DISCARDED' ? 'Descartada' : 'Borrador' }}
+              </span>
+            }
+
+            @if (s.outdated) { <span class="marca-atrasada">requisito cambiado</span> }
+            <span class="procedencia">{{ s.originLabel }}</span>
+            @if (s.issues.length > 0) {
+              <span class="reparos">{{ s.issues.length }} reparos</span>
+            }
+          </div>
+
+          @if (abierto() === s.readableId) {
+            <div class="spec__cuerpo">
+              @if (s.requirements.length > 0) {
+                <p class="spec__requisitos">
+                  Realiza:
+                  @for (r of s.requirements; track r) { <span class="origen">{{ r }}</span> }
+                </p>
+              }
+
+              @if (s.issues.length > 0) {
+                <div class="reparos__lista">
+                  <p class="eyebrow">Reparos de la comprobación</p>
+                  <ul>
+                    @for (i of s.issues; track i.field + i.reason) {
+                      <li [class.reparo--grave]="i.severe">
+                        <span class="mono">{{ i.field }}</span> {{ i.reason }}
+                      </li>
+                    }
+                  </ul>
+                  <p class="panel__nota">
+                    Informan; no impiden aceptar. <strong>La decisión es del equipo.</strong>
+                  </p>
+                </div>
+              }
+
+              @if (editando() === s.readableId) {
+                <label class="campo">
+                  <span class="campo__nombre">Nombre</span>
+                  <input type="text" [(ngModel)]="nombre" [name]="'n-' + s.readableId"
+                    aria-label="Nombre" />
+                </label>
+                <label class="campo">
+                  <span class="campo__nombre">Requisitos que realiza</span>
+                  <input type="text" [(ngModel)]="requisitos" [name]="'r-' + s.readableId"
+                    aria-label="Requisitos" />
+                </label>
+                <label class="campo">
+                  <span class="campo__nombre">Campos</span>
+                  <textarea rows="20" class="editor" [(ngModel)]="campos"
+                    [name]="'c-' + s.readableId" aria-label="Campos"></textarea>
+                </label>
+
+                <div class="acciones">
+                  <button type="button" class="btn btn--principal" [disabled]="guardando()"
+                    (click)="guardar(s)">
+                    {{ guardando() ? 'Guardando…' : 'Actualizar' }}
+                  </button>
+                  <button type="button" class="btn btn--plano" (click)="editando.set(null)">
+                    Cancelar
+                  </button>
+                </div>
+              } @else {
+                <pre class="contenido"><code>{{ formatear(s.fields) }}</code></pre>
+
+                @if (esEquipo()) {
+                  <div class="acciones">
+                    @if (!s.baseline) {
+                      <button type="button" class="btn btn--aceptar" (click)="aceptar(s)">
+                        {{ s.issues.length > 0 ? 'Aceptar de todos modos' : 'Aceptar' }}
+                      </button>
+                    }
+                    <button type="button" class="btn btn--plano" (click)="abrirEdicion(s)">
+                      Modificar
+                    </button>
+                    @if (s.baseline) {
+                      <button type="button" class="btn btn--plano" (click)="retirarReglaBase(s)">
+                        Retirar regla base
+                      </button>
+                    } @else {
+                      <button type="button" class="btn btn--plano" (click)="descartar(s)">
+                        Descartar
+                      </button>
+                      <button type="button" class="btn btn--plano" (click)="eliminar(s)">
+                        Eliminar
+                      </button>
+                    }
+
+                    @if (s.acceptedBy) {
+                      <span class="quien">
+                        aceptada por {{ s.acceptedBy }}
+                        @if (s.acceptedWithIssues > 0) {
+                          · con {{ s.acceptedWithIssues }} reparos
+                        }
+                      </span>
+                    }
+                  </div>
+                }
+              }
+            </div>
+          }
+        </li>
+      }
+    </ul>
+  }
+</main>

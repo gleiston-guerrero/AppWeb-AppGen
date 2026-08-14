@@ -656,3 +656,40 @@ input:focus, select:focus, textarea:focus { background: var(--surface); border-c
 
 .aplicar { display: flex; gap: 0.5rem; align-items: center; font-size: var(--step--1); }
 .acciones { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.7rem; }
+
+/* Credenciales, separadas de las funciones que las usan. */
+.bloque { margin-bottom: var(--gap-m); }
+.bloque__titulo {
+  font-size: var(--step-1); font-weight: 600;
+  padding-bottom: 0.3rem; border-bottom: 1px solid var(--rule); margin-bottom: 0.5rem;
+}
+.bloque__que { font-size: var(--step--1); color: var(--ink-soft); max-width: 84ch; margin-bottom: 0.7rem; }
+.bloque__aviso { font-size: var(--step--1); color: #b07d2b; margin-bottom: 0.6rem; }
+
+.credencial { background: var(--surface); border: 1px solid var(--rule); padding: 0.7rem 1rem; margin-bottom: 0.4rem; }
+.credencial__fila { display: flex; gap: 0.8rem; align-items: baseline; flex-wrap: wrap; font-size: var(--step--1); }
+.credencial__nombre { font-weight: 500; }
+.credencial__pista { color: var(--ink-faint); }
+.credencial__prueba {
+  font-size: var(--step--1); background: var(--paper); border-left: 3px solid var(--rule);
+  padding: 0.5rem 0.8rem; margin-top: 0.5rem; max-width: 80ch;
+}
+
+.anadir { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; margin-top: 0.6rem; }
+.anadir__etiqueta { font-size: var(--step--1); color: var(--ink-faint); }
+
+.funcion__eleccion { display: flex; gap: 0.3rem; align-items: center; flex-wrap: wrap; margin: 0.6rem 0 0.3rem; }
+.vacio--interior { padding: 0.5rem 0; }
+
+/* Instrucciones editables, una por función. */
+.prompt { background: var(--surface); border: 1px solid var(--rule); padding: 0.7rem 1rem; margin-bottom: 0.4rem; }
+.prompt__fila { display: flex; gap: 0.7rem; align-items: center; flex-wrap: wrap; font-size: var(--step--1); }
+.prompt__nombre { font-weight: 500; margin-right: auto; }
+.prompt__editor { margin-top: 0.7rem; }
+.prompt__aviso {
+  font-size: var(--step--1); color: #b07d2b; background: #fdf8ef;
+  border-left: 3px solid #b07d2b; padding: 0.5rem 0.8rem; margin: 0.5rem 0; max-width: 80ch;
+}
+.marcas { display: flex; flex-direction: column; gap: 0.2rem; margin: 0.3rem 0 0.6rem; font-size: var(--step--1); }
+.marcas__que { color: var(--ink-soft); margin-left: 0.5rem; }
+.editor { width: 100%; font-family: var(--mono); font-size: 0.74rem; line-height: 1.5; }

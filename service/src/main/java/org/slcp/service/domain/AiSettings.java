@@ -2,29 +2,34 @@ package org.slcp.service.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.IdClass;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
+import jakarta.persistence.IdClass;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
+import java.io.Serializable;
 import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Configuracion del servicio de IA de un proyecto.
+ * Que proveedor sirve a cada funcion de un proyecto.
  *
- * <p>La credencial se guarda cifrada y esta clase no la descifra: solo la
- * custodia. Quien necesite usarla ha de pedirla expresamente al servicio que
- * tiene la clave maestra, y ese paso extra es a proposito.</p>
+ * <p>Aqui no vive ninguna credencial: las claves pertenecen al proveedor, se
+ * guardan en {@link AiCredential}, y varias pueden convivir. Eso es lo que
+ * permite comparar cuatro proveedores sin perder la clave de los otros tres cada
+ * vez que se cambia de uno.</p>
+ *
+ * <p>Esta entidad solo dice a cual se llama en cada funcion, y si la asistencia
+ * esta activa.</p>
  */
 @Entity
 @Table(name = "ai_settings")
 @IdClass(AiSettings.Clave.class)
 public class AiSettings {
 
-	/** Clave compuesta: cada funcion de cada proyecto tiene su configuracion. */
-	public record Clave(UUID projectId, AiFeature feature) implements java.io.Serializable {
+	/** Clave compuesta: cada funcion de cada proyecto elige su proveedor. */
+	public record Clave(UUID projectId, AiFeature feature) implements Serializable {
 
 		public Clave() {
 			this(null, null);
@@ -32,29 +37,17 @@ public class AiSettings {
 	}
 
 	@Id
+	@Column(name = "project_id", nullable = false, updatable = false)
+	private UUID projectId;
+
+	@Id
 	@Enumerated(EnumType.STRING)
 	@Column(name = "feature", nullable = false, length = 40, updatable = false)
 	private AiFeature feature;
 
-	@Id
-	@Column(name = "project_id", nullable = false, updatable = false)
-	private UUID projectId;
-
 	@Enumerated(EnumType.STRING)
 	@Column(name = "provider", nullable = false, length = 30)
 	private AiProvider provider;
-
-	@Column(name = "model", nullable = false, length = 120)
-	private String model;
-
-	@Column(name = "base_url", nullable = false, length = 400)
-	private String baseUrl;
-
-	@Column(name = "api_key_cipher")
-	private String apiKeyCipher;
-
-	@Column(name = "key_hint", length = 12)
-	private String keyHint;
 
 	@Column(name = "enabled", nullable = false)
 	private boolean enabled;
@@ -79,8 +72,6 @@ public class AiSettings {
 		s.projectId = projectId;
 		s.feature = feature;
 		s.provider = AiProvider.ANTHROPIC;
-		s.model = AiProvider.ANTHROPIC.getModeloPorDefecto();
-		s.baseUrl = AiProvider.ANTHROPIC.getDireccionPorDefecto();
 		s.enabled = false;
 		s.updatedBy = autor;
 		s.updatedAt = momento;
@@ -88,73 +79,30 @@ public class AiSettings {
 	}
 
 	/**
-	 * Cambia proveedor, modelo y direccion.
+	 * Elige que proveedor sirve a esta funcion.
 	 *
-	 * <p>Cambiar de proveedor retira la credencial: una clave de un servicio no
-	 * vale en otro, y conservarla haria que la plataforma la enviase a un tercero
-	 * distinto del que la emitio.</p>
+	 * <p>No retira ninguna credencial: viven aparte y varias conviven. Cambiar de
+	 * proveedor aqui solo cambia a cual se llama, y la clave del anterior sigue
+	 * guardada por si se vuelve a el.</p>
 	 */
-	public void configurar(AiProvider proveedor, String modelo, String direccion, Instant momento,
-			UUID autor) {
-
-		boolean cambiaDeProveedor = proveedor != null && proveedor != this.provider;
-
-		if (cambiaDeProveedor) {
+	public void configurar(AiProvider proveedor, Instant momento, UUID autor) {
+		if (proveedor != null) {
 			this.provider = proveedor;
-			this.apiKeyCipher = null;
-			this.keyHint = null;
-			this.enabled = false;
 		}
-
-		// Al cambiar de proveedor se toman sus valores habituales aunque no lleguen:
-		// conservar los del anterior dejaria el modelo de un servicio apuntando a
-		// otro, y el fallo aparecería al generar, lejos de donde se decidió.
-		if (modelo != null && !modelo.isBlank()) {
-			this.model = modelo.trim();
-		} else if (cambiaDeProveedor || this.model == null || this.model.isBlank()) {
-			this.model = this.provider.getModeloPorDefecto();
-		}
-
-		if (direccion != null && !direccion.isBlank()) {
-			this.baseUrl = direccion.trim();
-		} else if (cambiaDeProveedor || this.baseUrl == null || this.baseUrl.isBlank()) {
-			this.baseUrl = this.provider.getDireccionPorDefecto();
-		}
-
 		this.updatedBy = autor;
 		this.updatedAt = momento;
 	}
 
-	/** Guarda la credencial ya cifrada, junto con su pista. */
-	public void guardarCredencial(String cifrada, String pista, Instant momento, UUID autor) {
-		this.apiKeyCipher = cifrada;
-		this.keyHint = pista;
-		this.updatedBy = autor;
-		this.updatedAt = momento;
-	}
-
-	/** Retira la credencial y desactiva el servicio: sin clave no puede operar. */
-	public void retirarCredencial(Instant momento, UUID autor) {
-		this.apiKeyCipher = null;
-		this.keyHint = null;
-		this.enabled = false;
-		this.updatedBy = autor;
-		this.updatedAt = momento;
-	}
-
+	/**
+	 * Activa o desactiva la asistencia en esta funcion.
+	 *
+	 * <p>Que exista credencial del proveedor lo comprueba la base de datos: aqui no
+	 * puede saberse, porque las credenciales viven en otra tabla.</p>
+	 */
 	public void activar(boolean activo, Instant momento, UUID autor) {
-		if (activo && apiKeyCipher == null) {
-			throw new IllegalStateException(
-					"No puede activarse sin credencial: quedaria activo de nombre y fallaria en "
-							+ "cada generacion, y ese fallo se leeria como que el modelo no sirve");
-		}
 		this.enabled = activo;
 		this.updatedBy = autor;
 		this.updatedAt = momento;
-	}
-
-	public boolean tieneCredencial() {
-		return apiKeyCipher != null;
 	}
 
 	public UUID getProjectId() {
@@ -169,32 +117,15 @@ public class AiSettings {
 		return provider;
 	}
 
-	public String getModel() {
-		return model;
-	}
-
-	public String getBaseUrl() {
-		return baseUrl;
-	}
-
-	/** Solo lo usa quien tiene la clave maestra para descifrarla. */
-	public String getApiKeyCipher() {
-		return apiKeyCipher;
-	}
-
-	public String getKeyHint() {
-		return keyHint;
-	}
-
 	public boolean isEnabled() {
 		return enabled;
 	}
 
-	public Instant getUpdatedAt() {
-		return updatedAt;
-	}
-
 	public UUID getUpdatedBy() {
 		return updatedBy;
+	}
+
+	public Instant getUpdatedAt() {
+		return updatedAt;
 	}
 }

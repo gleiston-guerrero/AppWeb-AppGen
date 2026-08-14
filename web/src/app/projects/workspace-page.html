@@ -159,14 +159,27 @@
               </ul>
             </div>
 
-            <div class="proyecto__acciones">
+            <div class="proyecto__estado">
               <span class="equipo__tamano">{{ p.teamSize }} en el equipo</span>
               @if (p.status !== 'ACTIVE') {
                 <span class="retirado">Retirado del servicio</span>
               }
-              <a class="btn btn--plano" [routerLink]="['/proyecto', p.readableId, 'requisitos']">
-                Requisitos
-              </a>
+            </div>
+
+            <!-- Navegación: son enlaces, no acciones. Mezclarlas en una sola fila
+                 daba diez botones que se salían de la página. -->
+            <nav class="proyecto__ir" aria-label="Secciones del proyecto">
+              <a [routerLink]="['/proyecto', p.readableId, 'requisitos']">Requisitos</a>
+              <a [routerLink]="['/proyecto', p.readableId, 'entregables']">Entregables</a>
+              <a [routerLink]="['/proyecto', p.readableId, 'especificaciones']">Casos de uso e historias</a>
+              <a [routerLink]="['/proyecto', p.readableId, 'plan']">Planificación</a>
+              <a [routerLink]="['/proyecto', p.readableId, 'generacion']">Pruebas y diagramas</a>
+              <a [routerLink]="['/proyecto', p.readableId, 'informe-requisitos']">Informe</a>
+              <a [routerLink]="['/proyecto', p.readableId, 'servicios-ia']">Servicios de IA</a>
+              <a [routerLink]="['/proyecto', p.readableId, 'ensayo-ia']">Comparar proveedores</a>
+            </nav>
+
+            <div class="proyecto__acciones">
               <button type="button" class="btn btn--plano" (click)="alternarEquipo(p)">
                 {{ abierto() === p.readableId ? 'Ocultar equipo' : 'Ver equipo' }}
               </button>
@@ -196,6 +209,7 @@
                       <th>Persona</th>
                       <th>Usuario</th>
                       <th>Rol</th>
+                      <th></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -203,7 +217,46 @@
                       <tr>
                         <td>{{ m.fullName }}</td>
                         <td class="mono">{{ m.username }}</td>
-                        <td>{{ m.roleLabel }}</td>
+                        <td>
+                          @if (cambiandoRol() === m.username) {
+                            <select [(ngModel)]="rolDeCambio" [name]="'rol-' + m.username"
+                              aria-label="Rol nuevo">
+                              <option value="TEAM_MEMBER">Miembro del equipo</option>
+                              <option value="PROJECT_FACILITATOR">Facilitador de proyectos</option>
+                              <option value="PRODUCT_OWNER">Propietario del producto</option>
+                              <option value="STAKEHOLDER">Parte interesada</option>
+                            </select>
+                          } @else {
+                            {{ m.roleLabel }}
+                          }
+                        </td>
+                        <td class="acciones-miembro">
+                          @if (esFacilitadorDe(p)) {
+                            @if (cambiandoRol() === m.username) {
+                              <button type="button" class="btn btn--principal" (click)="guardarRol(p, m)">
+                                Guardar
+                              </button>
+                              <button type="button" class="btn btn--plano" (click)="cancelarCambioDeRol()">
+                                Cancelar
+                              </button>
+                            } @else if (retirando() === m.username) {
+                              <span class="miembro__aviso">¿Retirar? Su rastro se conserva.</span>
+                              <button type="button" class="btn btn--eliminar" (click)="retirar(p, m)">
+                                Sí
+                              </button>
+                              <button type="button" class="btn btn--plano" (click)="cancelarRetirada()">
+                                No
+                              </button>
+                            } @else {
+                              <button type="button" class="btn btn--plano" (click)="empezarCambioDeRol(m)">
+                                Cambiar rol
+                              </button>
+                              <button type="button" class="btn btn--plano" (click)="pedirRetirada(m)">
+                                Retirar
+                              </button>
+                            }
+                          }
+                        </td>
                       </tr>
                     }
                   </tbody>

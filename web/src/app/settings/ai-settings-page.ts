@@ -6,7 +6,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ProjectService } from '../projects/project-service';
 import { ApiError } from '../registration/registration';
 import { conservarPosicion } from '../shared/desplazamiento';
-import { FeatureSettings, Provider } from './ai-settings';
+import { Credential, FeatureSettings, Prompt, Provider } from './ai-settings';
 import { AiSettingsService } from './ai-settings-service';
 
 /**
@@ -30,6 +30,8 @@ export class AiSettingsPage implements OnInit {
 
   protected projectId = '';
   protected readonly funciones = signal<FeatureSettings[]>([]);
+  protected readonly credenciales = signal<Credential[]>([]);
+  protected readonly prompts = signal<Prompt[]>([]);
   protected readonly proveedores = signal<Provider[]>([]);
   protected readonly cargando = signal(true);
   protected readonly error = signal<string | null>(null);
@@ -37,6 +39,12 @@ export class AiSettingsPage implements OnInit {
   protected readonly esFacilitador = signal(false);
 
   /** Qué función se está editando. Solo una a la vez. */
+  /** Qué credencial se está editando, por proveedor. */
+  protected readonly editandoCredencial = signal<string | null>(null);
+
+  /** Qué instrucción se está editando, por función. */
+  protected readonly editandoPrompt = signal<string | null>(null);
+  protected instruccion = '';
   protected readonly editando = signal<string | null>(null);
   protected readonly guardando = signal(false);
   protected readonly probando = signal<string | null>(null);
@@ -48,7 +56,6 @@ export class AiSettingsPage implements OnInit {
   protected clave = '';
 
   /** Si se copia lo guardado al resto de funciones sin configurar. */
-  protected aplicarATodas = false;
 
   protected readonly dondeLaClave = computed(
     () => this.proveedores().find((p) => p.id === this.proveedorElegido)?.keysUrl ?? '',
@@ -60,6 +67,12 @@ export class AiSettingsPage implements OnInit {
   );
 
   protected readonly activas = computed(() => this.funciones().filter((f) => f.enabled).length);
+
+  /** Proveedores sin credencial: los que aún pueden añadirse. */
+  protected readonly sinGuardar = computed(() => {
+    const guardados = new Set(this.credenciales().map((c) => c.provider));
+    return this.proveedores().filter((p) => !guardados.has(p.id));
+  });
 
   ngOnInit(): void {
     this.projectId = this.ruta.snapshot.paramMap.get('projectId') ?? '';
@@ -84,6 +97,16 @@ export class AiSettingsPage implements OnInit {
     const volver = conservarPosicion();
     this.cargando.set(true);
 
+    this.service.prompts(this.projectId).subscribe({
+      next: (l) => this.prompts.set(l),
+      error: () => this.prompts.set([]),
+    });
+
+    this.service.credenciales(this.projectId).subscribe({
+      next: (l) => this.credenciales.set(l),
+      error: () => this.credenciales.set([]),
+    });
+
     this.service.funciones(this.projectId).subscribe({
       next: (l) => {
         this.funciones.set(l);
@@ -97,82 +120,153 @@ export class AiSettingsPage implements OnInit {
     });
   }
 
-  // --- Edición ---
-
-  protected editar(f: FeatureSettings): void {
-    this.editando.set(f.feature);
-    this.proveedorElegido = f.provider;
-    this.modelo = f.model;
-    this.direccion = f.baseUrl;
-    this.clave = '';
-    this.aplicarATodas = false;
-    this.error.set(null);
-  }
+  // --- Credenciales, una por proveedor ---
 
   /** Al cambiar de proveedor se proponen su dirección y su modelo habituales. */
   protected cambiarProveedor(id: string): void {
     this.proveedorElegido = id;
+
+    const guardada = this.credenciales().find((c) => c.provider === id);
     const p = this.proveedores().find((x) => x.id === id);
 
-    if (p) {
-      this.modelo = p.defaultModel;
-      this.direccion = p.defaultUrl;
-    }
+    this.modelo = guardada?.model ?? p?.defaultModel ?? '';
+    this.direccion = guardada?.baseUrl ?? p?.defaultUrl ?? '';
     // La clave del proveedor anterior no vale en el nuevo.
     this.clave = '';
   }
 
-  protected guardar(f: FeatureSettings): void {
+  protected editarCredencial(providerId: string): void {
+    this.editandoCredencial.set(providerId);
+    this.editando.set(null);
+
+    const c = this.credenciales().find((x) => x.provider === providerId);
+    const p = this.proveedores().find((x) => x.id === providerId);
+
+    this.proveedorElegido = providerId;
+    this.modelo = c?.model ?? p?.defaultModel ?? '';
+    this.direccion = c?.baseUrl ?? p?.defaultUrl ?? '';
+    this.clave = '';
+    this.error.set(null);
+  }
+
+  protected guardarCredencial(): void {
     this.guardando.set(true);
     this.error.set(null);
 
-    const datos = {
-      provider: this.proveedorElegido,
-      model: this.modelo.trim(),
-      baseUrl: this.direccion.trim(),
-      apiKey: this.clave.trim() || undefined,
-    };
-
-    // Si se pidió aplicar a todas, se copia a las que aún no tienen credencial:
-    // sobrescribir las que sí la tienen borraría una decisión ya tomada.
-    const destinos = this.aplicarATodas
-      ? [f.feature, ...this.funciones().filter((x) => !x.hasKey && x.feature !== f.feature)
-          .map((x) => x.feature)]
-      : [f.feature];
-
-    let pendientes = destinos.length;
-    let fallo: HttpErrorResponse | null = null;
-
-    for (const destino of destinos) {
-      this.service.guardar(this.projectId, destino, datos).subscribe({
-        next: () => this.terminar(--pendientes, fallo, destinos.length),
-        error: (e: HttpErrorResponse) => {
-          fallo = e;
-          this.terminar(--pendientes, fallo, destinos.length);
+    this.service
+      .guardarCredencial(this.projectId, this.proveedorElegido, {
+        model: this.modelo.trim(),
+        baseUrl: this.direccion.trim(),
+        apiKey: this.clave.trim() || undefined,
+      })
+      .subscribe({
+        next: () => {
+          this.guardando.set(false);
+          this.editandoCredencial.set(null);
+          // La clave se borra del formulario en cuanto se envía: dejarla escrita
+          // la expone a quien mire la pantalla después.
+          this.clave = '';
+          this.aviso.set('Credencial guardada. Vale para todas las funciones que usen ese proveedor.');
+          this.cargar();
+        },
+        error: (fallo: HttpErrorResponse) => {
+          this.guardando.set(false);
+          this.error.set(this.explicar(fallo));
         },
       });
-    }
-
-    // La clave se borra del formulario en cuanto se envía: dejarla escrita la
-    // expone a quien mire la pantalla después.
-    this.clave = '';
   }
 
-  private terminar(pendientes: number, fallo: HttpErrorResponse | null, total: number): void {
-    if (pendientes > 0) {
-      return;
-    }
-    this.guardando.set(false);
-    this.editando.set(null);
+  protected retirarCredencial(c: Credential): void {
+    this.service.retirarCredencial(this.projectId, c.provider).subscribe({
+      next: () => {
+        this.aviso.set(
+          `Credencial de ${c.providerLabel} retirada. Las funciones que la usaban quedan desactivadas.`,
+        );
+        this.cargar();
+      },
+      error: (fallo: HttpErrorResponse) => this.error.set(this.explicar(fallo)),
+    });
+  }
 
-    if (fallo) {
-      this.error.set(this.explicar(fallo));
-    } else {
-      this.aviso.set(
-        total === 1 ? 'Configuración guardada.' : `Configuración guardada en ${total} funciones.`,
-      );
-    }
-    this.cargar();
+  protected probar(c: Credential): void {
+    this.probando.set(c.provider);
+
+    this.service.probar(this.projectId, c.provider).subscribe({
+      next: (r) => {
+        this.probando.set(null);
+        this.resultado.set({ ...this.resultado(), [c.provider]: r.message });
+      },
+      error: (fallo: HttpErrorResponse) => {
+        this.probando.set(null);
+        this.error.set(this.explicar(fallo));
+      },
+    });
+  }
+
+  // --- Instrucciones, una por función ---
+
+  protected editarPrompt(p: Prompt): void {
+    this.editandoPrompt.set(p.feature);
+    this.editandoCredencial.set(null);
+    this.instruccion = p.template;
+    this.error.set(null);
+  }
+
+  /** Devuelve el texto a la de fábrica sin guardarlo todavía. */
+  protected verFabrica(p: Prompt): void {
+    this.instruccion = p.defaultTemplate;
+  }
+
+  protected marcas(p: Prompt): { marca: string; que: string }[] {
+    return Object.entries(p.placeholders).map(([marca, que]) => ({ marca, que }));
+  }
+
+  /** Marcas que la instrucción editada ha perdido. */
+  protected marcasPerdidas(p: Prompt): string[] {
+    return Object.keys(p.placeholders).filter((m) => !this.instruccion.includes(m));
+  }
+
+  protected guardarPrompt(p: Prompt): void {
+    this.guardando.set(true);
+    this.error.set(null);
+
+    this.service.guardarPrompt(this.projectId, p.feature, this.instruccion).subscribe({
+      next: () => {
+        this.guardando.set(false);
+        this.editandoPrompt.set(null);
+        this.aviso.set(
+          `Instrucción de ${p.featureLabel} guardada. La usarán todos los proveedores de esa función.`,
+        );
+        this.cargar();
+      },
+      error: (fallo: HttpErrorResponse) => {
+        this.guardando.set(false);
+        this.error.set(this.explicar(fallo));
+      },
+    });
+  }
+
+  protected restaurarPrompt(p: Prompt): void {
+    this.service.restaurarPrompt(this.projectId, p.feature).subscribe({
+      next: () => {
+        this.editandoPrompt.set(null);
+        this.aviso.set(`Instrucción de ${p.featureLabel} devuelta a la de fábrica.`);
+        this.cargar();
+      },
+      error: (fallo: HttpErrorResponse) => this.error.set(this.explicar(fallo)),
+    });
+  }
+
+  // --- Qué proveedor sirve a cada función ---
+
+  protected elegirProveedor(f: FeatureSettings, provider: string): void {
+    this.service.elegirProveedor(this.projectId, f.feature, provider).subscribe({
+      next: () => {
+        this.aviso.set(`${f.featureLabel} usará ${provider}.`);
+        this.cargar();
+      },
+      error: (fallo: HttpErrorResponse) => this.error.set(this.explicar(fallo)),
+    });
   }
 
   protected activar(f: FeatureSettings, activo: boolean): void {
@@ -184,32 +278,6 @@ export class AiSettingsPage implements OnInit {
         this.cargar();
       },
       error: (fallo: HttpErrorResponse) => this.error.set(this.explicar(fallo)),
-    });
-  }
-
-  protected retirar(f: FeatureSettings): void {
-    this.service.retirarCredencial(this.projectId, f.feature).subscribe({
-      next: () => {
-        this.aviso.set(`${f.featureLabel}: credencial retirada.`);
-        this.cargar();
-      },
-      error: (fallo: HttpErrorResponse) => this.error.set(this.explicar(fallo)),
-    });
-  }
-
-  /** Comprueba la configuración antes de depender de ella. */
-  protected probar(f: FeatureSettings): void {
-    this.probando.set(f.feature);
-
-    this.service.probar(this.projectId, f.feature).subscribe({
-      next: (r) => {
-        this.probando.set(null);
-        this.resultado.set({ ...this.resultado(), [f.feature]: r.message });
-      },
-      error: (fallo: HttpErrorResponse) => {
-        this.probando.set(null);
-        this.error.set(this.explicar(fallo));
-      },
     });
   }
 

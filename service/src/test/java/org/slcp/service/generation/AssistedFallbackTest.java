@@ -6,6 +6,7 @@ import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.slcp.service.domain.AiFeature;
 import org.slcp.service.domain.AiProvider;
 
 /**
@@ -25,8 +26,10 @@ class AssistedFallbackTest {
 
 	/** Un servicio que no responde: red caida, clave caducada o direccion mal. */
 	private TestGenerator conServicioCaido() {
+		// La instruccion se recibe: es de la funcion y comun a todas las APIs.
 		return new AssistedTestGenerator(new DerivedTestGenerator(), AiProvider.ANTHROPIC,
-				"http://127.0.0.1:9/no-existe", "clave-invalida", "modelo", Duration.ofSeconds(1));
+				"http://127.0.0.1:9/no-existe", "clave-invalida", "modelo",
+				PromptCatalog.porDefecto(AiFeature.GENERATE_TESTS), Duration.ofSeconds(1));
 	}
 
 	@Test
@@ -83,7 +86,8 @@ class AssistedFallbackTest {
 	@DisplayName("Sin credencial, el generador se declara no disponible")
 	void sinCredencialNoDisponible() {
 		TestGenerator sinClave = new AssistedTestGenerator(new DerivedTestGenerator(),
-				AiProvider.ANTHROPIC, "http://localhost", "", "modelo", Duration.ofSeconds(1));
+				AiProvider.ANTHROPIC, "http://localhost", "", "modelo",
+				PromptCatalog.porDefecto(AiFeature.GENERATE_TESTS), Duration.ofSeconds(1));
 
 		assertThat(sinClave.generar(REQUISITO, DerivedTestGenerator.ACEPTACION)).hasSize(1);
 	}

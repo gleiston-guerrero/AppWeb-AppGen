@@ -11,10 +11,10 @@ package org.slcp.service.domain;
 public enum AiProvider {
 
 	ANTHROPIC("Anthropic (Claude)", "https://api.anthropic.com/v1/messages",
-			"claude-sonnet-4-6", "https://console.anthropic.com/settings/keys"),
+			"claude-sonnet-5", "https://console.anthropic.com/settings/keys"),
 
 	OPENAI("OpenAI", "https://api.openai.com/v1/chat/completions",
-			"gpt-4o", "https://platform.openai.com/api-keys"),
+			"gpt-5.6-terra", "https://platform.openai.com/api-keys"),
 
 	/**
 	 * DeepSeek.
@@ -30,7 +30,7 @@ public enum AiProvider {
 
 	GOOGLE("Google (Gemini)",
 			"https://generativelanguage.googleapis.com/v1beta/models",
-			"gemini-2.0-flash", "https://aistudio.google.com/apikey"),
+			"gemini-3-flash", "https://aistudio.google.com/apikey"),
 
 	/**
 	 * Cualquier servicio que hable como el de OpenAI.

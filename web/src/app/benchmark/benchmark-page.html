@@ -1,0 +1,173 @@
+<main class="pagina contenedor">
+  <header class="cabecera">
+    <div>
+      <p class="eyebrow">Ensayo</p>
+      <h1 class="titulo">Comparar proveedores de {{ projectId }}</h1>
+    </div>
+    <div class="cabecera__enlaces">
+      <a routerLink="/proyecto/{{ projectId }}/servicios-ia">Servicios de IA</a>
+      <a routerLink="/proyecto/{{ projectId }}/generacion">Pruebas y diagramas</a>
+      <a routerLink="/trabajo">Mi trabajo</a>
+    </div>
+  </header>
+
+  @if (aviso(); as m) { <p class="aviso" role="status">{{ m }}</p> }
+  @if (error(); as m) { <p class="error" role="alert">{{ m }}</p> }
+
+  <section class="intro">
+    <p>
+      Las comparativas publicadas miden con conjuntos de propósito general: preguntas de
+      conocimiento, razonamiento, código. <strong>Ninguna mide redactar una prueba a partir de un
+      requisito de su dominio, en castellano.</strong> Aquí se mide sobre los requisitos de este
+      proyecto, llamando a cada proveedor con la misma entrada y la misma instrucción.
+    </p>
+    <p class="intro__nota">
+      Las medidas son cuentas, no juicios de calidad. La que de verdad importa —cuántas propuestas
+      acepta el equipo sin tocarlas— la da el uso posterior, no este ensayo.
+    </p>
+  </section>
+
+  @if (esEquipo()) {
+    <section class="panel">
+      <h2 class="eyebrow">Nuevo ensayo</h2>
+
+      <div class="opciones">
+        <label class="campo">
+          <span class="campo__nombre">Función</span>
+          <select [ngModel]="funcion" name="funcion" (ngModelChange)="cambiarFuncion($event)"
+            aria-label="Función">
+            @for (f of FUNCIONES; track f.id) {
+              <option [value]="f.id">{{ f.etiqueta }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="campo">
+          <span class="campo__nombre">Qué se genera</span>
+          <select [(ngModel)]="clase" name="clase" aria-label="Clase">
+            @for (c of clases(); track c.id) {
+              <option [value]="c.id">{{ c.etiqueta }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="campo campo--ancho">
+          <span class="campo__nombre">Nota (opcional)</span>
+          <input type="text" [(ngModel)]="notas" name="notas"
+            placeholder="Para qué se hace este ensayo" aria-label="Nota" />
+        </label>
+      </div>
+
+      <h3 class="eyebrow">Proveedores a comparar</h3>
+
+      @if (disponibles().length === 0) {
+        <p class="panel__nota">
+          No hay ninguna credencial guardada.
+          <a routerLink="/proyecto/{{ projectId }}/servicios-ia">Guárdelas</a>
+          primero: llamar a un proveedor sin clave solo daría una columna de fallos.
+        </p>
+      } @else if (disponibles().length === 1) {
+        <p class="panel__nota">
+          Solo hay una credencial guardada. Un ensayo compara: guarde al menos otra en
+          <a routerLink="/proyecto/{{ projectId }}/servicios-ia">Servicios de IA</a>. Guardar una
+          nueva no borra las anteriores.
+        </p>
+      }
+
+      <ul class="proveedores">
+        @for (p of disponibles(); track p.provider) {
+          <li class="proveedor" [class.proveedor--elegido]="elegido(p.provider)"
+              (click)="alternarProveedor(p.provider)">
+            <span class="proveedor__marca">{{ elegido(p.provider) ? '✓' : '' }}</span>
+            <span class="proveedor__nombre">{{ p.providerLabel }}</span>
+            <span class="mono proveedor__modelo">{{ p.model }}</span>
+          </li>
+        }
+      </ul>
+
+      <div class="acciones">
+        <button type="button" class="btn btn--principal"
+          [disabled]="ejecutando() || disponibles().length < 2" (click)="ejecutar()">
+          {{ ejecutando() ? 'Ensayando…' : 'Ejecutar el ensayo' }}
+        </button>
+      </div>
+
+      <p class="panel__nota">
+        Se ensaya con tres requisitos aprobados. Bastan para comparar y no agotan la cuota de
+        nadie: ensayar con veinte multiplicaría el gasto sin cambiar la conclusión. Y nada de lo
+        generado se guarda como artefacto del proyecto.
+      </p>
+    </section>
+  }
+
+  @if (cargando()) {
+    <p class="vacio">Consultando…</p>
+  } @else if (ensayos().length === 0) {
+    <p class="vacio">Ningún ensayo todavía.</p>
+  }
+
+  @for (r of ensayos(); track r.id) {
+    <article class="ensayo">
+      <div class="ensayo__fila" (click)="alternar(r)">
+        <span class="ensayo__funcion">{{ r.featureLabel }}</span>
+        @if (r.subkind) { <span class="clase-etiqueta">{{ r.subkind }}</span> }
+        <span class="ensayo__cuando">{{ fecha(r.runAt) }}</span>
+        @if (r.runBy) { <span class="quien">{{ r.runBy }}</span> }
+        <span class="mono">{{ r.results.length }} proveedores</span>
+      </div>
+
+      @if (abierto() === r.id) {
+        <div class="ensayo__cuerpo">
+          @if (r.notes) { <p class="ensayo__nota">{{ r.notes }}</p> }
+
+          <p class="ensayo__requisitos">
+            Sobre:
+            @for (q of r.requirements; track q) { <span class="origen">{{ q }}</span> }
+          </p>
+
+          <table class="tabla-ensayo">
+            <thead>
+              <tr>
+                <th>Proveedor</th><th>Modelo</th><th>Produjo</th><th>Sin huecos</th>
+                <th>Cifras inventadas</th><th>Reparos</th><th>Tardó</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (x of r.results; track x.provider + x.model) {
+                <tr [class.fila--fallo]="x.failed">
+                  <td>{{ x.providerLabel }}</td>
+                  <td class="mono">{{ x.model }}</td>
+                  @if (x.failed) {
+                    <td colspan="5" class="fallo">{{ x.failureReason }}</td>
+                  } @else {
+                    <td>{{ x.produced }}</td>
+                    <td><strong>{{ completas(x) }}</strong></td>
+                    <td>{{ x.invented }}</td>
+                    <td>{{ x.issues }}</td>
+                    <td>{{ segundos(x.elapsedMs) }}</td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+
+          <p class="ensayo__leyenda">
+            <strong>Sin huecos</strong>: proporción que no necesita que nadie decida nada más.
+            <strong>Cifras inventadas</strong>: magnitudes que el modelo puso y no estaban en el
+            requisito; la salvaguarda las sustituyó, y contarlas mide cuánto se inventa cada uno.
+            Menos es mejor.
+          </p>
+
+          @for (x of r.results; track x.provider + '-muestra') {
+            @if (x.sample) {
+              <details class="muestra">
+                <summary>Ver lo que produjo {{ x.providerLabel }}</summary>
+                <pre class="contenido"><code>{{ x.sample }}</code></pre>
+              </details>
+            }
+          }
+        </div>
+      }
+    </article>
+  }
+</main>

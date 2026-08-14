@@ -1,4 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
+
+import { volverAlElemento } from '../shared/desplazamiento';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -262,10 +264,11 @@ export class DeliverablesPage implements OnInit {
   }
 
   /** Devuelve la vista al entregable indicado. */
+  /** Devuelve la vista al elemento indicado. */
+  private readonly prefijo = 'ent-';
+
   private volverA(readableId: string): void {
-    document
-      .getElementById('ent-' + readableId)
-      ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    volverAlElemento(this.prefijo + readableId);
   }
 
   protected alternarDetalle(d: Deliverable): void {

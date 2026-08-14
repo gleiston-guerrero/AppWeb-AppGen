@@ -33,6 +33,7 @@ import org.slcp.service.ingestion.ParsedRequirement;
 import org.slcp.service.ingestion.RequirementSource;
 import org.slcp.service.ingestion.RequirementLinter;
 import org.slcp.service.ingestion.DomainClassifier;
+import org.slcp.service.ingestion.FieldValidator;
 import org.slcp.service.ingestion.DomainCoherence;
 import org.slcp.service.ingestion.StatementSimilarity;
 import org.slcp.service.ingestion.StatementSuggester;
@@ -47,6 +48,7 @@ import org.slcp.service.requirements.RequirementContracts.HeldRequirement;
 import org.slcp.service.requirements.RequirementContracts.CheckResult;
 import org.slcp.service.requirements.RequirementContracts.DomainAlert;
 import org.slcp.service.requirements.RequirementContracts.DuplicateView;
+import org.slcp.service.requirements.RequirementContracts.FieldIssue;
 import org.slcp.service.requirements.RequirementContracts.FindingView;
 import org.slcp.service.requirements.RequirementContracts.ImportRequest;
 import org.slcp.service.requirements.RequirementContracts.ImportResult;
@@ -141,6 +143,7 @@ public class RequirementService {
 				peticion.sourceId(), null,
 				tipoDe(peticion.kind(), peticion.sourceId()),
 				peticion.name(), peticion.statement(), peticion.verification(),
+				peticion.actor(),
 				autor, momento);
 
 		requirements.save(requisito);
@@ -178,6 +181,11 @@ public class RequirementService {
 		// siguiente, de modo que quien vea REQ-0007-v2 sepa sin preguntar que ese
 		// requisito ya cambio desde que se redacto.
 		requisito.renumerarVersion();
+
+		// El actor puede corregirse: se importa del documento y no siempre viene, o
+		// viene mal. Sin poder tocarlo, un diagrama de casos de uso incompleto no
+		// tendria arreglo.
+		requisito.asignarActor(peticion.actor());
 
 		requisito.editar(clase, peticion.name(), peticion.statement(), peticion.verification(),
 				origen, origen, momento);
@@ -286,7 +294,8 @@ public class RequirementService {
 				ParsedRequirement parsed = informe.requirements().get(indice);
 				lista.add(new HeldRequirement(parsed.sourceId(),
 						RequirementKind.conjeturar(parsed.sourceId()).name(),
-						parsed.get("name"), enunciadoDe(parsed), parsed.get("verification")));
+						parsed.get("name"), enunciadoDe(parsed), parsed.get("verification"),
+						parsed.get("actor")));
 			}
 			salida.add(new HeldGroup(g.etiqueta(), g.terminos(), lista));
 		}
@@ -316,6 +325,11 @@ public class RequirementService {
 				.collect(Collectors.toCollection(HashSet::new));
 
 		int secuencia = requirements.mayorNumero(proyecto.getId());
+		// Los campos que llegan no se dan por buenos: que vengan en el archivo no
+		// significa que sean correctos, y todo lo que se calcule sobre ellos
+		// heredaria el error sin avisar.
+		List<FieldIssue> reparos = new ArrayList<>();
+
 		List<DuplicateView> duplicados = new ArrayList<>();
 		List<RenumberedView> renumerados = new ArrayList<>();
 		int importados = 0;
@@ -352,6 +366,7 @@ public class RequirementService {
 					origenFinal, null,
 					RequirementKind.valueOf(retenido.kind()),
 					retenido.name(), retenido.statement(), retenido.verification(),
+					retenido.actor(),
 					autor, momento);
 
 			requirements.save(requisito);
@@ -369,7 +384,7 @@ public class RequirementService {
 		return new ImportResult(peticion.requirements().size(), importados, duplicados.size(),
 				duplicados, renumerados, List.of(),
 				new DomainAlert(false, 1.0, List.of(), List.of(), "Aceptados por decision expresa"),
-				List.of(), List.of(), Map.of(), List.of(), mensaje);
+				List.of(), List.of(), List.of(), Map.of(), List.of(), mensaje);
 	}
 
 	private DomainAlert avisoDe(DomainCoherence.Veredicto v) {
@@ -457,6 +472,11 @@ public class RequirementService {
 
 		Set<Integer> aImportar = new HashSet<>(reparto.propios());
 
+		// Los campos que llegan no se dan por buenos: que vengan en el archivo no
+		// significa que sean correctos, y todo lo que se calcule sobre ellos
+		// heredaria el error sin avisar.
+		List<FieldIssue> reparos = new ArrayList<>();
+
 		List<DuplicateView> duplicados = new ArrayList<>();
 		List<RenumberedView> renumerados = new ArrayList<>();
 		List<HeldSuspect> sospechas = new ArrayList<>();
@@ -469,6 +489,15 @@ public class RequirementService {
 			ParsedRequirement parsed = informe.requirements().get(indice);
 			String sourceId = parsed.sourceId();
 			String enunciado = enunciadoDe(parsed);
+
+			for (FieldValidator.Reparo r : FieldValidator.revisar(parsed.get("name"), enunciado,
+					parsed.get("verification"), parsed.get("actor"), parsed.get("priority"),
+					sourceId)) {
+
+				reparos.add(new FieldIssue(sourceId == null ? enunciado.substring(0,
+						Math.min(40, enunciado.length())) : sourceId,
+						r.campo(), r.valor(), r.motivo(), r.grave()));
+			}
 
 			// Se compara por lo que el requisito dice, no por como se llama. El
 			// identificador lo pone quien redacta el documento: dos documentos
@@ -501,7 +530,8 @@ public class RequirementService {
 				sospechas.add(new HeldSuspect(
 						new HeldRequirement(sourceId,
 								RequirementKind.conjeturar(sourceId).name(),
-								parsed.get("name"), enunciado, parsed.get("verification")),
+								parsed.get("name"), enunciado, parsed.get("verification"),
+								parsed.get("actor")),
 						parecido.getReadableId(), parecido.getSourceId(),
 						redondear(semejanza), parecido.getStatement()));
 				continue;
@@ -527,6 +557,10 @@ public class RequirementService {
 					parsed.get("name"),
 					enunciado,
 					parsed.get("verification"),
+					// El actor viene en el documento y se conserva: sin el no puede
+					// dibujarse un diagrama de casos de uso, y la especificacion ya
+					// contestaba esa pregunta.
+					parsed.get("actor"),
 					autor, momento);
 
 			requirements.save(requisito);
@@ -564,6 +598,13 @@ public class RequirementService {
 					.append(" no se dieron de alta por no parecer de este proyecto: quedan a la "
 							+ "espera de que usted decida.");
 		}
+		long graves = reparos.stream().filter(FieldIssue::severe).count();
+		if (!reparos.isEmpty()) {
+			mensaje.append(" ").append(reparos.size())
+					.append(" campos llegaron con un valor que conviene revisar")
+					.append(graves > 0 ? ", " + graves + " de ellos graves." : ".");
+		}
+
 		if (dominio.aviso()) {
 			mensaje.append(" AVISO: este documento apenas comparte vocabulario con lo que ya hay "
 					+ "en el proyecto; compruebe que corresponde a este sistema.");
@@ -574,7 +615,7 @@ public class RequirementService {
 		List<HeldGroup> ajenos = gruposDe(reparto.ajenos(), informe);
 
 		return new ImportResult(informe.total(), importados, duplicados.size(), duplicados,
-				renumerados, sospechas, avisoDe(dominio), transversales, ajenos,
+				renumerados, sospechas, avisoDe(dominio), transversales, ajenos, reparos,
 				informe.missingByField(), informe.unknownLabels(), mensaje.toString());
 	}
 
@@ -623,7 +664,7 @@ public class RequirementService {
 
 		return new RequirementView(r.getReadableId(), r.getSourceId(), r.getSourceLine(),
 				r.getKind().name(), r.getKind().getEtiqueta(), r.getName(), r.getStatement(),
-				r.getVerification(), r.getStatus().name(), r.getVersion(),
+				r.getVerification(), r.getActor(), r.getStatus().name(), r.getVersion(),
 				r.getReviewedBy() == null ? null : r.getReviewedBy().toString(),
 				r.getStatementOrigin().name(), r.getVerificationOrigin().name(),
 				conforme, r.puedeEliminarse(), hallazgos, redacciones, propuestas, r.getUpdatedAt());

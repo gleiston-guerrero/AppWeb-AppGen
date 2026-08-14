@@ -1,6 +1,10 @@
 package org.slcp.service.config;
 
 import java.time.Clock;
+import org.slcp.service.generation.DerivedDiagramGenerator;
+import org.slcp.service.generation.DerivedTestGenerator;
+import org.slcp.service.generation.DiagramGenerator;
+import org.slcp.service.generation.TestGenerator;
 import org.slcp.service.ingestion.CriterionSuggester;
 import org.slcp.service.ingestion.RuleBasedCriterionSuggester;
 import org.slcp.service.registration.EmailDomainChecker;
@@ -8,16 +12,23 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Reloj de la aplicacion.
+ * Componentes sustituibles de la aplicacion.
  *
- * <p>Se declara como componente y no se invoca {@code Instant.now()} de forma
- * directa, para que el tiempo sea sustituible en las pruebas. Sin esto, ninguna
- * prueba sobre marcas temporales seria determinista, y TRC-23 exige que lo que
- * se declara determinista lo sea.</p>
+ * <p>Todo lo que se declara aqui existe para poder cambiarse: el reloj para que
+ * las pruebas sean deterministas, y los generadores y sugeridores para que la
+ * plataforma funcione con el analisis asistido desactivado (ANA-06).</p>
  */
 @Configuration
 public class ClockConfiguration {
 
+	/**
+	 * Reloj de la aplicacion.
+	 *
+	 * <p>Se declara como componente y no se invoca {@code Instant.now()} de forma
+	 * directa, para que el tiempo sea sustituible en las pruebas. Sin esto,
+	 * ninguna prueba sobre marcas temporales seria determinista, y TRC-23 exige
+	 * que lo que se declara determinista lo sea.</p>
+	 */
 	@Bean
 	public Clock clock() {
 		return Clock.systemUTC();
@@ -46,5 +57,29 @@ public class ClockConfiguration {
 	@Bean
 	public CriterionSuggester criterionSuggester() {
 		return new RuleBasedCriterionSuggester();
+	}
+
+	/**
+	 * Generador de pruebas de respaldo.
+	 *
+	 * <p>Es el derivado y no necesita nada externo. El asistido no se construye
+	 * aqui: cada proyecto elige su proveedor y aporta su clave, de modo que se
+	 * resuelve en cada uso a partir de esa configuracion. Construirlo al arrancar
+	 * obligaria a reiniciar cada vez que alguien cambiara la suya.</p>
+	 */
+	@Bean
+	public TestGenerator testGenerator() {
+		return new DerivedTestGenerator();
+	}
+
+	/**
+	 * Generador de diagramas.
+	 *
+	 * <p>Deriva los diagramas de los propios requisitos y no depende de ningun
+	 * servicio externo.</p>
+	 */
+	@Bean
+	public DiagramGenerator diagramGenerator() {
+		return new DerivedDiagramGenerator();
 	}
 }

@@ -37,19 +37,6 @@ export class ProjectService {
     return this.http.delete<void>(`${ProjectService.URL}/${readableId}`);
   }
 
-  /** Cambia el rol de alguien del equipo. */
-  cambiarRol(readableId: string, username: string, role: string): Observable<Member> {
-    return this.http.put<Member>(
-      `${ProjectService.URL}/${readableId}/team/${username}?role=${role}`,
-      {},
-    );
-  }
-
-  /** Retira a alguien del equipo. Su rastro se conserva. */
-  retirarDelEquipo(readableId: string, username: string): Observable<void> {
-    return this.http.delete<void>(`${ProjectService.URL}/${readableId}/team/${username}`);
-  }
-
   equipo(readableId: string): Observable<Member[]> {
     return this.http.get<Member[]>(`${ProjectService.URL}/${readableId}/team`);
   }

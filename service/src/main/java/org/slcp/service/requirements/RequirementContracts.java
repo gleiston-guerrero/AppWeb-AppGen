@@ -21,7 +21,10 @@ public final class RequirementContracts {
 			@NotBlank(message = "El enunciado es obligatorio")
 			@Size(max = 4000) String statement,
 
-			@Size(max = 4000) String verification) {
+			@Size(max = 4000) String verification,
+
+			/** Quien ejerce lo que el requisito describe. Puede no declararse. */
+			@Size(max = 200) String actor) {
 	}
 
 	/** Carga de un documento completo. */
@@ -59,6 +62,8 @@ public final class RequirementContracts {
 			String name,
 			String statement,
 			String verification,
+			/** Quien ejerce lo que el requisito describe. Nulo si no se declaro. */
+			String actor,
 			String status,
 			int version,
 			/** Quien realizo la revision previa, para impedir que apruebe lo que reviso. */
@@ -137,7 +142,8 @@ public final class RequirementContracts {
 			String kind,
 			String name,
 			String statement,
-			String verification) {
+			String verification,
+			String actor) {
 	}
 
 	/**
@@ -153,6 +159,17 @@ public final class RequirementContracts {
 			String matchedSourceId,
 			double similarity,
 			String matchedStatement) {
+	}
+
+	/**
+	 * Reparo sobre un campo que llego en el documento.
+	 *
+	 * <p>No impide la importacion: senala que ese valor no puede darse por bueno
+	 * sin mirarlo. Rechazar el requisito entero por un campo dudoso perderia un
+	 * enunciado que quiza esta bien.</p>
+	 */
+	public record FieldIssue(
+			String requirement, String field, String value, String reason, boolean severe) {
 	}
 
 	/** Conjunto de requisitos retenidos que tratan de lo mismo. */
@@ -182,6 +199,8 @@ public final class RequirementContracts {
 			List<HeldGroup> crossCutting,
 			/** Requisitos que parecen de otro asunto: no se dan de alta sin decision. */
 			List<HeldGroup> foreign,
+			/** Campos que llegaron con un valor que no puede darse por bueno. */
+			List<FieldIssue> fieldIssues,
 			Map<String, Integer> missingByField,
 			List<String> unknownLabels,
 			String message) {

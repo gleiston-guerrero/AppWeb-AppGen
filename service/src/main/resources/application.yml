@@ -75,6 +75,15 @@ spring:
 # =====================================================================
 
 slcp:
+  security:
+    # Clave maestra con la que se cifran las credenciales de IA que cada proyecto
+    # guarda. Sin ella la plataforma arranca, pero no admite guardar ninguna:
+    # guardarlas en claro seria peor que no admitirlas.
+    #
+    # En produccion se pasa por variable de entorno SLCP_SECURITY_MASTER_KEY.
+    # Si cambia, las credenciales guardadas dejan de descifrarse y hay que
+    # volver a introducirlas.
+    master-key: ${SLCP_SECURITY_MASTER_KEY:}
   # ---------------------------------------------------------------
   # Sesion (SEC-01 a SEC-04)
   #

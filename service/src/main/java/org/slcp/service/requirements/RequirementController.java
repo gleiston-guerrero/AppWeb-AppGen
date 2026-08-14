@@ -1,10 +1,12 @@
 package org.slcp.service.requirements;
 
 import jakarta.validation.Valid;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 import org.slcp.service.requirements.RequirementContracts.ImportRequest;
 import org.slcp.service.requirements.RequirementContracts.AcceptHeldRequest;
+import org.slcp.service.requirements.RequirementReportService.RequirementReport;
 import org.slcp.service.requirements.RequirementContracts.CheckRequest;
 import org.slcp.service.requirements.RequirementContracts.CheckResult;
 import org.slcp.service.requirements.RequirementContracts.ImportResult;
@@ -12,6 +14,7 @@ import org.slcp.service.requirements.RequirementContracts.RequirementRequest;
 import org.slcp.service.requirements.RequirementContracts.RequirementSummary;
 import org.slcp.service.requirements.RequirementContracts.RequirementView;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -36,9 +39,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class RequirementController {
 
 	private final RequirementService service;
+	private final RequirementReportService report;
 
-	public RequirementController(RequirementService service) {
+	public RequirementController(RequirementService service, RequirementReportService report) {
 		this.service = service;
+		this.report = report;
 	}
 
 	private UUID quien(Jwt jwt) {
@@ -90,6 +95,40 @@ public class RequirementController {
 	 * <p>Corresponde a quien produce: tanto al miembro del equipo como al
 	 * facilitador, que lo es tambien de sus proyectos.</p>
 	 */
+	/**
+	 * Informe de los requisitos con todo lo que consta de ellos.
+	 *
+	 * <p>Lo puede pedir cualquiera con acceso al proyecto: es lectura de lo que ya
+	 * esta, repartido por las pantallas.</p>
+	 */
+	@GetMapping("/report")
+	public RequirementReport informe(@PathVariable String projectId,
+			@AuthenticationPrincipal Jwt jwt) {
+		return report.componer(projectId, quien(jwt));
+	}
+
+	/**
+	 * Exporta el informe. Corresponde al equipo y al facilitador.
+	 *
+	 * <p>Se genera en el servicio y no en el navegador porque hay una restriccion
+	 * que cumplir: un archivo armado con datos ya enviados no restringe nada.</p>
+	 */
+	@GetMapping(value = "/report/export", produces = "text/csv")
+	public ResponseEntity<byte[]> exportar(@PathVariable String projectId,
+			@AuthenticationPrincipal Jwt jwt) {
+
+		String csv = report.exportar(projectId, quien(jwt));
+
+		// La marca de orden de bytes hace que Excel lo abra como UTF-8; sin ella,
+		// las tildes salen partidas y el informe parece corrupto.
+		byte[] cuerpo = ("\ufeff" + csv).getBytes(StandardCharsets.UTF_8);
+
+		return ResponseEntity.ok()
+				.header("Content-Disposition",
+						"attachment; filename=\"requisitos-" + projectId + ".csv\"")
+				.body(cuerpo);
+	}
+
 	@PostMapping("/held")
 	public ImportResult aceptarRetenidos(@PathVariable String projectId,
 			@RequestBody AcceptHeldRequest peticion, @AuthenticationPrincipal Jwt jwt) {

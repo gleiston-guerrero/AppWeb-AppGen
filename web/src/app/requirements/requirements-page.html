@@ -4,10 +4,7 @@
       <p class="eyebrow">Requisitos</p>
       <h1 class="titulo">{{ projectId }}</h1>
     </div>
-    <div class="cabecera__enlaces">
-      <a routerLink="/proyecto/{{ projectId }}/entregables">Entregables</a>
-      <a routerLink="/trabajo">Mi trabajo</a>
-    </div>
+    <a class="volver" routerLink="/trabajo">Volver a mi trabajo</a>
   </header>
 
   @if (resumen(); as r) {
@@ -32,7 +29,7 @@
     <section class="panel">
       <h2 class="eyebrow">Cargar un documento de requisitos</h2>
       <div class="panel__campos">
-        <select [ngModel]="perfil()" name="perfil" (ngModelChange)="cambiarFormato($event)"
+        <select [(ngModel)]="perfil" name="perfil" (ngModelChange)="cambiarFormato()"
           aria-label="Formato del archivo">
           @for (f of formatos(); track f.id) {
             <option [value]="f.id">{{ f.name }}</option>
@@ -78,164 +75,11 @@
       @if (resultadoImport(); as ri) {
         <div class="informe">
           <p class="informe__mensaje">{{ ri.message }}</p>
-          @if (cuantosRetenidos() > 0) {
-            <div class="retenidos">
-              <h4 class="import__titulo">
-                {{ cuantosRetenidos() }} requisitos a la espera de su decisión
-              </h4>
-              <p class="import__nota">
-                No se han dado de alta, ni siquiera como borrador: no parecen de este proyecto.
-                Nada se ha guardado, así que descartar no deshace nada.
-              </p>
-
-              @for (sp of sospechosos(); track sp.requirement.statement) {
-                <div class="grupo grupo--sospecha">
-                  <p class="grupo__cabecera">
-                    <span class="grupo__clase">Podría ser el mismo requisito</span>
-                    <span class="semejanza">{{ (sp.similarity * 100).toFixed(0) }}% de coincidencia</span>
-                  </p>
-
-                  <div class="cara-a-cara">
-                    <div class="cara">
-                      <p class="cara__titulo">
-                        Llega <span class="origen">{{ sp.requirement.sourceId }}</span>
-                      </p>
-                      <p class="cara__texto">{{ sp.requirement.statement }}</p>
-                    </div>
-                    <div class="cara">
-                      <p class="cara__titulo">
-                        Ya existe
-                        <span class="origen">{{ sp.matchedSourceId || sp.matchedReadableId }}</span>
-                      </p>
-                      <p class="cara__texto">{{ sp.matchedStatement }}</p>
-                    </div>
-                  </div>
-
-                  <div class="grupo__acciones">
-                    <button type="button" class="btn btn--principal"
-                      [disabled]="aceptandoGrupo() === sp.requirement.statement"
-                      (click)="aceptarSospechoso(sp)">
-                      Es distinto: añadir como borrador
-                    </button>
-                    <button type="button" class="btn btn--plano" (click)="descartarSospechoso(sp)">
-                      Es el mismo: descartar
-                    </button>
-                  </div>
-                </div>
-              }
-
-              @for (g of transversales(); track g.label) {
-                <div class="grupo grupo--transversal">
-                  <p class="grupo__cabecera">
-                    <span class="grupo__clase">Vale para cualquier sistema</span>
-                    <span class="grupo__cuenta">{{ g.requirements.length }}</span>
-                  </p>
-                  <ul class="grupo__lista">
-                    @for (r of g.requirements; track r.statement) {
-                      <li>
-                        <span class="origen">{{ r.sourceId }}</span>
-                        <span class="grupo__texto">{{ r.name || r.statement }}</span>
-                      </li>
-                    }
-                  </ul>
-                  <div class="grupo__acciones">
-                    <button type="button" class="btn btn--principal"
-                      [disabled]="aceptandoGrupo() === g.label" (click)="aceptarGrupo(g, true)">
-                      {{ aceptandoGrupo() === g.label ? 'Añadiendo…' : 'Añadir como borrador' }}
-                    </button>
-                    <button type="button" class="btn btn--plano" (click)="descartarGrupo(g, true)">
-                      Descartar
-                    </button>
-                  </div>
-                </div>
-              }
-
-              @for (g of ajenos(); track g.label) {
-                <div class="grupo">
-                  <p class="grupo__cabecera">
-                    <span class="grupo__clase">Parece de otro asunto</span>
-                    <span class="mono grupo__terminos">{{ g.terms.join(', ') }}</span>
-                    <span class="grupo__cuenta">{{ g.requirements.length }}</span>
-                  </p>
-                  <ul class="grupo__lista">
-                    @for (r of g.requirements; track r.statement) {
-                      <li>
-                        <span class="origen">{{ r.sourceId }}</span>
-                        <span class="grupo__texto">{{ r.name || r.statement }}</span>
-                      </li>
-                    }
-                  </ul>
-                  <div class="grupo__acciones">
-                    <button type="button" class="btn btn--principal"
-                      [disabled]="aceptandoGrupo() === g.label" (click)="aceptarGrupo(g, false)">
-                      {{ aceptandoGrupo() === g.label ? 'Añadiendo…' : 'Añadir como borrador' }}
-                    </button>
-                    <button type="button" class="btn btn--plano" (click)="descartarGrupo(g, false)">
-                      Descartar
-                    </button>
-                  </div>
-                </div>
-              }
-            </div>
+          @if (ri.skipped > 0) {
+            <p class="informe__detalle">
+              Omitidos por existir ya: <span class="mono">{{ ri.skippedIds.join(', ') }}</span>
+            </p>
           }
-
-          @if (ri.domain.alert) {
-            <div class="import__grupo import__grupo--aviso">
-              <h4 class="import__titulo">Este documento podría no ser de este proyecto</h4>
-              <p class="import__nota">{{ ri.domain.message }}.</p>
-              @if (ri.domain.sharedTerms.length > 0) {
-                <p class="import__nota">
-                  Comparte: <span class="mono">{{ ri.domain.sharedTerms.join(', ') }}</span>
-                </p>
-              }
-              @if (ri.domain.newTerms.length > 0) {
-                <p class="import__nota">
-                  Trae en cambio: <span class="mono">{{ ri.domain.newTerms.join(', ') }}</span>
-                </p>
-              }
-              <p class="import__nota">
-                Los requisitos se importaron igualmente: revise las fuentes y elimine lo que no
-                corresponda.
-              </p>
-            </div>
-          }
-
-          @if (ri.duplicates.length > 0) {
-            <div class="import__grupo">
-              <h4 class="import__titulo">Omitidos por decir lo mismo que otro ya presente</h4>
-              <ul class="import__lista">
-                @for (d of ri.duplicates; track d.sourceId) {
-                  <li>
-                    <span class="origen">{{ d.sourceId }}</span>
-                    dice lo mismo que
-                    <span class="origen">{{ d.matchedSourceId || d.matchedReadableId }}</span>
-                    <span class="semejanza">{{ (d.similarity * 100).toFixed(0) }}% de coincidencia</span>
-                    <span class="import__texto">{{ d.matchedStatement }}</span>
-                  </li>
-                }
-              </ul>
-            </div>
-          }
-
-          @if (ri.renumbered.length > 0) {
-            <div class="import__grupo">
-              <h4 class="import__titulo">Entraron con otro identificador</h4>
-              <p class="import__nota">
-                Su identificador estaba tomado por un requisito que dice otra cosa. El identificador
-                es una etiqueta del documento, no el requisito: por eso entra igualmente.
-              </p>
-              <ul class="import__lista">
-                @for (n of ri.renumbered; track n.to) {
-                  <li>
-                    <span class="origen">{{ n.from }}</span> →
-                    <span class="origen">{{ n.to }}</span>
-                    <span class="import__texto">{{ n.statement }}</span>
-                  </li>
-                }
-              </ul>
-            </div>
-          }
-
           @if (ri.unknownLabels.length > 0) {
             <p class="informe__detalle">
               Etiquetas no reconocidas por el perfil:
@@ -304,7 +148,7 @@
 
       <div class="panel__campos panel__campos--columna">
         <input type="text" [(ngModel)]="nuevoNombre" name="nuevoNombre" placeholder="Nombre (opcional)" aria-label="Nombre" />
-        <textarea rows="4" id="enunciado-requisito" [(ngModel)]="nuevoEnunciado" name="nuevoEnunciado" (ngModelChange)="textoTocado()"
+        <textarea rows="4" [(ngModel)]="nuevoEnunciado" name="nuevoEnunciado" (ngModelChange)="textoTocado()"
           placeholder="El sistema deberá… — enuncie una sola obligación, con sujeto expreso y sin términos vagos"
           aria-label="Enunciado"></textarea>
         <textarea rows="3" [(ngModel)]="nuevoCriterio" name="nuevoCriterio"
@@ -335,42 +179,6 @@
         </div>
       </div>
 
-      @if (comprobacion(); as c) {
-        <div class="comprobacion">
-          @if (c.similar.length > 0) {
-            <h4 class="import__titulo">Ya hay algo parecido en este proyecto</h4>
-            <ul class="import__lista">
-              @for (sp of c.similar; track sp.readableId) {
-                <li>
-                  <span class="origen">{{ sp.sourceId || sp.readableId }}</span>
-                  <span class="semejanza">{{ (sp.similarity * 100).toFixed(0) }}% de coincidencia</span>
-                  <span class="import__texto">{{ sp.similarStatement }}</span>
-                </li>
-              }
-            </ul>
-          }
-
-          @if (c.domain.alert) {
-            <h4 class="import__titulo">Podría no ser de este proyecto</h4>
-            <p class="import__nota">{{ c.domain.message }}.</p>
-          }
-
-          <p class="import__nota">
-            Decide usted: si es el mismo requisito, corrija el que ya existe; si es distinto,
-            créelo.
-          </p>
-
-          <div class="panel__campos">
-            <button type="button" class="btn btn--principal" (click)="guardar(true)">
-              Crear de todos modos
-            </button>
-            <button type="button" class="btn btn--plano" (click)="descartarComprobacion()">
-              Volver a redactarlo
-            </button>
-          </div>
-        </div>
-      }
-
       @if (editando() && deSugerencia()) {
         <p class="panel__nota">
           El texto es el de una propuesta sin modificar. Al actualizar quedará registrado que
@@ -381,10 +189,10 @@
   }
 
   <nav class="filtros" aria-label="Filtro">
-    <button type="button" [class.filtro--activo]="filtro() === 'TODOS'" (click)="filtro.set('TODOS')">Todos</button>
-    <button type="button" [class.filtro--activo]="filtro() === 'CON_HALLAZGOS'" (click)="filtro.set('CON_HALLAZGOS')">Con hallazgos</button>
-    <button type="button" [class.filtro--activo]="filtro() === 'SIN_CRITERIO'" (click)="filtro.set('SIN_CRITERIO')">Sin criterio</button>
-    <button type="button" [class.filtro--activo]="filtro() === 'APROBADOS'" (click)="filtro.set('APROBADOS')">Aprobados</button>
+    <button type="button" [class.filtro--activo]="filtro === 'TODOS'" (click)="filtro = 'TODOS'">Todos</button>
+    <button type="button" [class.filtro--activo]="filtro === 'CON_HALLAZGOS'" (click)="filtro = 'CON_HALLAZGOS'">Con hallazgos</button>
+    <button type="button" [class.filtro--activo]="filtro === 'SIN_CRITERIO'" (click)="filtro = 'SIN_CRITERIO'">Sin criterio</button>
+    <button type="button" [class.filtro--activo]="filtro === 'APROBADOS'" (click)="filtro = 'APROBADOS'">Aprobados</button>
   </nav>
 
   @if (cargando()) {
@@ -394,8 +202,7 @@
   } @else {
     <ul class="lista">
       @for (r of visibles(); track r.readableId) {
-        <li class="requisito" [id]="'req-' + r.readableId"
-            [class.requisito--defecto]="defectos(r) > 0">
+        <li class="requisito" [class.requisito--defecto]="defectos(r) > 0">
           <div class="requisito__fila" (click)="alternar(r)">
             <div class="requisito__datos">
               <p class="requisito__ids">
@@ -488,12 +295,6 @@
                 }
 
                 <div class="detalle__acciones">
-                  @if (esEquipo()) {
-                    <button type="button" class="btn btn--plano" (click)="nuevo()">
-                      Nuevo
-                    </button>
-                  }
-
                   <button type="button" class="btn btn--principal" (click)="corregir(r)">
                     Corregir en el formulario
                   </button>
@@ -531,30 +332,6 @@
                 </div>
               }
 
-              @if (esPropietario() && r.status === 'APPROVED') {
-                <div class="aprobacion">
-                  <p class="aprobacion__nota">
-                    Aprobado. Puede rectificar mientras no haya trabajo aceptado sobre este
-                    requisito: un entregable aceptado dio por buena esta decisión.
-                  </p>
-                  <div class="detalle__acciones">
-                    <button type="button" class="btn btn--plano"
-                      [disabled]="guardando() === r.readableId" (click)="transitar(r, 'REJECTED')">
-                      Reprobar
-                    </button>
-                    <button type="button" class="btn btn--plano"
-                      [disabled]="guardando() === r.readableId" (click)="transitar(r, 'DRAFT')">
-                      Devolver a borrador
-                    </button>
-                    @if (siguientePendiente(r); as sig) {
-                      <button type="button" class="btn btn--plano" (click)="irAlSiguiente(r)">
-                        Ir al siguiente ({{ sig.readableId }})
-                      </button>
-                    }
-                  </div>
-                </div>
-              }
-
               @if (esPropietario() && r.status === 'REVIEWED') {
                 <div class="aprobacion">
                   <p class="aprobacion__nota">
@@ -576,11 +353,6 @@
                     <button type="button" class="btn btn--plano" (click)="transitar(r, 'REJECTED')">
                       Reprobar
                     </button>
-                    @if (siguientePendiente(r); as sig) {
-                      <button type="button" class="btn btn--plano" (click)="irAlSiguiente(r)">
-                        Ir al siguiente ({{ sig.readableId }})
-                      </button>
-                    }
                   </div>
                 </div>
               }

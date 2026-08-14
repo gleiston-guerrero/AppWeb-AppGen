@@ -11,6 +11,8 @@ import org.slcp.service.auth.AuthenticationFailedException;
 import org.slcp.service.auth.LoginFailure;
 import org.slcp.service.invitations.InvitationException;
 import org.slcp.service.deliverables.DeliverableException;
+import org.slcp.service.generation.GenerationException;
+import org.slcp.service.planning.PlanningException;
 import org.slcp.service.projects.ProjectAccessException;
 import org.slcp.service.recovery.RecoveryException;
 import org.slcp.service.requirements.RequirementException;
@@ -123,6 +125,25 @@ public class ApiExceptionHandler {
 			return "ROL-06: el propietario del producto no puede acumular otro rol en el mismo "
 					+ "proyecto";
 		}
+		if (causa.contains("ver-03")) {
+			return "Solo se generan pruebas y diagramas de requisitos aprobados";
+		}
+		if (causa.contains("ck_artifacts_review")) {
+			return "Un artefacto aceptado ha de constar de quien lo acepto";
+		}
+		if (causa.contains("wbs-09")) {
+			return "Solo se asignan tareas a miembros del equipo del proyecto";
+		}
+		if (causa.contains("uq_components_readable") || causa.contains("uq_tasks_readable")
+				|| causa.contains("uq_activities_readable") || causa.contains("uq_resources_readable")) {
+			return "Ya existe un elemento con ese identificador en el proyecto. Vuelva a intentarlo";
+		}
+		if (causa.contains("ck_tasks_effort") || causa.contains("ck_activities_effort")) {
+			return "El esfuerzo previsto ha de ser mayor que cero";
+		}
+		if (causa.contains("ck_time_hours")) {
+			return "Las horas dedicadas han de estar entre cero y veinticuatro";
+		}
 		if (causa.contains("wbs-07")) {
 			return "Solo se enlaza trabajo a requisitos aprobados";
 		}
@@ -140,6 +161,22 @@ public class ApiExceptionHandler {
 			return "La operacion dejaria datos apuntando a algo que no existe";
 		}
 		return "La operacion choca con una regla del sistema: " + causa;
+	}
+
+	@ExceptionHandler(GenerationException.class)
+	public ResponseEntity<ApiError> generacion(GenerationException fallo,
+			HttpServletRequest peticion) {
+		return ResponseEntity.unprocessableContent().body(new ApiError(Instant.now(),
+				HttpStatus.UNPROCESSABLE_CONTENT.value(), "GENERATION", fallo.getMessage(),
+				peticion.getRequestURI(), Map.of()));
+	}
+
+	@ExceptionHandler(PlanningException.class)
+	public ResponseEntity<ApiError> planificacion(PlanningException fallo,
+			HttpServletRequest peticion) {
+		return ResponseEntity.unprocessableContent().body(new ApiError(Instant.now(),
+				HttpStatus.UNPROCESSABLE_CONTENT.value(), "PLANNING", fallo.getMessage(),
+				peticion.getRequestURI(), Map.of()));
 	}
 
 	@ExceptionHandler(DeliverableException.class)

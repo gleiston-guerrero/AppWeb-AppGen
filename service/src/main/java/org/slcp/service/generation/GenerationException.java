@@ -1,0 +1,11 @@
+package org.slcp.service.generation;
+
+/** La generacion no puede realizarse tal como se pidio. */
+public class GenerationException extends RuntimeException {
+
+	private static final long serialVersionUID = 1L;
+
+	public GenerationException(String message) {
+		super(message);
+	}
+}

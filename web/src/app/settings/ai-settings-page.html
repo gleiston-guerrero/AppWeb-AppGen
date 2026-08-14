@@ -1,0 +1,178 @@
+<main class="pagina contenedor">
+  <header class="cabecera">
+    <div>
+      <p class="eyebrow">Configuración</p>
+      <h1 class="titulo">Servicios de IA de {{ projectId }}</h1>
+    </div>
+    <div class="cabecera__enlaces">
+      <a routerLink="/proyecto/{{ projectId }}/requisitos">Requisitos</a>
+      <a routerLink="/proyecto/{{ projectId }}/generacion">Pruebas y diagramas</a>
+      <a routerLink="/trabajo">Mi trabajo</a>
+    </div>
+  </header>
+
+  @if (aviso(); as m) { <p class="aviso" role="status">{{ m }}</p> }
+  @if (error(); as m) { <p class="error" role="alert">{{ m }}</p> }
+
+  @if (!esFacilitador()) {
+    <p class="vacio">
+      Configurar los servicios de IA corresponde al facilitador del proyecto: es quien responde
+      del gasto que generen. Puede consultar aquí qué hay configurado.
+    </p>
+  }
+
+  @if (cargando()) {
+    <p class="vacio">Consultando…</p>
+  } @else {
+
+    <section class="intro">
+      <p>
+        Cada función usa el proveedor que usted le asigne. No piden lo mismo: validar requisitos
+        son peticiones cortas y frecuentes, donde interesa un modelo barato; generar casos de uso
+        son pocas peticiones largas, donde interesa el mejor.
+      </p>
+      <p class="intro__cifra">
+        <strong>{{ activas() }}</strong> de {{ funciones().length }} funciones con asistencia
+        activa.
+      </p>
+
+      @if (imprescindiblesSinConfigurar().length > 0) {
+        <p class="intro__aviso">
+          @for (f of imprescindiblesSinConfigurar(); track f.feature) {
+            <strong>{{ f.featureLabel }}</strong>
+          }
+          no puede funcionar sin un modelo: no tiene vía derivada. Las demás siguen sirviendo sin
+          configurar nada.
+        </p>
+      }
+    </section>
+
+    @for (f of funciones(); track f.feature) {
+      <article class="funcion" [class.funcion--activa]="f.enabled">
+        <header class="funcion__cabecera">
+          <h2 class="funcion__nombre">{{ f.featureLabel }}</h2>
+
+          @if (f.enabled) {
+            <span class="estado estado--ACCEPTED">{{ f.providerLabel }}</span>
+          } @else if (f.hasKey) {
+            <span class="estado">Configurada, sin activar</span>
+          } @else if (f.essential) {
+            <span class="estado estado--falta">Sin configurar — no funciona sin ella</span>
+          } @else {
+            <span class="estado">Sin configurar — funciona sin IA</span>
+          }
+        </header>
+
+        <p class="funcion__que">{{ f.featureDescription }}</p>
+
+        @if (f.hasKey && editando() !== f.feature) {
+          <p class="funcion__detalle">
+            Modelo <span class="mono">{{ f.model }}</span>, credencial
+            <span class="mono">{{ f.keyHint }}</span>
+            @if (f.updatedBy) { · configurada por {{ f.updatedBy }} }
+          </p>
+        }
+
+        @if (resultado()[f.feature]; as r) {
+          <p class="funcion__prueba">{{ r }}</p>
+        }
+
+        @if (esFacilitador()) {
+          @if (editando() === f.feature) {
+            <div class="formulario">
+              <label class="campo">
+                <span class="campo__nombre">Proveedor</span>
+                <select [ngModel]="proveedorElegido" [name]="'prov-' + f.feature"
+                  (ngModelChange)="cambiarProveedor($event)" aria-label="Proveedor">
+                  @for (p of proveedores(); track p.id) {
+                    <option [value]="p.id">{{ p.label }}</option>
+                  }
+                </select>
+              </label>
+
+              <label class="campo">
+                <span class="campo__nombre">Modelo</span>
+                <input type="text" [(ngModel)]="modelo" [name]="'mod-' + f.feature"
+                  placeholder="Nombre del modelo" aria-label="Modelo" />
+              </label>
+
+              <label class="campo campo--ancho">
+                <span class="campo__nombre">Dirección del servicio</span>
+                <input type="text" [(ngModel)]="direccion" [name]="'dir-' + f.feature"
+                  placeholder="https://…" aria-label="Dirección" />
+              </label>
+
+              <label class="campo campo--ancho">
+                <span class="campo__nombre">
+                  Clave de acceso
+                  @if (f.hasKey) {
+                    <span class="campo__ayuda">
+                      — ya hay una ({{ f.keyHint }}). Déjelo vacío para conservarla.
+                    </span>
+                  }
+                </span>
+                <input type="password" [(ngModel)]="clave" [name]="'key-' + f.feature"
+                  autocomplete="off" placeholder="Pegue aquí su clave" aria-label="Clave" />
+              </label>
+
+              @if (dondeLaClave()) {
+                <p class="campo--ancho campo__ayuda">
+                  Su clave se consigue en
+                  <a [href]="dondeLaClave()" target="_blank" rel="noopener">{{ dondeLaClave() }}</a>
+                </p>
+              }
+
+              <label class="campo--ancho aplicar">
+                <input type="checkbox" [(ngModel)]="aplicarATodas"
+                  [name]="'todas-' + f.feature" />
+                Aplicar también a las funciones que aún no tienen credencial
+              </label>
+
+              <p class="ia__aviso campo--ancho">
+                La clave se guarda cifrada y no vuelve a mostrarse: solo se conservan sus cuatro
+                últimos caracteres. El gasto corre por cuenta de este proyecto.
+              </p>
+
+              <div class="campo--ancho acciones">
+                <button type="button" class="btn btn--principal" [disabled]="guardando()"
+                  (click)="guardar(f)">
+                  {{ guardando() ? 'Guardando…' : 'Guardar' }}
+                </button>
+                <button type="button" class="btn btn--plano" (click)="editando.set(null)">
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          } @else {
+            <div class="acciones">
+              <button type="button" class="btn btn--plano" (click)="editar(f)">
+                {{ f.hasKey ? 'Cambiar' : 'Configurar' }}
+              </button>
+
+              @if (f.hasKey) {
+                <button type="button" class="btn btn--plano" [disabled]="probando() === f.feature"
+                  (click)="probar(f)">
+                  {{ probando() === f.feature ? 'Comprobando…' : 'Comprobar la conexión' }}
+                </button>
+
+                @if (f.enabled) {
+                  <button type="button" class="btn btn--plano" (click)="activar(f, false)">
+                    Desactivar
+                  </button>
+                } @else {
+                  <button type="button" class="btn btn--aceptar" (click)="activar(f, true)">
+                    Activar
+                  </button>
+                }
+
+                <button type="button" class="btn btn--plano" (click)="retirar(f)">
+                  Retirar la credencial
+                </button>
+              }
+            </div>
+          }
+        }
+      </article>
+    }
+  }
+</main>

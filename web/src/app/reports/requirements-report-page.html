@@ -1,0 +1,191 @@
+<main class="pagina contenedor">
+  <header class="cabecera no-imprimir">
+    <div>
+      <p class="eyebrow">Informe</p>
+      <h1 class="titulo">Requisitos de {{ projectId }}</h1>
+    </div>
+    <div class="cabecera__enlaces">
+      <a routerLink="/proyecto/{{ projectId }}/requisitos">Requisitos</a>
+      <a routerLink="/proyecto/{{ projectId }}/generacion">Pruebas y diagramas</a>
+      <a routerLink="/trabajo">Mi trabajo</a>
+    </div>
+  </header>
+
+  @if (aviso(); as m) { <p class="aviso no-imprimir" role="status">{{ m }}</p> }
+  @if (error(); as m) { <p class="error no-imprimir" role="alert">{{ m }}</p> }
+
+  @if (cargando()) {
+    <p class="vacio">Componiendo el informe…</p>
+  } @else if (informe(); as r) {
+
+    <!-- Encabezado que solo aparece al imprimir -->
+    <div class="solo-imprimir">
+      <h1>{{ r.projectName }}</h1>
+      <p>Informe de requisitos · {{ r.projectId }} · {{ fecha(r.generatedAt) }}</p>
+    </div>
+
+    <!-- ---------- Lo que revela el conjunto ---------- -->
+    <section class="resumen-informe">
+      <ul class="cifras">
+        <li><strong>{{ r.summary.total }}</strong> requisitos</li>
+        <li><strong>{{ r.summary.approved }}</strong> aprobados</li>
+        <li [class.cifra--aviso]="r.summary.withoutCriterion > 0">
+          <strong>{{ r.summary.withoutCriterion }}</strong> sin criterio de verificación
+        </li>
+        <li [class.cifra--aviso]="r.summary.withoutTests > 0">
+          <strong>{{ r.summary.withoutTests }}</strong> sin ninguna prueba
+        </li>
+        <li [class.cifra--aviso]="r.summary.withFindings > 0">
+          <strong>{{ r.summary.withFindings }}</strong> con hallazgos del revisor
+        </li>
+        <li><strong>{{ r.summary.suggestedText }}</strong> con enunciado propuesto por el sistema</li>
+      </ul>
+
+      @if (r.summary.withoutCriterion > 0) {
+        <p class="resumen-informe__nota">
+          Un requisito sin criterio de verificación no puede comprobarse, y de él solo salen
+          pruebas con huecos: el resultado esperado tendría que inventarse.
+        </p>
+      }
+    </section>
+
+    <!-- ---------- Controles ---------- -->
+    <div class="controles no-imprimir">
+      <div class="controles__filtros">
+        <span class="controles__etiqueta">Mostrar</span>
+        <button type="button" [class.pestana--activa]="filtro() === 'TODOS'"
+          (click)="filtro.set('TODOS')">Todos</button>
+        <button type="button" [class.pestana--activa]="filtro() === 'SIN_CRITERIO'"
+          (click)="filtro.set('SIN_CRITERIO')">Sin criterio</button>
+        <button type="button" [class.pestana--activa]="filtro() === 'SIN_PRUEBAS'"
+          (click)="filtro.set('SIN_PRUEBAS')">Sin pruebas</button>
+        <button type="button" [class.pestana--activa]="filtro() === 'CON_HALLAZGOS'"
+          (click)="filtro.set('CON_HALLAZGOS')">Con hallazgos</button>
+      </div>
+
+      <div class="controles__acciones">
+        <button type="button" class="btn btn--plano" (click)="detallado.set(!detallado())">
+          {{ detallado() ? 'Ver como tabla' : 'Ver con detalle' }}
+        </button>
+        <button type="button" class="btn btn--plano" (click)="imprimir()">Imprimir o guardar en PDF</button>
+        @if (r.canExport) {
+          <button type="button" class="btn btn--principal" [disabled]="descargando()"
+            (click)="descargar()">
+            {{ descargando() ? 'Preparando…' : 'Descargar CSV' }}
+          </button>
+        } @else {
+          <span class="controles__nota">
+            Llevarse el informe corresponde al equipo y al facilitador.
+          </span>
+        }
+      </div>
+    </div>
+
+    @if (filas().length === 0) {
+      <p class="vacio">Ningún requisito cumple ese filtro.</p>
+    }
+
+    <!-- ---------- Detalle ---------- -->
+    @if (detallado()) {
+      @for (f of filas(); track f.readableId) {
+        <article class="ficha" [class.ficha--sin-criterio]="!f.verification">
+          <header class="ficha__cabecera">
+            <span class="origen">{{ f.sourceId || f.readableId }}</span>
+            <span class="mono ficha__id">{{ f.readableId }}</span>
+            <span class="clase-etiqueta">{{ f.kindLabel }}</span>
+            <span class="estado">{{ etiquetaEstado[f.status] || f.status }}</span>
+            @if (f.covered) {
+              <span class="cubierto">{{ f.acceptedTests }} pruebas aceptadas</span>
+            } @else if (f.tests > 0) {
+              <span class="pendiente">{{ f.tests }} pruebas sin aceptar</span>
+            } @else {
+              <span class="pendiente">sin pruebas</span>
+            }
+          </header>
+
+          @if (f.name) {
+            <p class="ficha__nombre">{{ f.name }}</p>
+          }
+
+          <dl class="ficha__campos">
+            <dt>Enunciado</dt>
+            <dd>
+              {{ f.statement }}
+              @if (f.statementOrigin === 'SUGGESTED') {
+                <span class="procedencia">redacción propuesta por el sistema</span>
+              }
+            </dd>
+
+            <dt>Criterio de verificación</dt>
+            <dd>
+              @if (f.verification) {
+                {{ f.verification }}
+                @if (f.verificationOrigin === 'SUGGESTED') {
+                  <span class="procedencia">propuesto por el sistema</span>
+                }
+              } @else {
+                <span class="falta">No lo tiene. Sin él, el requisito no puede comprobarse.</span>
+              }
+            </dd>
+
+            @if (f.actor) {
+              <dt>Interesado o fuente</dt>
+              <dd>{{ f.actor }}</dd>
+            }
+
+            <dt>Versión</dt>
+            <dd>{{ f.version }} · actualizado {{ fecha(f.updatedAt) }}</dd>
+          </dl>
+
+          @if (f.findings.length > 0) {
+            <div class="ficha__hallazgos">
+              <p class="ficha__subtitulo">Hallazgos del revisor</p>
+              <ul>
+                @for (h of f.findings; track h) { <li>{{ h }}</li> }
+              </ul>
+            </div>
+          }
+
+          @if (f.decisions.length > 0) {
+            <div class="ficha__decisiones">
+              <p class="ficha__subtitulo">Decisiones</p>
+              <ul>
+                @for (d of f.decisions; track d.at) {
+                  <li>
+                    <span class="mono">v{{ d.version }}</span>
+                    {{ d.decision }} — {{ d.actor }}, {{ fecha(d.at) }}
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+        </article>
+      }
+    } @else {
+      <!-- ---------- Tabla ---------- -->
+      <table class="tabla-informe">
+        <thead>
+          <tr>
+            <th>Origen</th><th>Tipo</th><th>Enunciado</th><th>Criterio</th>
+            <th>Estado</th><th>Pruebas</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (f of filas(); track f.readableId) {
+            <tr [class.fila--sin-criterio]="!f.verification">
+              <td class="mono">{{ f.sourceId || f.readableId }}</td>
+              <td>{{ f.kindLabel }}</td>
+              <td>{{ f.statement }}</td>
+              <td>
+                @if (f.verification) { {{ f.verification }} }
+                @else { <span class="falta">—</span> }
+              </td>
+              <td>{{ etiquetaEstado[f.status] || f.status }}</td>
+              <td>{{ f.acceptedTests }} / {{ f.tests }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  }
+</main>

@@ -1,0 +1,341 @@
+<main class="pagina contenedor">
+  <header class="cabecera">
+    <div>
+      <p class="eyebrow">Pruebas y diagramas</p>
+      <h1 class="titulo">{{ projectId }}</h1>
+    </div>
+    <div class="cabecera__enlaces">
+      <a routerLink="/proyecto/{{ projectId }}/requisitos">Requisitos</a>
+      <a routerLink="/proyecto/{{ projectId }}/entregables">Entregables</a>
+      <a routerLink="/proyecto/{{ projectId }}/plan">Planificación</a>
+      <a routerLink="/proyecto/{{ projectId }}/servicios-ia">Servicios de IA</a>
+    </div>
+  </header>
+
+  @if (aviso(); as m) { <p class="aviso" role="status">{{ m }}</p> }
+  @if (error(); as m) { <p class="error" role="alert">{{ m }}</p> }
+
+  @if (cargando()) {
+    <p class="vacio">Consultando…</p>
+  } @else if (estado(); as e) {
+
+    <!-- ---------- Cobertura ---------- -->
+    <section class="cobertura">
+      <p class="cobertura__cifra">
+        <strong>{{ cubiertos() }}</strong> de {{ e.coverage.length }} requisitos aprobados
+        tienen alguna prueba aceptada
+      </p>
+      <p class="cobertura__nota">
+        Una prueba propuesta no cubre nada: cubre cuando alguien la ha leído y aceptado.
+      </p>
+
+      @if (sinCubrir().length > 0) {
+        <details class="descubiertos">
+          <summary>{{ sinCubrir().length }} sin cubrir</summary>
+          <ul>
+            @for (c of sinCubrir(); track c.readableId) {
+              <li>
+                <span class="origen">{{ c.sourceId || c.readableId }}</span>
+                <span class="descubiertos__texto">{{ c.name }}</span>
+                @if (c.tests > 0) {
+                  <span class="pendiente">{{ c.tests }} propuestas sin decidir</span>
+                }
+              </li>
+            }
+          </ul>
+        </details>
+      }
+    </section>
+
+    <!-- La configuración vive en su propia pantalla: cada función usa el
+         proveedor que se le asigne, y un panel escondido aquí dejaba fuera a
+         quien no entraba a generar. -->
+    @if (esFacilitador() && !estado()?.assisted) {
+      <p class="panel__nota">
+        Ninguna función tiene asistencia activa.
+        <a routerLink="/proyecto/{{ projectId }}/servicios-ia">Configure los servicios de IA</a>
+        para poder generar con modelo.
+      </p>
+    }
+
+    <!-- ---------- Generar ---------- -->
+    @if (esEquipo()) {
+      <section class="panel">
+        <h2 class="eyebrow">Generar</h2>
+        <p class="panel__nota">
+          Se genera de los requisitos aprobados. Pruebas y diagramas son independientes: puede
+          pedir cualquiera de los dos, en el orden que quiera.
+          @if (e.assisted) {
+            Hay un modelo conectado, de modo que las pruebas se redactarán con él.
+          } @else {
+            No hay modelo conectado: las pruebas se derivan del propio requisito.
+          }
+        </p>
+
+        <div class="modo">
+          <span class="modo__etiqueta">Generar</span>
+          <button type="button" [class.pestana--activa]="modo() === 'DERIVED'"
+            (click)="elegirModo('DERIVED')">Sin IA — derivado del texto</button>
+          <button type="button" [class.pestana--activa]="modo() === 'ASSISTED'"
+            (click)="elegirModo('ASSISTED')">
+            Con IA{{ e.assisted ? ' — recomendado' : '' }}
+          </button>
+        </div>
+
+        <p class="modo__nota">
+          @if (modo() === 'DERIVED') {
+            Lo derivado sale del criterio de verificación de cada requisito: es reproducible, no
+            sale del proyecto, y <strong>funciona siempre</strong>, sin depender de ningún
+            servicio externo. A cambio deja como hueco todo lo que el requisito no dice, que en
+            las pruebas de límites y de camino negativo suele ser el resultado esperado.
+          } @else if (!e.assisted) {
+            <strong>Este proyecto no tiene un servicio de IA activo.</strong> Para usarlo hay que
+            elegir un proveedor y guardar su clave en
+            @if (esFacilitador()) {
+              <strong>Servicio de IA generativa → Configurar</strong>, arriba en esta misma
+              pantalla.
+            } @else {
+              <strong>Servicio de IA generativa</strong>, que configura el facilitador del
+              proyecto.
+            }
+            Mientras tanto puede generar sin IA: las pruebas se derivan del criterio de
+            verificación de cada requisito.
+          } @else {
+            El modelo puede identificar actores de dominio y escenarios que el enunciado no
+            enuncia. A cambio, el requisito se envía a un tercero y dos generaciones pueden no
+            coincidir. Las magnitudes que invente se sustituyen igual por huecos.
+          }
+        </p>
+
+        <div class="generar">
+          <div class="generar__bloque">
+            <h3 class="eyebrow">Pruebas</h3>
+            <ul class="clases">
+              @for (c of e.testKinds; track c) {
+                <li class="clase" [class.clase--elegida]="elegida(c, false)"
+                    (click)="alternarClase(c, false)">
+                  <span class="clase__marca">{{ elegida(c, false) ? '✓' : '' }}</span>
+                  <span class="clase__nombre">{{ ETIQUETA[c] || c }}</span>
+                  <span class="clase__que">{{ EXPLICACION[c] }}</span>
+                </li>
+              }
+            </ul>
+            <button type="button" class="btn btn--principal" [disabled]="generando()"
+              (click)="generar('TEST')">
+              {{ generando() ? 'Generando…' : 'Generar pruebas' }}
+            </button>
+            <p class="panel__nota">Sin marcar ninguna se generan todas las clases.</p>
+          </div>
+
+          <div class="generar__bloque">
+            <h3 class="eyebrow">Diagramas</h3>
+            <ul class="clases">
+              @for (c of e.diagramKinds; track c) {
+                <li class="clase" [class.clase--elegida]="elegida(c, true)"
+                    (click)="alternarClase(c, true)">
+                  <span class="clase__marca">{{ elegida(c, true) ? '✓' : '' }}</span>
+                  <span class="clase__nombre">{{ ETIQUETA[c] || c }}</span>
+                  <span class="clase__que">{{ EXPLICACION[c] }}</span>
+                </li>
+              }
+            </ul>
+            <button type="button" class="btn btn--principal" [disabled]="generando()"
+              (click)="generar('DIAGRAM')">
+              {{ generando() ? 'Generando…' : 'Generar diagramas' }}
+            </button>
+          </div>
+        </div>
+      </section>
+    }
+
+    <!-- ---------- Lo generado ---------- -->
+    <nav class="pestanas" aria-label="Qué se muestra">
+      <button type="button" [class.pestana--activa]="vista() === 'TEST'"
+        (click)="vista.set('TEST')">Pruebas ({{ e.tests.length }})</button>
+      <button type="button" [class.pestana--activa]="vista() === 'DIAGRAM'"
+        (click)="vista.set('DIAGRAM')">Diagramas ({{ e.diagrams.length }})</button>
+    </nav>
+
+    @if (visibles().length > 0) {
+      <div class="resumen">
+        <p class="resumen__cifras">
+          <strong>{{ listas().length }}</strong> listas para ejecutar ·
+          <strong>{{ conHuecos().length }}</strong> exigen especificar valores
+          @if (pendientes() > 0) {
+            · <strong>{{ pendientes() }}</strong> esperan decisión
+          }
+        </p>
+
+        <div class="resumen__agrupar">
+          <span class="resumen__etiqueta">Agrupar por</span>
+          <button type="button" [class.pestana--activa]="agrupacion() === 'COMPLETITUD'"
+            (click)="agrupacion.set('COMPLETITUD')">Completitud</button>
+          <button type="button" [class.pestana--activa]="agrupacion() === 'TIPO'"
+            (click)="agrupacion.set('TIPO')">Tipo</button>
+        </div>
+      </div>
+    }
+
+    @if (visibles().length === 0) {
+      <p class="vacio">Nada generado todavía.</p>
+    }
+
+    @for (g of grupos(); track g.clave) {
+      <section class="grupo-artefactos">
+        <h3 class="grupo-artefactos__titulo">
+          {{ g.titulo }}
+          <span class="grupo-artefactos__cuenta">{{ g.items.length }}</span>
+          @if (agrupacion() === 'TIPO' && g.items.length > 0) {
+            <span class="grupo-artefactos__listas">
+              {{ listasDe(g.items) }} listas para ejecutar
+            </span>
+          }
+        </h3>
+
+        @if (g.nota) {
+          <p class="grupo-artefactos__nota">{{ g.nota }}</p>
+        }
+
+        @if (g.items.length === 0) {
+          <p class="vacio vacio--interior">Ninguna.</p>
+        }
+
+    <ul class="lista">
+      @for (a of g.items; track a.readableId) {
+        <li class="artefacto" [class.artefacto--hueco]="a.needsDecision">
+          <div class="artefacto__fila" (click)="alternar(a)">
+            <span class="mono">{{ a.readableId }}</span>
+            <span class="clase-etiqueta">{{ a.subkindLabel }}</span>
+            <span class="artefacto__titulo">{{ a.title }}</span>
+            <span class="estado estado--{{ a.status }}">
+              {{ a.status === 'PROPOSED' ? 'Propuesto' : a.status === 'ACCEPTED' ? 'Aceptado' : 'Descartado' }}
+            </span>
+            <span class="procedencia">{{ a.originLabel }}</span>
+            @if (a.acceptedWithGaps) {
+              <span class="con-huecos" title="Se aceptó habiendo huecos pendientes">
+                aceptado con huecos
+              </span>
+            }
+
+            @if (a.ownerReviewedBy) {
+              <span class="revisado" title="El propietario del producto lo ha visto">
+                visto por {{ a.ownerReviewedBy }}
+              </span>
+            }
+            @if (a.needsDecision) {
+              <span class="hueco">tiene huecos</span>
+            }
+          </div>
+
+          @if (abierto() === a.readableId) {
+            <div class="artefacto__cuerpo">
+              @if (a.rationale) {
+                <p class="fundamento">{{ a.rationale }}</p>
+              }
+
+              @if (esPropietario() && !esEquipo()) {
+                <p class="panel__nota">
+                  Aprobar esto corresponde al equipo, que es quien va a ejecutarlo. Usted puede
+                  darlo por revisado, antes o después de que lo aprueben.
+                </p>
+              }
+
+              @if (a.requirements.length > 0) {
+                <p class="artefacto__requisitos">
+                  Cubre:
+                  @for (r of a.requirements; track r) {
+                    <span class="origen">{{ r }}</span>
+                  }
+                </p>
+              }
+
+              @if (editando() === a.readableId) {
+                <textarea rows="14" class="editor" [(ngModel)]="contenidoEditado"
+                  [name]="'c-' + a.readableId" aria-label="Contenido"></textarea>
+                <div class="artefacto__acciones">
+                  <button type="button" class="btn btn--principal" (click)="guardarEdicion(a)">
+                    Guardar
+                  </button>
+                  <button type="button" class="btn btn--plano" (click)="editando.set(null)">
+                    Cancelar
+                  </button>
+                </div>
+              } @else {
+                @if (a.format === 'MERMAID' && viendoTexto() !== a.readableId) {
+                  <slcp-diagram-view [codigo]="a.content" [id]="a.readableId" />
+                } @else {
+                  <pre class="contenido"><code>{{ a.content }}</code></pre>
+                }
+
+                <div class="artefacto__acciones">
+                  @if (esEquipo()) {
+                    @if (a.status !== 'ACCEPTED') {
+                      <button type="button" class="btn btn--aceptar" (click)="decidir(a, true)">
+                        {{ a.needsDecision ? 'Aceptar de todos modos' : 'Aceptar' }}
+                      </button>
+                    }
+                    @if (a.status === 'PROPOSED') {
+                      <button type="button" class="btn btn--plano" (click)="decidir(a, false)">
+                        Descartar
+                      </button>
+                    }
+                    <button type="button" class="btn btn--plano" (click)="abrirEdicion(a)">
+                      Modificar
+                    </button>
+                    @if (a.status !== 'ACCEPTED') {
+                      <button type="button" class="btn btn--plano" (click)="eliminar(a)">
+                        Eliminar
+                      </button>
+                    }
+                  }
+
+                  <button type="button" class="btn btn--plano" (click)="copiar(a)">Copiar</button>
+
+                  @if (a.format === 'MERMAID') {
+                    <button type="button" class="btn btn--plano" (click)="alternarTexto(a)">
+                      {{ viendoTexto() === a.readableId ? 'Ver el dibujo' : 'Ver el texto' }}
+                    </button>
+                  }
+
+                  @if (esPropietario()) {
+                    @if (a.acceptedWithGaps) {
+              <span class="con-huecos" title="Se aceptó habiendo huecos pendientes">
+                aceptado con huecos
+              </span>
+            }
+
+            @if (a.ownerReviewedBy) {
+                      <button type="button" class="btn btn--plano"
+                        (click)="darPorRevisado(a, false)">
+                        Retirar mi revisión
+                      </button>
+                    } @else {
+                      <button type="button" class="btn btn--plano"
+                        (click)="darPorRevisado(a, true)">
+                        Dar por revisado
+                      </button>
+                    }
+                  }
+
+                  @if (a.reviewedBy) {
+                    <span class="quien">decidido por {{ a.reviewedBy }}</span>
+                  }
+                </div>
+
+                @if (a.needsDecision) {
+                  <p class="hueco__nota">
+                    Tiene huecos sin rellenar. Puede completarlos con <strong>Modificar</strong>, o
+                    aceptarlo así si tiene razones para hacerlo: <strong>la decisión es
+                    suya</strong>. Quedará constancia de que se aceptó habiendo huecos.
+                  </p>
+                }
+              }
+            </div>
+          }
+        </li>
+      }
+    </ul>
+      </section>
+    }
+  }
+</main>

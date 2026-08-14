@@ -103,6 +103,26 @@ public class Requirement {
 			Integer sourceLine, RequirementKind kind, String name, String statement,
 			String verification, UUID createdBy, Instant momento) {
 
+		return crear(projectId, readableId, sourceId, sourceLine, kind, name, statement,
+				verification, null, createdBy, momento);
+	}
+
+	/**
+	 * Alta con actor.
+	 *
+	 * <p>Este campo guarda el <strong>interesado o la fuente</strong> que trae la
+	 * especificacion: quien pidio el requisito, o de donde vienen sus datos. No es
+	 * el actor de un caso de uso.</p>
+	 *
+	 * <p>Son cosas distintas y confundirlas produce diagramas falsos: en una
+	 * especificacion real este campo trae cosas como "Sensor de humedad" o
+	 * "Pasarela de campo", que son origenes de datos y no quien ejerce nada. El
+	 * actor de caso de uso se identifica del enunciado, en ActorExtractor.</p>
+	 */
+	public static Requirement crear(UUID projectId, String readableId, String sourceId,
+			Integer sourceLine, RequirementKind kind, String name, String statement,
+			String verification, String actor, UUID createdBy, Instant momento) {
+
 		Requirement r = new Requirement();
 		r.id = UUID.randomUUID();
 		r.readableId = readableId;
@@ -113,6 +133,7 @@ public class Requirement {
 		r.name = TextNormalizer.nombre(name);
 		r.statement = statement == null ? "" : statement.trim();
 		r.verification = TextNormalizer.enunciado(verification);
+		r.actor = actor == null || actor.isBlank() ? null : actor.trim();
 		r.status = RequirementStatus.DRAFT;
 		r.version = 1;
 		r.statementOrigin = TextOrigin.HUMAN;
@@ -276,6 +297,20 @@ public class Requirement {
 
 	public String getStatement() {
 		return statement;
+	}
+
+	/**
+	 * Interesado o fuente del requisito. No es el actor de un caso de uso.
+	 *
+	 * @see org.slcp.service.generation.ActorExtractor para el actor de caso de uso
+	 */
+	public String getActor() {
+		return actor;
+	}
+
+	/** Cambia el actor. Vaciarlo lo deja sin declarar, que es un estado legitimo. */
+	public void asignarActor(String actor) {
+		this.actor = actor == null || actor.isBlank() ? null : actor.trim();
 	}
 
 	public String getVerification() {

@@ -2,14 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
-import {
-  CheckResult,
-  HeldRequirement,
-  ImportProfile,
-  ImportResult,
-  Requirement,
-  RequirementSummary,
-} from './requirement';
+import { ImportProfile, ImportResult, Requirement, RequirementSummary } from './requirement';
 
 /** Acceso a los requisitos de un proyecto. */
 @Injectable({ providedIn: 'root' })
@@ -31,16 +24,6 @@ export class RequirementService {
 
   resumen(projectId: string): Observable<RequirementSummary> {
     return this.http.get<RequirementSummary>(`${this.url(projectId)}/summary`);
-  }
-
-  /** Comprueba un enunciado antes de darlo de alta: duplicados y dominio. */
-  comprobar(projectId: string, statement: string): Observable<CheckResult> {
-    return this.http.post<CheckResult>(`${this.url(projectId)}/check`, { statement });
-  }
-
-  /** Da de alta requisitos que quedaron retenidos, tras decidirlo una persona. */
-  aceptarRetenidos(projectId: string, requirements: HeldRequirement[]): Observable<ImportResult> {
-    return this.http.post<ImportResult>(`${this.url(projectId)}/held`, { requirements });
   }
 
   crear(

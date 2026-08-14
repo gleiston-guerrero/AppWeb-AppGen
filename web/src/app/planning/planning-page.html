@@ -1,0 +1,535 @@
+<main class="pagina contenedor">
+  <header class="cabecera">
+    <div>
+      <p class="eyebrow">Planificación</p>
+      <h1 class="titulo">{{ projectId }}</h1>
+    </div>
+    <div class="cabecera__enlaces">
+      <a routerLink="/proyecto/{{ projectId }}/requisitos">Requisitos</a>
+      <a routerLink="/proyecto/{{ projectId }}/entregables">Entregables</a>
+      <a routerLink="/proyecto/{{ projectId }}/generacion">Pruebas y diagramas</a>
+      <a routerLink="/trabajo">Mi trabajo</a>
+    </div>
+  </header>
+
+  @if (aviso(); as m) { <p class="aviso" role="status">{{ m }}</p> }
+  @if (error(); as m) { <p class="error" role="alert">{{ m }}</p> }
+
+  @if (cargando()) {
+    <p class="vacio">Consultando el plan…</p>
+  } @else if (plan(); as p) {
+
+    <!-- ---------- Avance del proyecto ---------- -->
+    <section class="total">
+      <div class="total__cifra">
+        <span class="total__pct">{{ pct(p.progress) }}%</span>
+        <span class="total__nota">avance calculado</span>
+      </div>
+      <div class="barra barra--grande">
+        <span class="barra__relleno" [style.width.%]="pct(p.progress)"></span>
+      </div>
+      <ul class="total__datos">
+        <li><strong>{{ p.effort }}</strong> puntos de esfuerzo previsto</li>
+        <li><strong>{{ p.spentHours }}</strong> horas dedicadas</li>
+        <li><strong>{{ p.deliverables.length }}</strong> entregables</li>
+      </ul>
+      <p class="total__aclaracion">
+        Este porcentaje no lo escribe nadie: sale de las actividades hechas, ponderadas por su
+        esfuerzo, y sube por tareas, componentes y entregables.
+      </p>
+    </section>
+
+    @if (concentracion().length > 0) {
+      <p class="riesgo">
+        @for (w of concentracion(); track w.username) {
+          <strong>{{ w.username }}</strong> concentra {{ pct(w.effort / p.effort) }}% del esfuerzo
+          del proyecto.
+        }
+        El proyecto depende de que no falte.
+      </p>
+    }
+
+    <!-- ---------- Descomposición ---------- -->
+    @if (p.deliverables.length === 0) {
+      <p class="vacio">
+        No hay entregables que descomponer.
+        <a routerLink="/proyecto/{{ projectId }}/entregables">Cree el primero</a>.
+      </p>
+    }
+
+    @for (d of p.deliverables; track d.deliverableId) {
+      <section class="entregable">
+        <div class="entregable__fila" (click)="alternarEntregable(d)">
+          <div class="entregable__id">
+            <span class="mono">{{ d.deliverableId }}</span>
+            <span class="entregable__nombre">{{ d.deliverableName }}</span>
+          </div>
+          <div class="entregable__medida">
+            <span class="mono">{{ d.effort }} pts</span>
+            <div class="barra">
+              <span class="barra__relleno" [style.width.%]="pct(d.progress)"></span>
+            </div>
+            <span class="pct">{{ pct(d.progress) }}%</span>
+          </div>
+        </div>
+
+        @if (entregableAbierto() === d.deliverableId) {
+          <div class="entregable__cuerpo">
+
+            @if (d.components.length === 0) {
+              <p class="vacio vacio--interior">
+                Este entregable no está descompuesto todavía.
+              </p>
+            }
+
+            @for (c of d.components; track c.readableId) {
+              <article class="componente">
+                @if (editandoComponente() === c.readableId) {
+                  <div class="formulario">
+                    <input type="text" [(ngModel)]="nombreComponente" [name]="'ec-' + c.readableId"
+                      placeholder="Nombre del componente" aria-label="Nombre" />
+                    <input type="text" [(ngModel)]="descripcionComponente"
+                      [name]="'edc-' + c.readableId" placeholder="Qué incluye"
+                      aria-label="Descripción" />
+                    <button type="button" class="btn btn--principal" [disabled]="guardando()"
+                      (click)="actualizarComponente(c)">Actualizar</button>
+                    <button type="button" class="btn btn--plano"
+                      (click)="editandoComponente.set(null)">Cancelar</button>
+                  </div>
+                }
+
+                <div class="componente__fila">
+                  <div>
+                    <span class="mono">{{ c.readableId }}</span>
+                    <span class="componente__nombre">{{ c.name }}</span>
+                  </div>
+                  <div class="entregable__medida">
+                    <span class="mono">{{ c.effort }} pts</span>
+                    <div class="barra">
+                      <span class="barra__relleno" [style.width.%]="pct(c.progress)"></span>
+                    </div>
+                    <span class="pct">{{ pct(c.progress) }}%</span>
+                  </div>
+                </div>
+
+                <!-- Tareas -->
+                @for (t of c.tasks; track t.readableId) {
+                  <div class="tarea" [class.tarea--abierta]="tareaAbierta() === t.readableId">
+                    <div class="tarea__fila" (click)="alternarTarea(t)">
+                      <span class="mono">{{ t.readableId }}</span>
+                      <span class="tarea__nombre">{{ t.name }}</span>
+                      <span class="estado estado--{{ t.status }}">{{ t.statusLabel }}</span>
+                      @if (t.assignee) {
+                        <span class="quien">{{ t.assignee }}</span>
+                      } @else {
+                        <span class="quien quien--nadie">sin asignar</span>
+                      }
+                      <span class="mono esfuerzo">{{ t.plannedEffort }} pts</span>
+                      <div class="barra barra--peque">
+                        <span class="barra__relleno" [style.width.%]="pct(t.progress)"></span>
+                      </div>
+                      <span class="pct">{{ pct(t.progress) }}%</span>
+                    </div>
+
+                    @if (tareaAbierta() === t.readableId) {
+                      <div class="tarea__cuerpo">
+                        @if (editandoTarea() === t.readableId) {
+                          <div class="formulario">
+                            <input type="text" [(ngModel)]="nombreTarea" [name]="'et-' + t.readableId"
+                              placeholder="Nombre de la tarea" aria-label="Nombre" />
+                            <input type="number" min="1" [(ngModel)]="esfuerzoTarea"
+                              [name]="'ee-' + t.readableId" placeholder="Puntos"
+                              aria-label="Esfuerzo previsto" />
+                            <select [(ngModel)]="responsableTarea" [name]="'er-' + t.readableId"
+                              aria-label="Responsable">
+                              <option value="">Sin asignar</option>
+                              @for (m of asignables(); track m.username) {
+                                <option [value]="m.username">{{ m.fullName }}</option>
+                              }
+                            </select>
+                            <button type="button" class="btn btn--principal" [disabled]="guardando()"
+                              (click)="actualizarTarea(t)">Actualizar</button>
+                            <button type="button" class="btn btn--plano"
+                              (click)="editandoTarea.set(null)">Cancelar</button>
+                          </div>
+                        }
+
+                        @if (t.spentHours > 0) {
+                          <p class="consumo">
+                            {{ t.spentHours }} horas dedicadas frente a {{ pct(t.progress) }}% de
+                            avance. Son medidas distintas: una dice lo gastado y la otra lo hecho.
+                          </p>
+                        }
+
+                        <!-- Actividades -->
+                        <h4 class="eyebrow">Actividades</h4>
+                        @if (!esEquipo() && t.activities.length > 0) {
+                          <p class="panel__nota">
+                            Marcar actividades y registrar horas corresponde al miembro del equipo
+                            que ejecuta la tarea. Puede consultarlas.
+                          </p>
+                        }
+                        @if (t.activities.length === 0) {
+                          <p class="vacio vacio--interior">
+                            Sin actividades. El avance de la tarea sale de ellas: mientras no las
+                            haya, solo puede darse por terminada entera.
+                          </p>
+                        }
+                        <ul class="actividades">
+                          @for (a of t.activities; track a.readableId) {
+                            <li class="actividad">
+                              <button type="button" class="marca" [class.marca--hecha]="a.done"
+                                [disabled]="!esEquipo()" (click)="marcarActividad(t, a)"
+                                [title]="esEquipo()
+                                  ? (a.done ? 'Dar por pendiente' : 'Dar por hecha')
+                                  : 'Marcar actividades corresponde al miembro del equipo que ejecuta la tarea'"
+                                [attr.aria-label]="a.done ? 'Dar por pendiente' : 'Dar por hecha'">
+                                {{ a.done ? '✓' : '' }}
+                              </button>
+                              <span class="mono">{{ a.readableId }}</span>
+                              <span class="actividad__nombre" [class.hecha]="a.done">{{ a.name }}</span>
+                              <span class="mono esfuerzo">{{ a.plannedEffort }} pts</span>
+                              @if (a.spentHours > 0) {
+                                <span class="mono horas">{{ a.spentHours }} h</span>
+                              }
+                              @if (esEquipo()) {
+                                <button type="button" class="btn btn--mini" (click)="abrirHoras(a)">
+                                  Registrar horas
+                                </button>
+                                <button type="button" class="btn btn--mini"
+                                  (click)="abrirEdicionActividad(a)">Modificar</button>
+                                <button type="button" class="btn btn--mini"
+                                  (click)="eliminarActividad(t, a)">Eliminar</button>
+                              }
+                            </li>
+
+                            @if (editandoActividad() === a.readableId) {
+                              <li class="formulario">
+                                <input type="text" [(ngModel)]="nombreActividad"
+                                  [name]="'ea-' + a.readableId" placeholder="Qué se hace"
+                                  aria-label="Nombre" />
+                                <input type="number" min="1" [(ngModel)]="esfuerzoActividad"
+                                  [name]="'eae-' + a.readableId" placeholder="Puntos"
+                                  aria-label="Esfuerzo" />
+                                <button type="button" class="btn btn--principal"
+                                  [disabled]="guardando()" (click)="actualizarActividad(t, a)">
+                                  Actualizar
+                                </button>
+                                <button type="button" class="btn btn--plano"
+                                  (click)="editandoActividad.set(null)">Cancelar</button>
+                              </li>
+                            }
+
+                            @if (a.entries.length > 0) {
+                              <li class="asientos">
+                                <ul>
+                                  @for (e of a.entries; track e.id) {
+                                    <li>
+                                      <span class="mono">{{ e.hours }} h</span>
+                                      <span class="mono">{{ e.workedOn }}</span>
+                                      <span class="quien">{{ e.person }}</span>
+                                      @if (e.note) { <span class="nota">{{ e.note }}</span> }
+                                      @if (esEquipo()) {
+                                        <button type="button" class="btn btn--mini"
+                                          (click)="retirarHoras(t, a, e.id)"
+                                          title="Solo puede retirarlo quien lo anotó">Retirar</button>
+                                      }
+                                    </li>
+                                  }
+                                </ul>
+                              </li>
+                            }
+
+                            @if (registrandoHoras() === a.readableId) {
+                              <li class="formulario">
+                                <input type="number" step="0.25" min="0.25" max="24"
+                                  [(ngModel)]="horas" [name]="'h-' + a.readableId"
+                                  placeholder="Horas" aria-label="Horas" />
+                                <input type="date" [(ngModel)]="fechaHoras"
+                                  [name]="'f-' + a.readableId" aria-label="Fecha" />
+                                <input type="text" [(ngModel)]="notaHoras"
+                                  [name]="'n-' + a.readableId" placeholder="En qué (opcional)"
+                                  aria-label="Nota" />
+                                <button type="button" class="btn btn--principal"
+                                  [disabled]="guardando()" (click)="guardarHoras(t, a)">
+                                  Registrar
+                                </button>
+                                <button type="button" class="btn btn--plano"
+                                  (click)="registrandoHoras.set(null)">Cancelar</button>
+                              </li>
+                            }
+                          }
+                        </ul>
+
+                        @if (esEquipo()) {
+                          @if (creandoActividad() === t.readableId) {
+                            <div class="formulario">
+                              <input type="text" [(ngModel)]="nombreActividad" name="nombreActividad"
+                                placeholder="Qué se hace" aria-label="Nombre de la actividad" />
+                              <input type="number" min="1" [(ngModel)]="esfuerzoActividad"
+                                name="esfuerzoActividad" placeholder="Puntos" aria-label="Esfuerzo" />
+                              <button type="button" class="btn btn--principal"
+                                [disabled]="guardando()" (click)="guardarActividad(t)">Crear</button>
+                              <button type="button" class="btn btn--plano"
+                                (click)="creandoActividad.set(null)">Cancelar</button>
+                            </div>
+                          } @else {
+                            <button type="button" class="btn btn--mini" (click)="abrirActividad(t)">
+                              Nueva actividad
+                            </button>
+                          }
+                        }
+
+                        <!-- Recursos de la tarea -->
+                        <h4 class="eyebrow">Recursos materiales</h4>
+                        @if (t.resources.length === 0) {
+                          <p class="vacio vacio--interior">Ninguno asignado.</p>
+                        }
+                        <ul class="recursos-tarea">
+                          @for (r of t.resources; track r.readableId) {
+                            <li>
+                              <span class="mono">{{ r.readableId }}</span>
+                              <span>{{ r.name }}</span>
+                              <span class="clase">{{ r.kindLabel }}</span>
+                              @if (r.quantity) {
+                                <span class="mono">{{ r.quantity }} {{ r.unit }}</span>
+                              }
+                              @if (esFacilitador()) {
+                                <button type="button" class="btn btn--mini"
+                                  (click)="retirarRecurso(t, r.readableId)">Retirar</button>
+                              }
+                            </li>
+                          }
+                        </ul>
+
+                        @if (esFacilitador()) {
+                          @if (asignandoRecurso() === t.readableId) {
+                            <div class="formulario">
+                              <select [(ngModel)]="recursoElegido" name="recursoElegido"
+                                aria-label="Recurso">
+                                @for (r of p.resources; track r.readableId) {
+                                  <option [value]="r.readableId">{{ r.name }}</option>
+                                }
+                              </select>
+                              <input type="number" step="0.5" [(ngModel)]="cantidadAsignada"
+                                name="cantidadAsignada" placeholder="Cantidad" aria-label="Cantidad" />
+                              <button type="button" class="btn btn--principal"
+                                (click)="asignarRecurso(t)">Asignar</button>
+                              <button type="button" class="btn btn--plano"
+                                (click)="asignandoRecurso.set(null)">Cancelar</button>
+                            </div>
+                          } @else if (p.resources.length > 0) {
+                            <button type="button" class="btn btn--mini" (click)="abrirAsignacion(t)">
+                              Asignar recurso
+                            </button>
+                          }
+                        }
+
+                        <!-- Acciones sobre la tarea -->
+                        <div class="tarea__acciones">
+                          @if (esEquipo()) {
+                            @if (t.status === 'PENDING') {
+                              <button type="button" class="btn btn--plano"
+                                (click)="transitarTarea(t, 'IN_PROGRESS')">Empezar</button>
+                            }
+                            @if (t.status === 'IN_PROGRESS' || t.status === 'BLOCKED') {
+                              <button type="button" class="btn btn--principal"
+                                (click)="transitarTarea(t, 'DONE')">Dar por terminada</button>
+                            }
+                            @if (t.status === 'IN_PROGRESS') {
+                              <button type="button" class="btn btn--plano"
+                                (click)="transitarTarea(t, 'BLOCKED')">Bloquear</button>
+                            }
+                            @if (t.status === 'DONE') {
+                              <button type="button" class="btn btn--plano"
+                                (click)="transitarTarea(t, 'IN_PROGRESS')">Reabrir</button>
+                              @if (t.doneBy) {
+                                <span class="quien">terminada por {{ t.doneBy }}</span>
+                              }
+                            }
+                          }
+                          @if (esFacilitador()) {
+                            <button type="button" class="btn btn--plano"
+                              (click)="abrirEdicionTarea(t)">Modificar tarea</button>
+                            <button type="button" class="btn btn--plano"
+                              (click)="eliminarTarea(t)">Eliminar tarea</button>
+                          }
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+
+                @if (esFacilitador()) {
+                  @if (creandoTarea() === c.readableId) {
+                    <div class="formulario">
+                      <input type="text" [(ngModel)]="nombreTarea" name="nombreTarea"
+                        placeholder="Nombre de la tarea" aria-label="Nombre" />
+                      <input type="number" min="1" [(ngModel)]="esfuerzoTarea" name="esfuerzoTarea"
+                        placeholder="Puntos de esfuerzo" aria-label="Esfuerzo previsto" />
+                      <select [(ngModel)]="responsableTarea" name="responsableTarea"
+                        aria-label="Responsable">
+                        <option value="">Sin asignar</option>
+                        @for (m of asignables(); track m.username) {
+                          <option [value]="m.username">{{ m.fullName }}</option>
+                        }
+                      </select>
+                      <button type="button" class="btn btn--principal" [disabled]="guardando()"
+                        (click)="guardarTarea(c)">Crear tarea</button>
+                      <button type="button" class="btn btn--plano"
+                        (click)="creandoTarea.set(null)">Cancelar</button>
+                    </div>
+                  } @else {
+                    <div class="componente__acciones">
+                      <button type="button" class="btn btn--mini" (click)="abrirTarea(c)">
+                        Nueva tarea
+                      </button>
+                      <button type="button" class="btn btn--mini" (click)="abrirEdicionComponente(c)">
+                        Modificar componente
+                      </button>
+                      @if (c.deletable && c.tasks.length === 0) {
+                        <button type="button" class="btn btn--mini"
+                          (click)="eliminarComponente(c)">Eliminar componente</button>
+                      }
+                    </div>
+                  }
+                }
+              </article>
+            }
+
+            @if (esFacilitador()) {
+              @if (creandoComponente() === d.deliverableId) {
+                <div class="formulario">
+                  <input type="text" [(ngModel)]="nombreComponente" name="nombreComponente"
+                    placeholder="Nombre del componente" aria-label="Nombre" />
+                  <input type="text" [(ngModel)]="descripcionComponente"
+                    name="descripcionComponente" placeholder="Qué incluye (opcional)"
+                    aria-label="Descripción" />
+                  <button type="button" class="btn btn--principal" [disabled]="guardando()"
+                    (click)="guardarComponente(d)">Crear componente</button>
+                  <button type="button" class="btn btn--plano"
+                    (click)="creandoComponente.set(null)">Cancelar</button>
+                </div>
+              } @else {
+                <button type="button" class="btn btn--plano" (click)="abrirComponente(d)">
+                  Nuevo componente
+                </button>
+              }
+            }
+          </div>
+        }
+      </section>
+    }
+
+    <!-- ---------- Recursos y carga ---------- -->
+    <section class="panel">
+      <h2 class="eyebrow">Recursos materiales</h2>
+
+      @if (p.resources.length === 0) {
+        <p class="panel__nota">
+          Ninguno todavía. Las personas no se catalogan aquí: ya son el equipo del proyecto.
+        </p>
+      } @else {
+        <table class="tabla">
+          <thead>
+            <tr><th></th><th>Recurso</th><th>Clase</th><th>Cantidad</th><th>En uso</th><th></th></tr>
+          </thead>
+          <tbody>
+            @for (r of p.resources; track r.readableId) {
+              <tr>
+                <td class="mono">{{ r.readableId }}</td>
+                <td>{{ r.name }}</td>
+                <td>{{ r.kindLabel }}</td>
+                <td>{{ r.quantity }} {{ r.unit }}</td>
+                <td>{{ r.assignments }} tareas</td>
+                <td class="acciones-fila">
+                  @if (esFacilitador()) {
+                    <button type="button" class="btn btn--mini"
+                      (click)="abrirEdicionRecurso(r)">Modificar</button>
+                    @if (r.assignments === 0) {
+                      <button type="button" class="btn btn--mini"
+                        (click)="eliminarRecurso(r.readableId)">Eliminar</button>
+                    }
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+
+      @if (editandoRecurso(); as edit) {
+        <div class="formulario">
+          <input type="text" [(ngModel)]="nombreRecurso" name="erNombre"
+            placeholder="Nombre del recurso" aria-label="Nombre" />
+          <select [(ngModel)]="claseRecurso" name="erClase" aria-label="Clase">
+            @for (c of CLASES; track c.valor) {
+              <option [value]="c.valor">{{ c.etiqueta }}</option>
+            }
+          </select>
+          <input type="number" step="0.5" [(ngModel)]="cantidadRecurso" name="erCantidad"
+            placeholder="Cantidad" aria-label="Cantidad" />
+          <input type="text" [(ngModel)]="unidadRecurso" name="erUnidad"
+            placeholder="Unidad" aria-label="Unidad" />
+          <button type="button" class="btn btn--principal" [disabled]="guardando()"
+            (click)="actualizarRecurso(edit)">Actualizar</button>
+          <button type="button" class="btn btn--plano"
+            (click)="editandoRecurso.set(null)">Cancelar</button>
+        </div>
+      }
+
+      @if (esFacilitador()) {
+        @if (creandoRecurso()) {
+          <div class="formulario">
+            <input type="text" [(ngModel)]="nombreRecurso" name="nombreRecurso"
+              placeholder="Nombre del recurso" aria-label="Nombre" />
+            <select [(ngModel)]="claseRecurso" name="claseRecurso" aria-label="Clase">
+              @for (c of CLASES; track c.valor) {
+                <option [value]="c.valor">{{ c.etiqueta }}</option>
+              }
+            </select>
+            <input type="number" step="0.5" [(ngModel)]="cantidadRecurso" name="cantidadRecurso"
+              placeholder="Cantidad" aria-label="Cantidad" />
+            <input type="text" [(ngModel)]="unidadRecurso" name="unidadRecurso"
+              placeholder="Unidad" aria-label="Unidad" />
+            <button type="button" class="btn btn--principal" [disabled]="guardando()"
+              (click)="guardarRecurso()">Crear recurso</button>
+            <button type="button" class="btn btn--plano"
+              (click)="creandoRecurso.set(false)">Cancelar</button>
+          </div>
+        } @else {
+          <button type="button" class="btn btn--plano" (click)="abrirRecurso()">
+            Nuevo recurso
+          </button>
+        }
+      }
+    </section>
+
+    @if (p.workload.length > 0) {
+      <section class="panel">
+        <h2 class="eyebrow">Carga por persona</h2>
+        <table class="tabla">
+          <thead>
+            <tr><th>Persona</th><th>Tareas</th><th>Esfuerzo</th><th>Avance</th><th>Horas</th></tr>
+          </thead>
+          <tbody>
+            @for (w of p.workload; track w.username) {
+              <tr>
+                <td>{{ w.fullName }} <span class="mono">{{ w.username }}</span></td>
+                <td>{{ w.tasks }}</td>
+                <td>{{ w.effort }} pts</td>
+                <td>
+                  <div class="barra barra--peque">
+                    <span class="barra__relleno" [style.width.%]="pct(w.progress)"></span>
+                  </div>
+                  {{ pct(w.progress) }}%
+                </td>
+                <td>{{ w.spentHours }} h</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </section>
+    }
+  }
+</main>

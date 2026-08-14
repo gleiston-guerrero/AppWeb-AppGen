@@ -160,7 +160,12 @@ export class RequirementsPage implements OnInit {
           this.perfil.set(lista[0].id);
         }
       },
-      error: () => this.formatos.set([]),
+      error: (fallo: HttpErrorResponse) => {
+        // Un fallo no puede parecer "no hay nada": son cosas distintas y quien
+        // mira no puede distinguirlas.
+        this.formatos.set([]);
+        this.error.set(this.explicar(fallo));
+      },
     });
   }
 
@@ -217,7 +222,12 @@ export class RequirementsPage implements OnInit {
     });
     this.service.resumen(this.projectId).subscribe({
       next: (r) => this.resumen.set(r),
-      error: () => this.resumen.set(null),
+      error: (fallo: HttpErrorResponse) => {
+        // Un fallo no puede parecer "no hay nada": son cosas distintas y quien
+        // mira no puede distinguirlas.
+        this.resumen.set(null);
+        this.error.set(this.explicar(fallo));
+      },
     });
   }
 

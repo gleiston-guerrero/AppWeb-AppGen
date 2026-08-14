@@ -82,7 +82,12 @@ export class BenchmarkPage implements OnInit {
 
     this.ajustes.credenciales(this.projectId).subscribe({
       next: (l) => this.configuradas.set(l),
-      error: () => this.configuradas.set([]),
+      error: (fallo: HttpErrorResponse) => {
+        // Un fallo no puede parecer "no hay nada": son cosas distintas y quien
+        // mira no puede distinguirlas.
+        this.configuradas.set([]);
+        this.error.set(this.explicar(fallo));
+      },
     });
 
     this.cargar();

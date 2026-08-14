@@ -84,7 +84,7 @@
         <div class="formulario">
           <label class="campo">
             <span class="campo__nombre">Proveedor</span>
-            <select [ngModel]="proveedorElegido" name="prov"
+            <select [ngModel]="proveedorElegido()" name="prov"
               (ngModelChange)="cambiarProveedor($event)" aria-label="Proveedor">
               @for (p of proveedores(); track p.id) {
                 <option [value]="p.id">{{ p.label }}</option>
@@ -272,8 +272,13 @@
                 </button>
                 @if (!f.hasCredential) {
                   <span class="campo__ayuda">
-                    {{ f.providerLabel }} no tiene credencial guardada: sin clave quedaría activa
-                    de nombre y fallaría en cada uso.
+                    Esta función usa <strong>{{ f.providerLabel }}</strong> y no hay credencial de
+                    ese proveedor.
+                    @if (credenciales().length > 0) {
+                      Elija arriba uno de los que sí la tienen, o guarde la suya.
+                    } @else {
+                      Guarde una credencial en la sección de arriba.
+                    }
                   </span>
                 }
               }

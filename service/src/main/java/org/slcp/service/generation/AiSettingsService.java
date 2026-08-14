@@ -172,11 +172,24 @@ public class AiSettingsService {
 		ajustes.findByProjectIdOrderByFeatureAsc(proyecto.getId())
 				.forEach(s -> guardadas.put(s.getFeature(), s));
 
+		// Una funcion sin configurar apunta al primer proveedor con credencial, no a
+		// uno fijo. Apuntar siempre a Anthropic hacia que quien guardara OpenAI viera
+		// "no tiene credencial" en las cinco funciones, sin entender por que.
+		AiProvider disponible = credenciales
+				.findByProjectIdOrderByProviderAsc(proyecto.getId()).stream()
+				.findFirst()
+				.map(AiCredential::getProvider)
+				.orElse(AiProvider.ANTHROPIC);
+
 		List<SettingsView> salida = new ArrayList<>();
 		for (AiFeature f : AiFeature.values()) {
 			AiSettings s = guardadas.get(f);
-			salida.add(vistaDe(s != null ? s
-					: AiSettings.inicial(proyecto.getId(), f, solicitante, momento)));
+
+			if (s == null) {
+				s = AiSettings.inicial(proyecto.getId(), f, solicitante, momento);
+				s.configurar(disponible, momento, solicitante);
+			}
+			salida.add(vistaDe(s));
 		}
 		return salida;
 	}
@@ -361,11 +374,15 @@ public class AiSettingsService {
 			boolean contesto = asistido.generar(prueba, DerivedTestGenerator.ACEPTACION).stream()
 					.anyMatch(p -> p.rationale().startsWith("Redactada por el modelo"));
 
-			return contesto
-					? new ProbeResult(true, clase.getEtiqueta() + " respondio con el modelo "
-							+ c.getModel())
-					: new ProbeResult(false, "No respondio. Compruebe la clave, la direccion y el "
-							+ "nombre del modelo: " + c.getModel());
+			if (contesto) {
+				return new ProbeResult(true,
+						clase.getEtiqueta() + " respondio con el modelo " + c.getModel());
+			}
+
+			// El generador recurre al derivado cuando falla, de modo que aqui no llega
+			// el motivo. Se pide otra vez sin respaldo para poder mostrarlo: sin el,
+			// quien comprueba no sabe si falla la clave, el modelo o la cuota.
+			return new ProbeResult(false, motivoDe(c));
 
 		} catch (IllegalStateException e) {
 			return new ProbeResult(false, e.getMessage());
@@ -517,6 +534,29 @@ public class AiSettingsService {
 		return plantillas.findByProjectIdAndFeature(projectId, feature)
 				.map(org.slcp.service.domain.AiPrompt::getTemplate)
 				.orElseGet(() -> PromptCatalog.porDefecto(feature));
+	}
+
+	/**
+	 * Pregunta al proveedor y devuelve lo que respondio.
+	 *
+	 * <p>Se llama sin respaldo derivado a proposito: aqui interesa el fallo, no un
+	 * resultado alternativo.</p>
+	 */
+	private String motivoDe(AiCredential c) {
+		try {
+			new AssistedSpecificationGenerator(c.getProvider(), c.getBaseUrl(),
+					cifrador.descifrar(c.getApiKeyCipher()), c.getModel(),
+					PromptCatalog.porDefecto(AiFeature.GENERATE_SPECS), Duration.ofSeconds(20))
+					.generar(List.of(new RequirementInput("REQ-0000-v1", "PRUEBA", "FUNCTIONAL",
+							"Comprobacion", "El sistema debera responder.", "Comprobar.", null)),
+							"USER_STORY");
+
+			return "El servicio respondio, pero no en la forma esperada. Modelo: " + c.getModel();
+
+		} catch (RuntimeException e) {
+			String detalle = e.getMessage() == null ? "sin detalle" : e.getMessage();
+			return "Modelo " + c.getModel() + ". El proveedor respondio: " + detalle;
+		}
 	}
 
 	/** La credencial del proveedor que sirve a una funcion activa. */

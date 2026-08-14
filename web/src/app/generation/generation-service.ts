@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
-import { AiSettings, Artifact, GenerationState, ProbeResult, Provider } from './generation';
+import { Artifact, GenerationState } from './generation';
 
 /** Acceso a la generación de pruebas y diagramas. */
 @Injectable({ providedIn: 'root' })
@@ -11,44 +11,6 @@ export class GenerationService {
 
   private url(projectId: string): string {
     return `/api/v1/projects/${projectId}/generation`;
-  }
-
-  // --- Configuración del servicio de IA ---
-
-  ajustes(projectId: string): Observable<AiSettings> {
-    return this.http.get<AiSettings>(`/api/v1/projects/${projectId}/ai-settings`);
-  }
-
-  proveedores(projectId: string): Observable<Provider[]> {
-    return this.http.get<Provider[]>(`/api/v1/projects/${projectId}/ai-settings/providers`);
-  }
-
-  /**
-   * Guarda la configuración.
-   *
-   * La clave solo viaja si se escribió una nueva: enviarla vacía conserva la que
-   * hubiera, de modo que corregir el modelo no obliga a tecleárla de nuevo.
-   */
-  guardarAjustes(
-    projectId: string,
-    datos: { provider: string; model: string; baseUrl: string; apiKey?: string },
-  ): Observable<AiSettings> {
-    return this.http.put<AiSettings>(`/api/v1/projects/${projectId}/ai-settings`, datos);
-  }
-
-  activarIa(projectId: string, active: boolean): Observable<AiSettings> {
-    return this.http.put<AiSettings>(
-      `/api/v1/projects/${projectId}/ai-settings/enabled?active=${active}`,
-      {},
-    );
-  }
-
-  retirarCredencial(projectId: string): Observable<AiSettings> {
-    return this.http.delete<AiSettings>(`/api/v1/projects/${projectId}/ai-settings/credential`);
-  }
-
-  probar(projectId: string): Observable<ProbeResult> {
-    return this.http.post<ProbeResult>(`/api/v1/projects/${projectId}/ai-settings/probe`, {});
   }
 
   estado(projectId: string): Observable<GenerationState> {

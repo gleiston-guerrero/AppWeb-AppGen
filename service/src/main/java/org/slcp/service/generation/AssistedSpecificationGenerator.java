@@ -45,6 +45,16 @@ public final class AssistedSpecificationGenerator implements SpecificationGenera
 	/** La instruccion, propia de la funcion y comun a todas las APIs. */
 	private final String plantilla;
 
+	/**
+	 * Si el servicio pide el limite como {@code max_completion_tokens}.
+	 *
+	 * <p>Los modelos de la serie gpt-5 rechazan {@code max_tokens} y los
+	 * anteriores rechazan el nuevo, de modo que no hay uno que sirva para todos.
+	 * Se empieza por el clasico y, si lo rechazan por ese motivo, se reintenta con
+	 * el nuevo y se recuerda para las siguientes llamadas.</p>
+	 */
+	private boolean limiteEnCompletion;
+
 	public AssistedSpecificationGenerator(AiProvider proveedor, String url, String credencial,
 			String modelo, String plantilla, Duration espera) {
 
@@ -78,10 +88,14 @@ public final class AssistedSpecificationGenerator implements SpecificationGenera
 			// vacia haria creer que el modelo contesto algo pobre, cuando lo que
 			// ocurrio es que no contesto.
 			log.warn("La generacion de {} fallo: {}", kind, e.getMessage());
+
+			// Se antepone lo que dijo el proveedor y luego se explica el porque. Al
+			// reves --- o sin ello --- quien lee recibe una leccion sobre el diseno en
+			// lugar del dato que necesita para arreglarlo.
 			throw new GenerationException(
-					"El servicio de IA no respondio. Compruebe la conexion desde la configuracion: "
-							+ "los casos de uso y las historias no pueden generarse sin el, porque la "
-							+ "accion del actor no esta en ningun requisito");
+					(e.getMessage() == null ? "El servicio de IA no respondio" : e.getMessage())
+							+ ". Los casos de uso y las historias no pueden generarse sin modelo, "
+							+ "porque la accion del actor no esta en ningun requisito");
 		}
 	}
 
@@ -116,6 +130,11 @@ public final class AssistedSpecificationGenerator implements SpecificationGenera
 
 
 	private String pedir(String instruccion) throws Exception {
+		return enviar(cuerpoDe(instruccion), false);
+	}
+
+	/** Compone el cuerpo segun el proveedor. */
+	private String cuerpoDe(String instruccion) {
 		String cuerpo = switch (proveedor) {
 			case ANTHROPIC -> "{\"model\":\"" + escapar(modelo) + "\",\"max_tokens\":3000,"
 					+ "\"messages\":[{\"role\":\"user\",\"content\":\"" + escapar(instruccion) + "\"}]}";
@@ -124,10 +143,19 @@ public final class AssistedSpecificationGenerator implements SpecificationGenera
 					+ "\"messages\":[{\"role\":\"user\",\"content\":\"" + escapar(instruccion) + "\"}]}";
 		};
 
+		return cuerpo;
+	}
+
+	/**
+	 * Envia la peticion y devuelve el cuerpo de la respuesta.
+	 *
+	 * @param reintento si ya es un reintento, para no repetir sin fin
+	 */
+	private String enviar(String peticion, boolean reintento) throws Exception {
 		HttpRequest.Builder constructor = HttpRequest.newBuilder(URI.create(direccion()))
 				.header("content-type", "application/json")
 				.timeout(Duration.ofSeconds(120))
-				.POST(HttpRequest.BodyPublishers.ofString(cuerpo, StandardCharsets.UTF_8));
+				.POST(HttpRequest.BodyPublishers.ofString(peticion, StandardCharsets.UTF_8));
 
 		switch (proveedor) {
 			case ANTHROPIC -> constructor
@@ -140,8 +168,24 @@ public final class AssistedSpecificationGenerator implements SpecificationGenera
 		HttpResponse<String> respuesta = cliente.send(constructor.build(),
 				HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
 
+		// El nombre del parametro del limite cambio con la serie gpt-5. Si lo
+		// rechazan por eso, se reintenta con el otro y se recuerda: es preferible a
+		// preguntar al usuario por algo que el servicio ya nos dice.
+		if (respuesta.statusCode() == 400 && !reintento && !limiteEnCompletion
+				&& esParametroDeLimite(respuesta.body())) {
+
+			log.info("El modelo {} pide max_completion_tokens; se reintenta", modelo);
+			limiteEnCompletion = true;
+
+			return enviar(peticion.replace("\"max_tokens\":", "\"max_completion_tokens\":"), true);
+		}
+
 		if (respuesta.statusCode() != 200) {
-			throw new IllegalStateException("el servicio respondio " + respuesta.statusCode());
+			// Se conserva el cuerpo: el proveedor explica ahi que esta mal --- el
+			// modelo, un parametro, la cuota --- y quedarse solo con el numero
+			// obliga a adivinar lo que el servicio ya habia dicho.
+			throw new IllegalStateException("el servicio respondio " + respuesta.statusCode()
+					+ ": " + resumir(respuesta.body()));
 		}
 		return respuesta.body();
 	}
@@ -269,6 +313,41 @@ public final class AssistedSpecificationGenerator implements SpecificationGenera
 			return texto.toString();
 		}
 		return "";
+	}
+
+
+	/**
+	 * Recorta el cuerpo de un error para poder mostrarlo.
+	 *
+	 * <p>Los proveedores devuelven un objeto con el motivo dentro. No se
+	 * interpreta porque cada uno lo estructura a su manera y lo que importa es
+	 * leerlo, no clasificarlo.</p>
+	 */
+	/**
+	 * Cuerpo para los servicios que hablan como OpenAI.
+	 *
+	 * <p>El nombre del parametro del limite cambio con la serie gpt-5 y los
+	 * modelos anteriores no admiten el nuevo: se envia el que corresponda.</p>
+	 */
+	private String cuerpoOpenAi(String texto, int limite, boolean enCompletion) {
+		String parametro = enCompletion ? "max_completion_tokens" : "max_tokens";
+
+		return "{\"model\":\"" + escapar(modelo) + "\",\"" + parametro + "\":" + limite + ","
+				+ "\"messages\":[{\"role\":\"user\",\"content\":\"" + texto + "\"}]}";
+	}
+
+	/** Si el rechazo se debe al nombre del parametro del limite. */
+	private boolean esParametroDeLimite(String cuerpo) {
+		return cuerpo != null && cuerpo.contains("max_completion_tokens");
+	}
+
+	private String resumir(String cuerpo) {
+		if (cuerpo == null || cuerpo.isBlank()) {
+			return "sin detalle";
+		}
+
+		String limpio = cuerpo.replaceAll("\\s+", " ").trim();
+		return limpio.length() <= 400 ? limpio : limpio.substring(0, 399) + "…";
 	}
 
 	private String escapar(String texto) {

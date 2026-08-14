@@ -56,6 +56,16 @@ public final class AssistedTestGenerator implements TestGenerator {
 	 */
 	private final String plantilla;
 
+	/**
+	 * Si el servicio pide el limite como {@code max_completion_tokens}.
+	 *
+	 * <p>Los modelos de la serie gpt-5 rechazan {@code max_tokens} y los
+	 * anteriores rechazan el nuevo, de modo que no hay uno que sirva para todos.
+	 * Se empieza por el clasico y, si lo rechazan por ese motivo, se reintenta con
+	 * el nuevo y se recuerda para las siguientes llamadas.</p>
+	 */
+	private boolean limiteEnCompletion;
+
 	public AssistedTestGenerator(TestGenerator respaldo, AiProvider proveedor, String url,
 			String credencial, String modelo, String plantilla, Duration espera) {
 
@@ -97,7 +107,21 @@ public final class AssistedTestGenerator implements TestGenerator {
 	// =================================================================
 
 	private List<ArtifactProposal> pedirAlModelo(RequirementInput r, String clase) throws Exception {
-		String peticion = cuerpoDe(r, clase);
+		String cuerpo = enviar(cuerpoDe(r, clase));
+		return interpretar(cuerpo, r, clase);
+	}
+
+	/**
+	 * Envia la peticion y devuelve el cuerpo de la respuesta.
+	 *
+	 * @param peticion cuerpo ya compuesto
+	 * @param reintento si esta llamada ya es un reintento, para no repetir sin fin
+	 */
+	private String enviar(String peticion) throws Exception {
+		return enviar(peticion, false);
+	}
+
+	private String enviar(String peticion, boolean reintento) throws Exception {
 
 		HttpRequest.Builder constructor = HttpRequest.newBuilder(URI.create(direccion()))
 				.header("content-type", "application/json")
@@ -119,11 +143,28 @@ public final class AssistedTestGenerator implements TestGenerator {
 		HttpResponse<String> respuesta = cliente.send(solicitud,
 				HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
 
-		if (respuesta.statusCode() != 200) {
-			throw new IllegalStateException("el servicio respondio " + respuesta.statusCode());
+		// El nombre del parametro del limite cambio con la serie gpt-5. Si lo
+		// rechazan por eso, se reintenta con el otro y se recuerda: es preferible a
+		// preguntar al usuario por algo que el servicio ya nos dice.
+		if (respuesta.statusCode() == 400 && !reintento && !limiteEnCompletion
+				&& esParametroDeLimite(respuesta.body())) {
+
+			log.info("El modelo {} pide max_completion_tokens; se reintenta", modelo);
+			limiteEnCompletion = true;
+
+			// La peticion se rehace con el otro nombre y se envia una sola vez mas.
+			return enviar(peticion.replace("\"max_tokens\":", "\"max_completion_tokens\":"), true);
 		}
 
-		return interpretar(respuesta.body(), r, clase);
+		if (respuesta.statusCode() != 200) {
+			// Se conserva el cuerpo: el proveedor explica ahi que esta mal --- el
+			// modelo, un parametro, la cuota --- y quedarse solo con el numero
+			// obliga a adivinar lo que el servicio ya habia dicho.
+			throw new IllegalStateException("el servicio respondio " + respuesta.statusCode()
+					+ ": " + resumir(respuesta.body()));
+		}
+
+		return respuesta.body();
 	}
 
 	/**
@@ -161,8 +202,7 @@ public final class AssistedTestGenerator implements TestGenerator {
 			case GOOGLE -> "{\"contents\":[{\"parts\":[{\"text\":\"" + texto + "\"}]}]}";
 
 			// OpenAI y cuanto habla como el.
-			default -> "{\"model\":\"" + escapar(modelo) + "\",\"max_tokens\":1500,"
-					+ "\"messages\":[{\"role\":\"user\",\"content\":\"" + texto + "\"}]}";
+			default -> cuerpoOpenAi(texto, 1500, limiteEnCompletion);
 		};
 	}
 
@@ -312,6 +352,41 @@ public final class AssistedTestGenerator implements TestGenerator {
 
 	private String nombreDe(RequirementInput r) {
 		return r.name() == null || r.name().isBlank() ? r.etiqueta() : r.name();
+	}
+
+
+	/**
+	 * Recorta el cuerpo de un error para poder mostrarlo.
+	 *
+	 * <p>Los proveedores devuelven un objeto con el motivo dentro. No se
+	 * interpreta porque cada uno lo estructura a su manera y lo que importa es
+	 * leerlo, no clasificarlo.</p>
+	 */
+	/**
+	 * Cuerpo para los servicios que hablan como OpenAI.
+	 *
+	 * <p>El nombre del parametro del limite cambio con la serie gpt-5 y los
+	 * modelos anteriores no admiten el nuevo: se envia el que corresponda.</p>
+	 */
+	private String cuerpoOpenAi(String texto, int limite, boolean enCompletion) {
+		String parametro = enCompletion ? "max_completion_tokens" : "max_tokens";
+
+		return "{\"model\":\"" + escapar(modelo) + "\",\"" + parametro + "\":" + limite + ","
+				+ "\"messages\":[{\"role\":\"user\",\"content\":\"" + texto + "\"}]}";
+	}
+
+	/** Si el rechazo se debe al nombre del parametro del limite. */
+	private boolean esParametroDeLimite(String cuerpo) {
+		return cuerpo != null && cuerpo.contains("max_completion_tokens");
+	}
+
+	private String resumir(String cuerpo) {
+		if (cuerpo == null || cuerpo.isBlank()) {
+			return "sin detalle";
+		}
+
+		String limpio = cuerpo.replaceAll("\\s+", " ").trim();
+		return limpio.length() <= 400 ? limpio : limpio.substring(0, 399) + "…";
 	}
 
 	private String escapar(String texto) {

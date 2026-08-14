@@ -50,7 +50,14 @@ export class AiSettingsPage implements OnInit {
   protected readonly probando = signal<string | null>(null);
   protected readonly resultado = signal<Record<string, string>>({});
 
-  protected proveedorElegido = 'ANTHROPIC';
+  /**
+   * Proveedor elegido en el formulario.
+   *
+   * Es una señal y no una variable normal porque de él depende un valor
+   * calculado —dónde conseguir la clave—, y un cálculo solo se entera de lo que
+   * cambia si lo que cambia es una señal.
+   */
+  protected readonly proveedorElegido = signal('ANTHROPIC');
   protected modelo = '';
   protected direccion = '';
   protected clave = '';
@@ -58,7 +65,7 @@ export class AiSettingsPage implements OnInit {
   /** Si se copia lo guardado al resto de funciones sin configurar. */
 
   protected readonly dondeLaClave = computed(
-    () => this.proveedores().find((p) => p.id === this.proveedorElegido)?.keysUrl ?? '',
+    () => this.proveedores().find((p) => p.id === this.proveedorElegido())?.keysUrl ?? '',
   );
 
   /** Funciones que no pueden realizarse sin modelo y no lo tienen. */
@@ -87,7 +94,12 @@ export class AiSettingsPage implements OnInit {
 
     this.service.proveedores(this.projectId).subscribe({
       next: (l) => this.proveedores.set(l),
-      error: () => this.proveedores.set([]),
+      error: (fallo: HttpErrorResponse) => {
+        // Un fallo no puede parecer "no hay nada": son cosas distintas y quien
+        // mira no puede distinguirlas.
+        this.proveedores.set([]);
+        this.error.set(this.explicar(fallo));
+      },
     });
 
     this.cargar();
@@ -99,12 +111,22 @@ export class AiSettingsPage implements OnInit {
 
     this.service.prompts(this.projectId).subscribe({
       next: (l) => this.prompts.set(l),
-      error: () => this.prompts.set([]),
+      error: (fallo: HttpErrorResponse) => {
+        // Un fallo no puede parecer "no hay nada": son cosas distintas y quien
+        // mira no puede distinguirlas.
+        this.prompts.set([]);
+        this.error.set(this.explicar(fallo));
+      },
     });
 
     this.service.credenciales(this.projectId).subscribe({
       next: (l) => this.credenciales.set(l),
-      error: () => this.credenciales.set([]),
+      error: (fallo: HttpErrorResponse) => {
+        // Un fallo no puede parecer "no hay nada": son cosas distintas y quien
+        // mira no puede distinguirlas.
+        this.credenciales.set([]);
+        this.error.set(this.explicar(fallo));
+      },
     });
 
     this.service.funciones(this.projectId).subscribe({
@@ -124,7 +146,7 @@ export class AiSettingsPage implements OnInit {
 
   /** Al cambiar de proveedor se proponen su dirección y su modelo habituales. */
   protected cambiarProveedor(id: string): void {
-    this.proveedorElegido = id;
+    this.proveedorElegido.set(id);
 
     const guardada = this.credenciales().find((c) => c.provider === id);
     const p = this.proveedores().find((x) => x.id === id);
@@ -142,7 +164,7 @@ export class AiSettingsPage implements OnInit {
     const c = this.credenciales().find((x) => x.provider === providerId);
     const p = this.proveedores().find((x) => x.id === providerId);
 
-    this.proveedorElegido = providerId;
+    this.proveedorElegido.set(providerId);
     this.modelo = c?.model ?? p?.defaultModel ?? '';
     this.direccion = c?.baseUrl ?? p?.defaultUrl ?? '';
     this.clave = '';
@@ -154,7 +176,7 @@ export class AiSettingsPage implements OnInit {
     this.error.set(null);
 
     this.service
-      .guardarCredencial(this.projectId, this.proveedorElegido, {
+      .guardarCredencial(this.projectId, this.proveedorElegido(), {
         model: this.modelo.trim(),
         baseUrl: this.direccion.trim(),
         apiKey: this.clave.trim() || undefined,

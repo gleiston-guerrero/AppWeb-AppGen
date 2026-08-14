@@ -30,7 +30,7 @@ public enum AiProvider {
 
 	GOOGLE("Google (Gemini)",
 			"https://generativelanguage.googleapis.com/v1beta/models",
-			"gemini-3-flash", "https://aistudio.google.com/apikey"),
+			"gemini-3.7-flash", "https://aistudio.google.com/apikey"),
 
 	/**
 	 * Cualquier servicio que hable como el de OpenAI.

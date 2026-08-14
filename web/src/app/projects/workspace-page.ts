@@ -109,7 +109,12 @@ export class WorkspacePage implements OnInit {
   protected cargarMisInvitaciones(): void {
     this.invitaciones.mias().subscribe({
       next: (lista) => this.misInvitaciones.set(lista),
-      error: () => this.misInvitaciones.set([]),
+      error: (fallo: HttpErrorResponse) => {
+        // Un fallo no puede parecer "no hay nada": son cosas distintas y quien
+        // mira no puede distinguirlas.
+        this.misInvitaciones.set([]);
+        this.error.set(this.explicar(fallo));
+      },
     });
   }
 
@@ -320,7 +325,12 @@ export class WorkspacePage implements OnInit {
     if (this.esFacilitadorDe(p)) {
       this.invitaciones.vigentes(p.readableId).subscribe({
         next: (lista) => this.pendientesProyecto.set(lista),
-        error: () => this.pendientesProyecto.set([]),
+        error: (fallo: HttpErrorResponse) => {
+        // Un fallo no puede parecer "no hay nada": son cosas distintas y quien
+        // mira no puede distinguirlas.
+        this.pendientesProyecto.set([]);
+        this.error.set(this.explicar(fallo));
+      },
       });
     }
 

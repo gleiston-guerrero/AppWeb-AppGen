@@ -124,7 +124,12 @@ export class PlanningPage implements OnInit {
 
     this.proyectos.equipo(this.projectId).subscribe({
       next: (lista) => this.equipo.set(lista),
-      error: () => this.equipo.set([]),
+      error: (fallo: HttpErrorResponse) => {
+        // Un fallo no puede parecer "no hay nada": son cosas distintas y quien
+        // mira no puede distinguirlas.
+        this.equipo.set([]);
+        this.error.set(this.explicar(fallo));
+      },
     });
   }
 

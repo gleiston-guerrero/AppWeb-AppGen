@@ -118,14 +118,24 @@ export class DeliverablesPage implements OnInit {
 
     this.requisitos.resumen(this.projectId).subscribe({
       next: (r) => this.resumenRequisitos.set(r),
-      error: () => this.resumenRequisitos.set(null),
+      error: (fallo: HttpErrorResponse) => {
+        // Un fallo no puede parecer "no hay nada": son cosas distintas y quien
+        // mira no puede distinguirlas.
+        this.resumenRequisitos.set(null);
+        this.error.set(this.explicar(fallo));
+      },
     });
   }
 
   private cargarEnlazables(deliverable?: string): void {
     this.service.enlazables(this.projectId, deliverable).subscribe({
       next: (lista) => this.enlazables.set(lista),
-      error: () => this.enlazables.set([]),
+      error: (fallo: HttpErrorResponse) => {
+        // Un fallo no puede parecer "no hay nada": son cosas distintas y quien
+        // mira no puede distinguirlas.
+        this.enlazables.set([]);
+        this.error.set(this.explicar(fallo));
+      },
     });
   }
 

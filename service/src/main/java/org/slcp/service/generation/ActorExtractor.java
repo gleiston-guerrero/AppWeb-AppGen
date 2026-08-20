@@ -2,6 +2,7 @@ package org.slcp.service.generation;
 
 import java.text.Normalizer;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -82,6 +83,55 @@ public final class ActorExtractor {
 	 * --- quien pide algo y quien lo recibe --- y quedarse con uno perderia la
 	 * mitad del caso de uso.</p>
 	 */
+	/**
+	 * Identifica los actores, prefiriendo el caso de uso si lo hay.
+	 *
+	 * <p>Un caso de uso aceptado declara su actor principal: no hay que deducirlo
+	 * del enunciado ni acertar con una regla. Es una decision que alguien tomo, y
+	 * usarla es preferible a repetir la conjetura.</p>
+	 */
+	public static List<Identificado> identificar(String enunciado, String casoDeUso) {
+		if (casoDeUso != null && !casoDeUso.isBlank()) {
+			List<Identificado> declarados = delCasoDeUso(casoDeUso);
+			if (!declarados.isEmpty()) {
+				return declarados;
+			}
+		}
+		return identificar(enunciado);
+	}
+
+	/** Actor principal y secundarios que el caso de uso declara. */
+	private static List<Identificado> delCasoDeUso(String casoDeUso) {
+		List<Identificado> salida = new ArrayList<>();
+		Set<String> vistos = new HashSet<>();
+
+		Matcher principal = Pattern.compile("\"actorPrincipal\"\\s*:\\s*\"([^\"]+)\"")
+				.matcher(casoDeUso);
+
+		if (principal.find()) {
+			String actor = limpiar(principal.group(1));
+			if (!esElSistema(actor) && vistos.add(clave(actor))) {
+				salida.add(new Identificado(actor,
+						"Lo declara el caso de uso aceptado como actor principal", true));
+			}
+		}
+
+		Matcher secundarios = Pattern.compile(
+				"\"actoresSecundarios\"\\s*:\\s*\\[([^\\]]*)\\]").matcher(casoDeUso);
+
+		if (secundarios.find()) {
+			Matcher uno = Pattern.compile("\"([^\"]+)\"").matcher(secundarios.group(1));
+			while (uno.find()) {
+				String actor = limpiar(uno.group(1));
+				if (!esElSistema(actor) && vistos.add(clave(actor))) {
+					salida.add(new Identificado(actor,
+							"Lo declara el caso de uso aceptado como actor secundario", true));
+				}
+			}
+		}
+		return salida;
+	}
+
 	public static List<Identificado> identificar(String enunciado) {
 		if (enunciado == null || enunciado.isBlank()) {
 			return List.of(new Identificado(SIN_IDENTIFICAR, "El requisito no tiene enunciado", false));

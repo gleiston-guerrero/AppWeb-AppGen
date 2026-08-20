@@ -334,6 +334,16 @@ public final class DerivedTestGenerator implements TestGenerator {
 	 * generar esta prueba la pone a la vista.</p>
 	 */
 	private ArtifactProposal negativa(RequirementInput r) {
+		// Si hay caso de uso aceptado, sus flujos de excepcion dicen justamente lo
+		// que el requisito calla: que ocurre cuando la condicion no se cumple. Eso
+		// lo decidio el equipo, de modo que no hay nada que inventar ni que dejar
+		// como hueco.
+		List<String> excepciones = excepcionesDe(r);
+
+		if (!excepciones.isEmpty()) {
+			return deExcepcion(r, excepciones);
+		}
+
 		StringBuilder texto = new StringBuilder();
 		texto.append("# Generada de ").append(r.etiqueta()).append(" — camino negativo\n\n");
 		texto.append("  Escenario: no se cumple la condicion de ").append(nombreDe(r)).append('\n');
@@ -408,6 +418,81 @@ public final class DerivedTestGenerator implements TestGenerator {
 	}
 
 	// =================================================================
+	/**
+	 * Prueba derivada de los flujos de excepcion del caso de uso.
+	 *
+	 * <p>Sale entera: la condicion y la respuesta las escribio el equipo y estan
+	 * aceptadas. No queda hueco porque no falta ninguna decision.</p>
+	 */
+	private ArtifactProposal deExcepcion(RequirementInput r, List<String> excepciones) {
+		StringBuilder texto = new StringBuilder();
+		texto.append("# Generada de ").append(r.etiqueta())
+				.append(" y de su caso de uso aceptado\n");
+		texto.append("Caracteristica: ").append(nombreDe(r)).append("\n");
+
+		for (String excepcion : excepciones) {
+			String[] partes = excepcion.split("\u0001", 2);
+
+			// "(paso 2)" remite al caso de uso y aqui no significa nada: quien ejecuta
+			// la prueba no tiene ese documento delante.
+			String condicion = minusculaInicial(
+					partes[0].replaceAll("\\s*\\(paso \\d+\\)", "").trim());
+
+			// La condicion del flujo describe un estado ---"falta la superficie"---,
+			// no una accion. Va al "Dado"; la accion es la del caso de uso.
+			texto.append("\n  Escenario: ").append(condicion).append('\n');
+			texto.append("    Dado que ").append(condicion).append('\n');
+			texto.append("    Cuando se ").append(conjugar(accionDe(r))).append('\n');
+			texto.append("    Entonces ")
+					.append(partes.length > 1
+							? minusculaInicial(partes[1].replaceAll(
+									"\\.?\\s*El flujo retorna al paso \\d+\\.?", "").trim())
+							: HUECO)
+					.append('\n');
+		}
+
+		return new ArtifactProposal(NEGATIVA,
+				"Camino negativo de " + r.etiqueta(),
+				texto.toString(),
+				"GHERKIN",
+				"Derivada de los " + excepciones.size() + " flujos de excepcion del caso de uso "
+						+ "aceptado. La condicion y la respuesta las decidio el equipo, de modo que "
+						+ "no queda nada por inventar",
+				false,
+				List.of(r.readableId()));
+	}
+
+	/**
+	 * Condicion y respuesta de cada flujo de excepcion del caso de uso.
+	 *
+	 * <p>Se leen del documento con una lectura tolerante: interpretarlo entero
+	 * obligaria a que la forma no cambiara nunca, y un cambio menor dejaria de dar
+	 * excepciones sin avisar.</p>
+	 */
+	private List<String> excepcionesDe(RequirementInput r) {
+		if (!r.tieneCasoDeUso()) {
+			return List.of();
+		}
+
+		Matcher bloque = Pattern.compile("\"flujosExcepcionales\"\\s*:\\s*\\[(.*?)\\]",
+				Pattern.DOTALL).matcher(r.useCase());
+
+		if (!bloque.find()) {
+			return List.of();
+		}
+
+		List<String> salida = new ArrayList<>();
+		Matcher uno = Pattern.compile(
+				"\"condicion\"\\s*:\\s*\"([^\"]*)\"\\s*,\\s*\"respuesta\"\\s*:\\s*\"([^\"]*)\"")
+				.matcher(bloque.group(1));
+
+		while (uno.find()) {
+			salida.add(uno.group(1).trim() + "\u0001" + uno.group(2).trim());
+		}
+		return salida;
+	}
+
+
 
 	/**
 	 * Premisa: la condicion que el requisito enuncia, o una generica.

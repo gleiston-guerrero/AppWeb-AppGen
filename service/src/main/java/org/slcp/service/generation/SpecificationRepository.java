@@ -67,6 +67,19 @@ public interface SpecificationRepository extends JpaRepository<Specification, UU
 	List<UUID> requisitosConReglaBaseVigente(@Param("proyecto") UUID projectId,
 			@Param("clase") String kind);
 
+	/**
+	 * Caso de uso aceptado que realiza un requisito.
+	 *
+	 * <p>Solo el aceptado: uno propuesto todavia no lo ha juzgado nadie, y derivar
+	 * pruebas de el seria construir sobre algo que aun puede cambiar. Si hay mas de
+	 * uno, se toma el mas reciente.</p>
+	 */
+	@Query(value = "SELECT s.fields FROM specifications s "
+			+ "JOIN specification_requirements sr ON sr.specification_id = s.id "
+			+ "WHERE sr.requirement_id = :requisito AND s.kind = 'USE_CASE' "
+			+ "AND s.status = 'ACCEPTED' ORDER BY s.updated_at DESC LIMIT 1", nativeQuery = true)
+	Optional<String> casoDeUsoAceptadoDe(@Param("requisito") UUID requirementId);
+
 	// --- Reparos de la comprobacion ---
 
 	@Modifying

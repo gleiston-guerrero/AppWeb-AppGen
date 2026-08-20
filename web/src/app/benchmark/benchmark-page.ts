@@ -57,7 +57,14 @@ export class BenchmarkPage implements OnInit {
   protected funcion = 'GENERATE_TESTS';
   protected clase = 'ACCEPTANCE';
   protected notas = '';
-  protected elegidos = new Set<string>();
+  /**
+   * Proveedores marcados para el ensayo.
+   *
+   * Es una señal porque de ella dependen la marca de cada fila y si el botón
+   * está habilitado. Con un Set normal, marcar no cambiaba nada visible: la
+   * pantalla no tiene forma de enterarse.
+   */
+  protected readonly elegidos = signal<Set<string>>(new Set());
 
   protected readonly clases = computed(() => CLASES_POR_FUNCION[this.funcion] ?? []);
 
@@ -116,19 +123,27 @@ export class BenchmarkPage implements OnInit {
   }
 
   protected alternarProveedor(id: string): void {
-    if (this.elegidos.has(id)) {
-      this.elegidos.delete(id);
+    // Se crea un conjunto nuevo: modificar el mismo no cambia la referencia y la
+    // señal no daría por cambiado su valor.
+    const siguiente = new Set(this.elegidos());
+
+    if (siguiente.has(id)) {
+      siguiente.delete(id);
     } else {
-      this.elegidos.add(id);
+      siguiente.add(id);
     }
+    this.elegidos.set(siguiente);
   }
 
   protected elegido(id: string): boolean {
-    return this.elegidos.has(id);
+    return this.elegidos().has(id);
   }
 
+  /** Cuántos hay marcados. Un ensayo necesita al menos dos. */
+  protected readonly marcados = computed(() => this.elegidos().size);
+
   protected ejecutar(): void {
-    if (this.elegidos.size < 2) {
+    if (this.elegidos().size < 2) {
       this.error.set(
         'Un ensayo compara: elija al menos dos proveedores. Con uno solo se obtiene una medida sin nada con que contrastarla.',
       );
@@ -143,7 +158,7 @@ export class BenchmarkPage implements OnInit {
         feature: this.funcion,
         subkind: this.clase,
         requirements: [],
-        providers: [...this.elegidos],
+        providers: [...this.elegidos()],
         notes: this.notas.trim(),
       })
       .subscribe({

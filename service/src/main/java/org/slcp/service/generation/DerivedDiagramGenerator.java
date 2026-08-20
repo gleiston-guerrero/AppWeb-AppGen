@@ -70,7 +70,7 @@ public final class DerivedDiagramGenerator implements DiagramGenerator {
 			// ese trae el interesado o la fuente --- quien pidio el requisito o de
 			// donde vienen sus datos --- y no quien ejerce el caso de uso.
 			List<ActorExtractor.Identificado> identificados =
-					ActorExtractor.identificar(r.statement());
+					ActorExtractor.identificar(r.statement(), r.useCase());
 
 			boolean alguno = false;
 			for (ActorExtractor.Identificado i : identificados) {
@@ -172,7 +172,8 @@ public final class DerivedDiagramGenerator implements DiagramGenerator {
 	private ArtifactProposal contexto(List<RequirementInput> requisitos) {
 		Set<String> actores = new LinkedHashSet<>();
 		for (RequirementInput r : requisitos) {
-			for (ActorExtractor.Identificado i : ActorExtractor.identificar(r.statement())) {
+			for (ActorExtractor.Identificado i : ActorExtractor.identificar(r.statement(),
+					r.useCase())) {
 				if (i.seguro()) {
 					actores.add(i.actor());
 				}

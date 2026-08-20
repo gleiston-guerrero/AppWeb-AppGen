@@ -108,6 +108,7 @@ public class GenerationService {
 
 	private final GeneratedArtifactRepository artifacts;
 	private final RequirementRepository requirements;
+	private final SpecificationRepository specifications;
 	private final TestGenerator tests;
 	private final AiSettingsService ia;
 	private final DiagramGenerator diagrams;
@@ -117,12 +118,14 @@ public class GenerationService {
 	private final Clock clock;
 
 	public GenerationService(GeneratedArtifactRepository artifacts,
-			RequirementRepository requirements, TestGenerator tests, DiagramGenerator diagrams,
+			RequirementRepository requirements, SpecificationRepository specifications,
+			TestGenerator tests, DiagramGenerator diagrams,
 			AiSettingsService ia, ProjectService projects, UserRepository users,
 			EventRecordRepository events, Clock clock) {
 
 		this.artifacts = artifacts;
 		this.requirements = requirements;
+		this.specifications = specifications;
 		this.tests = tests;
 		this.ia = ia;
 		this.diagrams = diagrams;
@@ -328,9 +331,23 @@ public class GenerationService {
 
 	// =================================================================
 
+	/**
+	 * Lo que se le da al generador.
+	 *
+	 * <p>Incluye el caso de uso aceptado si lo hay. Es lo que el equipo decidio, y
+	 * de ahi salen los caminos negativos y los actores que el requisito no trae:
+	 * generar del requisito habiendo un caso de uso aceptado seria ignorar el
+	 * trabajo de quien lo escribio y volver a inventar lo ya decidido.</p>
+	 */
 	private RequirementInput entradaDe(Requirement r) {
 		return new RequirementInput(r.getReadableId(), r.getSourceId(), r.getKind().name(),
-				r.getName(), r.getStatement(), r.getVerification(), r.getActor());
+				r.getName(), r.getStatement(), r.getVerification(), r.getActor(),
+				casoDeUsoDe(r.getId()));
+	}
+
+	/** El caso de uso aceptado que realiza este requisito, si existe. */
+	private String casoDeUsoDe(UUID requirementId) {
+		return specifications.casoDeUsoAceptadoDe(requirementId).orElse(null);
 	}
 
 	private List<ArtifactView> vistas(UUID projectId, String kind) {

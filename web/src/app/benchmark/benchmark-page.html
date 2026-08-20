@@ -87,9 +87,18 @@
 
       <div class="acciones">
         <button type="button" class="btn btn--principal"
-          [disabled]="ejecutando() || disponibles().length < 2" (click)="ejecutar()">
+          [disabled]="ejecutando() || marcados() < 2" (click)="ejecutar()">
           {{ ejecutando() ? 'Ensayando…' : 'Ejecutar el ensayo' }}
         </button>
+
+        @if (marcados() < 2) {
+          <span class="campo__ayuda">
+            Marque al menos dos proveedores de la lista: un ensayo compara.
+            @if (marcados() === 1) { Lleva uno. }
+          </span>
+        } @else {
+          <span class="campo__ayuda">{{ marcados() }} proveedores marcados.</span>
+        }
       </div>
 
       <p class="panel__nota">
